@@ -4,7 +4,10 @@ const userSchema = new Schema(
   {
     email: { type: String, required: true, unique: true },
     passwordHash: { type: String },
-    name: { type: String },
+    name: {
+      type: String,
+      required: [true, "Name is required for human users"],
+    },
     role: {
       type: String,
       enum: ["reporter", "dicht_admin", "dicht_technician"],

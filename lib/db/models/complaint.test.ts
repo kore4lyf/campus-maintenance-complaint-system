@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { complaintSchema } from "./complaint";
 
 beforeEach(() => {
@@ -18,6 +20,7 @@ describe("complaintSchema", () => {
     expect(fieldNames).toContain("slaResolveBy");
     expect(fieldNames).toContain("status");
     expect(fieldNames).toContain("escalated");
+    expect(fieldNames).toContain("resolvedAt");
     expect(fieldNames).toContain("aiSuggestion");
     expect(fieldNames).toContain("parentComplaintId");
   });

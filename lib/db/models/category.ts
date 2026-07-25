@@ -2,6 +2,7 @@ import mongoose, { Schema, InferSchemaType } from "mongoose";
 
 const categorySchema = new Schema(
   {
+    name: { type: String, required: true },
     systemType: {
       type: String,
       enum: ["Electrical", "Plumbing", "Carpentry", "HVAC", "ICT", "Cleaning", "Security", "Other"],

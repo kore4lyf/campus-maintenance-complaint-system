@@ -8,7 +8,8 @@ const config: Config = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
-    "^mongoose$": "<rootDir>/__mocks__/mongoose.js",
+    "^bson$": "<rootDir>/node_modules/bson/lib/bson.cjs",
+    "^bson/(.*)$": "<rootDir>/node_modules/bson/lib/bson.cjs",
   },
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
   transformIgnorePatterns: [

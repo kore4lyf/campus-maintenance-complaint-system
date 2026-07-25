@@ -2,7 +2,11 @@ import mongoose, { Schema, InferSchemaType } from "mongoose";
 
 const notificationSchema = new Schema(
   {
-    complaintId: { type: mongoose.Schema.Types.ObjectId, ref: "Complaint" },
+    complaintId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Complaint",
+      required: true,
+    },
     recipientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { assignmentSchema } from "./assignment";
 
 beforeEach(() => {

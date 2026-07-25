@@ -20,7 +20,11 @@ describe("connection", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- jest resetModules requires require()
     const { connect } = require("./connection");
     await connect();
-    expect(mockMongooseConnect).toHaveBeenCalledWith("mongodb://localhost:27017/test");
+    expect(mockMongooseConnect).toHaveBeenCalledWith("mongodb://localhost:27017/test", {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
   });
 
   it("disconnects from MongoDB", async () => {

@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { statusHistorySchema } from "./status-history";
 
 beforeEach(() => {
@@ -11,6 +13,7 @@ describe("statusHistorySchema", () => {
     expect(fieldNames).toContain("fromStatus");
     expect(fieldNames).toContain("toStatus");
     expect(fieldNames).toContain("changedById");
+    expect(fieldNames).toContain("changedBySystem");
     expect(fieldNames).toContain("note");
     expect(fieldNames).toContain("photoUrl");
     expect(fieldNames).toContain("changedAt");

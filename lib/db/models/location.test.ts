@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { locationSchema } from "./location";
 
 beforeEach(() => {

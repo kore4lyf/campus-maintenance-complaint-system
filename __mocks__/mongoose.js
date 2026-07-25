@@ -32,6 +32,18 @@ const Schema = jest.fn().mockImplementation((fields, options) => {
     options,
     _indexes: [],
     _clone: jest.fn().mockReturnThis(),
+    pre: jest.fn().mockReturnValue(undefined),
+    post: jest.fn().mockReturnValue(undefined),
+    invalidate: jest.fn(),
+    virtual: jest.fn().mockImplementation(() => ({
+      get: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+    })),
+    _preFindOneAndUpdate: {
+      getUpdate: jest.fn().mockReturnValue(null),
+      getFilter: jest.fn().mockReturnValue({}),
+      getOptions: jest.fn().mockReturnValue({}),
+    },
   };
 });
 

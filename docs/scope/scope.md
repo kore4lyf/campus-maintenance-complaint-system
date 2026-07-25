@@ -10,8 +10,8 @@ A web app for LASU students and staff to submit maintenance complaints with phot
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
 | 1 | Project setup & dependencies · done | Foundation | done |
-| 2 | Data model | Foundation | planned |
-| 3 | Design system & UI foundation | Foundation | planned |
+| 2 | Data model · in-progress | Foundation | in-progress |
+| 3 | Design system & UI foundation · in-progress | Foundation | in-progress |
 | 4 | Authentication (BetterAuth) | Slice 1 | planned |
 | 5 | Complaint submission with AI triage | Slice 1 | planned |
 | 6 | Reporter dashboard | Slice 1 | planned |
@@ -36,17 +36,45 @@ Install all planned dependencies, configure environment variables, set up TypeSc
   - [x] Test it: `/test project setup & dependencies`
 Spec 0001 · code in `../specs/0001-project-setup-and-dependencies.md`
 
-### 2. Data model
+### 2. Data model · in-progress
 
 Eight Mongoose collections (users, categories, locations, complaints, assignments, statusHistory, notifications, reports) with indexes, validators, and the connection pool.
 **Done when:** all schemas are defined in `/lib/db/models/`, indexes are created on first connect, and the complaint status transition invariant is enforced by Mongoose validators.
-- [ ] Design it (spec): `/architect data model`
+- [x] Design it (spec): `/architect data model`
+- [x] Build it: `/develop data model`
+  - [x] Update architecture.md to record Mongoose 9 (AC-15)
+  - [x] Tighten users schema (AC-1)
+  - [x] Add new fields: proofPhotoUrl, changedBySystem (AC-1, AC-7)
+  - [x] Implement pre(save) hook for status transitions (AC-3)
+  - [x] Implement cross field validators (AC-4, AC-5, AC-6)
+  - [x] Update connection.ts with pool sizing and SIGINT (AC-9)
+  - [x] Update indexes.ts with all indexes and retry (AC-8, AC-10)
+  - [x] Create lib/utils/pii.ts toPublicJSON helper (AC-13)
+  - [x] Build atomic duplicate detection (AC-11)
+  - [x] Wire optimistic concurrency (AC-12)
+  - [x] Author invariant tests (AC-14)
+  - [x] Add dev seed script
+  - [x] Verify it: `/check verify data model`
+  - [ ] Test it: `/test data model`
+Spec 0002 · code in `../specs/0002-data-model.md`
 
-### 3. Design system & UI foundation
+### 3. Design system & UI foundation · in-progress
 
 Astryx component integration, Tailwind theme tokens, layout shell with sidebar nav for reporter/admin/technician roles, and responsive base.
 **Done when:** `design.md` covers type/color/spacing/components, the layout renders for all three roles, and base components handle focus and keyboard navigation.
-- [ ] Design it (spec): `/architect design system & UI foundation`
+- [x] Design it (spec): `/architect design system & UI foundation`
+- [ ] Build it: `/develop design system & UI foundation`
+  - [ ] Install Astryx and providers, add NEXT_PUBLIC_ALLOW_MOCK_ROLE to .env.example
+  - [ ] Author docs/design.md tokens reference (AC-1)
+  - [ ] Wire app/globals.css, app/providers.tsx, app/layout.tsx (AC-2, AC-3, AC-7)
+  - [ ] Build lib/auth/role-context.tsx and the three role aware layouts (AC-4)
+  - [ ] Build the empty state composites and error boundaries (AC-5, AC-6)
+  - [ ] Verify all build gates green and dev server smoke (AC-9)
+- [ ] Verify it: `/check verify design system & UI foundation`
+- [ ] Test it: `/test design system & UI foundation`
+- [ ] Review it (fresh model): `/check review design system & UI foundation`
+- [ ] Document it: `/document design system & UI foundation`
+Spec 0003 · code in `../specs/0003-design-system-ui-foundation.md`
 
 ## Slice 1: Core complaint loop
 

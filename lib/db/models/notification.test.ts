@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { notificationSchema } from "./notification";
 
 beforeEach(() => {

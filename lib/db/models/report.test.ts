@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { reportSchema } from "./report";
 
 beforeEach(() => {

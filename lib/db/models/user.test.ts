@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { userSchema } from "./user";
 
 beforeEach(() => {

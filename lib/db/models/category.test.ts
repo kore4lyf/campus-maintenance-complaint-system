@@ -1,3 +1,5 @@
+jest.mock("mongoose");
+
 import { categorySchema } from "./category";
 
 beforeEach(() => {
