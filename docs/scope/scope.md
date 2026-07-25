@@ -9,7 +9,7 @@ A web app for LASU students and staff to submit maintenance complaints with phot
 
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
-| 1 | Project setup & dependencies | Foundation | planned |
+| 1 | Project setup & dependencies · done | Foundation | done |
 | 2 | Data model | Foundation | planned |
 | 3 | Design system & UI foundation | Foundation | planned |
 | 4 | Authentication (BetterAuth) | Slice 1 | planned |
@@ -24,11 +24,17 @@ A web app for LASU students and staff to submit maintenance complaints with phot
 
 ## Foundations
 
-### 1. Project setup & dependencies
+### 1. Project setup & dependencies · done
 
 Install all planned dependencies, configure environment variables, set up TypeScript strict mode, and confirm the dev server boots.
 **Done when:** all packages from the architecture are installed, .env.example lists every required variable, `npm run dev` boots without errors, and `npm run build` passes.
-- [ ] Design it (spec): `/architect project setup & dependencies`
+- [x] Design it (spec): `/architect project setup & dependencies`
+  - [x] Build it: `/develop project setup & dependencies`
+    - [x] Install all foundation deps in package.json (AC-1)
+    - [x] Create all directories per code-standards.md File Organization (AC-6)
+  - [x] Verify it: `/check verify project setup & dependencies`
+  - [x] Test it: `/test project setup & dependencies`
+Spec 0001 · code in `../specs/0001-project-setup-and-dependencies.md`
 
 ### 2. Data model
 
