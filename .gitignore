@@ -45,5 +45,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# context
-/context/
+# context — tracked on disk. The Idea-to-Product six-file convention plus
+# AGENTS.md treat these as system of record, so they should be in git.
+# context/
