@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCurrentRole } from "@/lib/auth/role-context";
+import { useCurrentUser, useCurrentRole } from "@/lib/auth/role-context";
 import { ThemeToggle } from "./ThemeToggle";
 import { SignOut } from "./SignOut";
 
 export function TopNav() {
+  const user = useCurrentUser();
   const role = useCurrentRole();
 
   return (
@@ -26,7 +27,7 @@ export function TopNav() {
                 Submit
               </Link>
               <Link
-                href="/complaints"
+                href="/complaints/mine"
                 className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground"
               >
                 My Complaints
@@ -60,8 +61,16 @@ export function TopNav() {
         </nav>
 
         <div className="flex items-center gap-1">
+          {user ? (
+            <span
+              className="hidden max-w-[12rem] truncate px-2 text-sm font-medium text-muted-strong sm:inline"
+              title={user.name || user.email}
+            >
+              {user.name || user.email}
+            </span>
+          ) : null}
           <ThemeToggle />
-          <SignOut />
+          {user ? <SignOut /> : null}
         </div>
       </div>
     </header>

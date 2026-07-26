@@ -1,4 +1,7 @@
 import mongoose from "mongoose";
+import { connect } from "@/lib/db/connection";
+import { UserModel } from "@/lib/db/models/user";
+import { getAuth } from "@/lib/auth/config";
 
 const CATEGORIES = [
   { name: "Electrical Faults", systemType: "Electrical", defaultSeverity: "High", slaAcknowledgeHrs: 4, slaResolveHrs: 24 },
@@ -68,4 +71,76 @@ async function seedLocations(
   return count;
 }
 
-export { seedCategories, seedLocations, CATEGORIES, LOCATIONS };
+type Role = "dicht_admin" | "dicht_technician";
+
+interface SeedUserTrio {
+  email: string | undefined;
+  password: string | undefined;
+  name: string | undefined;
+}
+
+function readTrio(
+  emailVar: string,
+  passwordVar: string,
+  nameVar: string,
+): SeedUserTrio | null {
+  const email = process.env[emailVar];
+  const password = process.env[passwordVar];
+  const name = process.env[nameVar];
+  if (!email || !password || !name) {
+    return null;
+  }
+  return { email, password, name };
+}
+
+async function seedRole(
+  trio: SeedUserTrio,
+  role: Role,
+): Promise<"created" | "updated" | "skipped"> {
+  await connect();
+  const auth = await getAuth();
+
+  try {
+    await auth.api.signUpEmail({
+      body: { email: trio.email, password: trio.password, name: trio.name },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!/USER_ALREADY_EXISTS|already/i.test(message)) {
+      throw err;
+    }
+    // Already exists: ensure password is in sync and role is correct.
+    await UserModel.findOneAndUpdate(
+      { email: trio.email },
+      { $set: { role, name: trio.name } },
+    );
+    return "updated";
+  }
+
+  await UserModel.findOneAndUpdate(
+    { email: trio.email },
+    { $set: { role, name: trio.name } },
+  );
+  return "created";
+}
+
+async function seedAdmin(): Promise<"created" | "updated" | "skipped"> {
+  const trio = readTrio("SEED_ADMIN_EMAIL", "SEED_ADMIN_PASSWORD", "SEED_ADMIN_NAME");
+  if (!trio) return "skipped";
+  return seedRole(trio, "dicht_admin");
+}
+
+async function seedTechnician(): Promise<"created" | "updated" | "skipped"> {
+  const trio = readTrio("SEED_TECH_EMAIL", "SEED_TECH_PASSWORD", "SEED_TECH_NAME");
+  if (!trio) return "skipped";
+  return seedRole(trio, "dicht_technician");
+}
+
+export {
+  seedCategories,
+  seedLocations,
+  seedAdmin,
+  seedTechnician,
+  CATEGORIES,
+  LOCATIONS,
+};

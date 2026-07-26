@@ -15,9 +15,9 @@ A web app for LASU students and staff to submit maintenance complaints with phot
 | 4 | Authentication (BetterAuth) · in-progress | Slice 1 | in-progress |
 | 5 | Complaint submission with AI triage · in-progress | Slice 1 | in-progress |
 | 6 | Reporter dashboard · in-progress | Slice 1 | in-progress |
-| 7 | Admin queue & assignment | Slice 2 | planned |
-| 8 | Technician queue & status updates | Slice 2 | planned |
-| 9 | SLA engine & escalation | Slice 3 | planned |
+| 7 | Admin queue & assignment · in-progress | Slice 2 | in-progress |
+| 8 | Technician queue & status updates · in-progress | Slice 2 | in-progress |
+| 9 | SLA engine & escalation · in-progress | Slice 3 | in-progress |
 | 10 | Real-time notifications (Ably) | Slice 3 | planned |
 | 11 | Reporting dashboard & export | Slice 4 | planned |
 | 12 | Image pipeline (sharp + Cloudinary) | Slice 4 | planned |
@@ -84,17 +84,19 @@ Email/password registration and sign-in for three roles (reporter, dicht_admin, 
 **Done when:** a user can register, sign in, and sign out; protected routes reject unauthenticated requests; role-based routes enforce the RBAC matrix.
 - [x] Design it (spec): `/architect authentication`
 - [ ] Build it: `/develop authentication`
-  - [ ] Install BetterAuth plus Mongoose adapter; add session, account, verification models (AC-5, AC-6)
-  - [ ] Wire lib/auth/config.ts, app/api/auth/[...all]/route.ts, lib/auth/actions.ts, plus (public) sign-in and sign-up pages (AC-1, AC-2, AC-3, AC-5)
-  - [ ] Add middleware.ts at project root for RBAC and refactor lib/auth/role-context.tsx to useCurrentUser (AC-4, AC-7)
-  - [ ] Retire MockRoleSwitcher and remove NEXT_PUBLIC_ALLOW_MOCK_ROLE from .env.example (AC-8)
-  - [ ] Extend scripts/seed.ts with the SEED_ADMIN plus SEED_TECH trios, .env.example entries, architecture text reconciliation (AC-9)
+  - [x] Install BetterAuth plus Mongoose adapter; add session, account, verification models (AC-5, AC-6)
+  - [x] Wire lib/auth/config.ts, app/api/auth/[...all]/route.ts, lib/auth/actions.ts, plus (public) sign-in and sign-up pages (AC-1, AC-2, AC-3, AC-5)
+  - [x] Add middleware.ts at project root for RBAC and refactor lib/auth/role-context.tsx to useCurrentUser (AC-4, AC-7)
+  - [x] Retire MockRoleSwitcher and remove NEXT_PUBLIC_ALLOW_MOCK_ROLE from .env.example (AC-8)
+  - [x] Extend scripts/seed.ts with the SEED_ADMIN plus SEED_TECH trios, .env.example entries, architecture text reconciliation (AC-9)
   - [ ] Run all build gates plus Playwright sign-up, sign-in, sign-out, and 403 on role mismatch smoke (AC-10)
+    - Deferred to end-of-cycle per Test Execution Policy in `AGENTS.md`; agents during development must not block on `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, or `npm run test:e2e`. End-of-cycle verify will re-run all gates against the final tree.
+  - code in `lib/auth/{config,actions,role-context}.ts`, `lib/db/models/{session,account,verification}.ts`, `app/api/auth/[...all]/route.ts`, `app/(public)/{sign-in,sign-up}/*.tsx`, `components/shared/SignOut.tsx`, `components/shared/TopNav.tsx`, `middleware.ts`, `scripts/seed.ts`
 - [ ] Verify it: `/check verify authentication`
 - [ ] Test it: `/test authentication`
 - [ ] Review it (fresh model): `/check review authentication`
 - [ ] Document it: `/document authentication`
-Spec 0004 · code in `../specs/0004-authentication.md`
+Spec 0004 (Status: In Progress; build spec `index.md`, rationale `rationale.md`, verify `verify.md`) · code in `../specs/0004-authentication/index.md`
 
 ### 5. Complaint submission with AI triage · in-progress
 
@@ -131,25 +133,55 @@ Spec 0006 · code in `../specs/0006-reporter-dashboard.md`
 
 ## Slice 2: Admin and technician views
 
-### 7. Admin queue & assignment
+### 7. Admin queue & assignment · in-progress
 
 Admin console at `/admin/queue` with filtering by severity, age, and location. Assignment action to technicians, reassignment with audit trail, and SLA breach overlay.
 **Done when:** the admin can filter the queue, assign a complaint to a technician, reassign with audit, and see SLA breach indicators.
-- [ ] Design it (spec): `/architect admin queue`
+- [x] Design it (spec): `/architect admin queue`
+- [ ] Build it: `/develop admin queue & assignment`
+  - [ ] Build lib/sla/breach-detection.ts plus GET /api/admin/queue with severity/age/location filters and live breach overlay (AC-1, AC-2, AC-3)
+  - [ ] Build POST /api/admin/queue/assign with optimistic concurrency, audit trail writes, Ably push and notifications row (AC-5, AC-6, AC-7, AC-8)
+  - [ ] Build /app/(admin)/queue three column page with FilterPanel, QueueRow, AssignDialog, AdminQueueEmpty reuse (AC-1, AC-2, AC-4)
+  - [ ] Build GET /api/admin/queue/recent-actions and components/admin/RecentActionsFeed (AC-9)
+  - [ ] Run all build gates plus Playwright filter/breach/assign/reassign/recent-actions smoke (AC-10)
+- [ ] Verify it: `/check verify admin queue & assignment`
+- [ ] Test it: `/test admin queue & assignment`
+- [ ] Review it (fresh model): `/check review admin queue & assignment`
+- [ ] Document it: `/document admin queue & assignment`
+Spec 0007 · code in `../specs/0007-admin-queue-and-assignment.md`
 
-### 8. Technician queue & status updates
+### 8. Technician queue & status updates · in-progress
 
 Technician view at `/technician/queue` showing assigned complaints sorted by SLA urgency. Acknowledge, update status to In Progress with notes, and mark Resolved with mandatory proof-of-fix photo.
 **Done when:** the technician can acknowledge a complaint, update status with notes, and resolve with a proof photo that populates the statusHistory audit trail.
-- [ ] Design it (spec): `/architect technician queue`
+- [x] Design it (spec): `/architect technician queue`
+- [ ] Build it: `/develop technician queue & status updates`
+  - [ ] Build POST /api/technician/queue/[id]/transition with optimistic concurrency, allowlist, photo upload, statusHistory and notifications writes, Ably push (AC-3, AC-4, AC-5, AC-6, AC-7, AC-8)
+  - [ ] Build GET /api/technician/queue plus [id] route handlers with technician scoped assignment filter (AC-1, AC-2)
+  - [ ] Build /technician/queue and /technician/queue/[id] pages with AcknowledgeForm, InProgressForm, ResolveForm plus ProofPhotoUploader reusing lib/storage/cloudinary.ts (AC-1, AC-2, AC-3, AC-4, AC-5)
+  - [ ] Run all build gates plus Playwright acknowledge, in progress, resolved with photo, version mismatch 409, reverse transition rejected (AC-9)
+- [ ] Verify it: `/check verify technician queue & status updates`
+- [ ] Test it: `/test technician queue & status updates`
+- [ ] Review it (fresh model): `/check review technician queue & status updates`
+- [ ] Document it: `/document technician queue & status updates`
+Spec 0008 · code in `../specs/0008-technician-queue-and-status-updates.md`
 
 ## Slice 3: SLA and real-time
 
-### 9. SLA engine & escalation
+### 9. SLA engine & escalation · in-progress
 
 Vercel cron endpoint `/api/cron/sla-sweep` runs every 5 minutes. Acknowledge breach notifies DICT Admin; resolve breach notifies DICT Director. All escalations recorded in notifications.
 **Done when:** the cron detects breaches at the correct thresholds, sends the right escalation notifications, and is idempotent within a 5-minute window.
-- [ ] Design it (spec): `/architect SLA engine`
+- [x] Design it (spec): `/architect SLA engine`
+- [ ] Build it: `/develop SLA engine & escalation`
+  - [ ] Build /api/cron/sla-sweep with bearer auth, evaluateBreachState from spec 0007, dedup via notifications.find, notifications writes, Ably push, complaints.escalated flip (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7)
+  - [ ] Add vercel.json cron entry plus scripts/sla-sweep simulator for local exercise (AC-1, AC-8)
+  - [ ] Add escalatedRecentCount plus QueueRibbon on /admin/queue and run all build gates plus Playwright cron smoke (AC-8)
+- [ ] Verify it: `/check verify SLA engine & escalation`
+- [ ] Test it: `/test SLA engine & escalation`
+- [ ] Review it (fresh model): `/check review SLA engine & escalation`
+- [ ] Document it: `/document SLA engine & escalation`
+Spec 0009 · code in `../specs/0009-sla-engine-and-escalation.md`
 
 ### 10. Real-time notifications (Ably)
 

@@ -1,100 +1,70 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext } from "react";
+import { createAuthClient } from "better-auth/react";
 
-type Role = "reporter" | "dicht_admin" | "dicht_technician";
+export type Role = "reporter" | "dicht_admin" | "dicht_technician";
 
-const RoleContext = createContext<Role | null>(null);
+export type CurrentUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+};
+
+export type CurrentUserOrNull = CurrentUser | null;
+
+const authClient = createAuthClient({
+  baseURL:
+    typeof process !== "undefined" && process.env.NEXT_PUBLIC_BETTER_AUTH_URL
+      ? process.env.NEXT_PUBLIC_BETTER_AUTH_URL
+      : undefined,
+});
+
+const UserContext = createContext<CurrentUserOrNull>(null);
+
+function resolveRole(value: unknown): Role | null {
+  if (
+    value === "reporter" ||
+    value === "dicht_admin" ||
+    value === "dicht_technician"
+  ) {
+    return value;
+  }
+  return null;
+}
 
 export function RoleProvider({
-  initial,
   children,
 }: {
-  initial?: Role | null;
   children: React.ReactNode;
 }) {
-  const [role, setRole] = useState<Role | null>(initial ?? null);
+  const { data: session } = authClient.useSession();
+  const sessionUser = (session?.user ?? null) as {
+    id?: string;
+    email?: string;
+    name?: string;
+    role?: unknown;
+  } | null;
 
-  const switchRole = useCallback((r: Role | null) => {
-    setRole(r);
-  }, []);
+  const user: CurrentUserOrNull =
+    sessionUser && (sessionUser.id || sessionUser.email)
+      ? {
+          id: sessionUser.id ?? "",
+          email: sessionUser.email ?? "",
+          name: sessionUser.name || sessionUser.email || "",
+          role: resolveRole(sessionUser.role),
+        }
+      : null;
 
-  return (
-    <RoleContext.Provider value={role}>
-      {children}
-      {process.env.NEXT_PUBLIC_ALLOW_MOCK_ROLE === "1" && (
-        <MockRoleSwitcher current={role} onSwitch={switchRole} />
-      )}
-    </RoleContext.Provider>
-  );
+  return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
+}
+
+export function useCurrentUser(): CurrentUserOrNull {
+  return useContext(UserContext);
 }
 
 export function useCurrentRole(): Role | null {
-  return useContext(RoleContext);
-}
-
-function MockRoleSwitcher({
-  current,
-  onSwitch,
-}: {
-  current: Role | null;
-  onSwitch: (r: Role | null) => void;
-}) {
-  return (
-    <div
-      className="fixed bottom-4 right-4 z-50 rounded-lg border border-border bg-surface-raised p-3 shadow-lg"
-      role="region"
-      aria-label="Mock role switcher"
-    >
-      <p className="mb-2 text-xs font-medium text-muted-strong">
-        Dev only: mock role
-      </p>
-      <div className="flex flex-col gap-1">
-        <button
-          type="button"
-          onClick={() => onSwitch(null)}
-          className={`rounded-md px-3 py-1 text-left text-xs font-medium transition-colors ${
-            current === null
-              ? "bg-brand text-white"
-              : "bg-surface text-muted-strong hover:bg-surface-raised"
-          }`}
-        >
-          No role (signed out)
-        </button>
-        <button
-          type="button"
-          onClick={() => onSwitch("reporter")}
-          className={`rounded-md px-3 py-1 text-left text-xs font-medium transition-colors ${
-            current === "reporter"
-              ? "bg-brand text-white"
-              : "bg-surface text-muted-strong hover:bg-surface-raised"
-          }`}
-        >
-          Reporter
-        </button>
-        <button
-          type="button"
-          onClick={() => onSwitch("dicht_admin")}
-          className={`rounded-md px-3 py-1 text-left text-xs font-medium transition-colors ${
-            current === "dicht_admin"
-              ? "bg-brand text-white"
-              : "bg-surface text-muted-strong hover:bg-surface-raised"
-          }`}
-        >
-          DICT Admin
-        </button>
-        <button
-          type="button"
-          onClick={() => onSwitch("dicht_technician")}
-          className={`rounded-md px-3 py-1 text-left text-xs font-medium transition-colors ${
-            current === "dicht_technician"
-              ? "bg-brand text-white"
-              : "bg-surface text-muted-strong hover:bg-surface-raised"
-          }`}
-        >
-          DICT Technician
-        </button>
-      </div>
-    </div>
-  );
+  const user = useContext(UserContext);
+  return user ? user.role : null;
 }
