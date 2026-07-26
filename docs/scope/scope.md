@@ -12,7 +12,7 @@ A web app for LASU students and staff to submit maintenance complaints with phot
 | 1 | Project setup & dependencies · done | Foundation | done |
 | 2 | Data model · in-progress | Foundation | in-progress |
 | 3 | Design system & UI foundation · in-progress | Foundation | in-progress |
-| 4 | Authentication (BetterAuth) | Slice 1 | planned |
+| 4 | Authentication (BetterAuth) · in-progress | Slice 1 | in-progress |
 | 5 | Complaint submission with AI triage | Slice 1 | planned |
 | 6 | Reporter dashboard | Slice 1 | planned |
 | 7 | Admin queue & assignment | Slice 2 | planned |
@@ -55,7 +55,7 @@ Eight Mongoose collections (users, categories, locations, complaints, assignment
   - [x] Author invariant tests (AC-14)
   - [x] Add dev seed script
   - [x] Verify it: `/check verify data model`
-  - [ ] Test it: `/test data model`
+  - [x] Test it: `/test data model`
 Spec 0002 · code in `../specs/0002-data-model.md`
 
 ### 3. Design system & UI foundation · in-progress
@@ -63,13 +63,13 @@ Spec 0002 · code in `../specs/0002-data-model.md`
 Astryx component integration, Tailwind theme tokens, layout shell with sidebar nav for reporter/admin/technician roles, and responsive base.
 **Done when:** `design.md` covers type/color/spacing/components, the layout renders for all three roles, and base components handle focus and keyboard navigation.
 - [x] Design it (spec): `/architect design system & UI foundation`
-- [ ] Build it: `/develop design system & UI foundation`
-  - [ ] Install Astryx and providers, add NEXT_PUBLIC_ALLOW_MOCK_ROLE to .env.example
-  - [ ] Author docs/design.md tokens reference (AC-1)
-  - [ ] Wire app/globals.css, app/providers.tsx, app/layout.tsx (AC-2, AC-3, AC-7)
-  - [ ] Build lib/auth/role-context.tsx and the three role aware layouts (AC-4)
-  - [ ] Build the empty state composites and error boundaries (AC-5, AC-6)
-  - [ ] Verify all build gates green and dev server smoke (AC-9)
+- [x] Build it: `/develop design system & UI foundation`
+- [x] Install Astryx and providers, add NEXT_PUBLIC_ALLOW_MOCK_ROLE to .env.example
+- [x] Author docs/design.md tokens reference (AC-1)
+- [x] Wire app/globals.css, app/providers.tsx, app/layout.tsx (AC-2, AC-3, AC-7)
+- [x] Build lib/auth/role-context.tsx and the three role aware layouts (AC-4)
+- [x] Build the empty state composites and error boundaries (AC-5, AC-6)
+- [x] Verify all build gates green and dev server smoke (AC-9)
 - [ ] Verify it: `/check verify design system & UI foundation`
 - [ ] Test it: `/test design system & UI foundation`
 - [ ] Review it (fresh model): `/check review design system & UI foundation`
@@ -78,11 +78,23 @@ Spec 0003 · code in `../specs/0003-design-system-ui-foundation.md`
 
 ## Slice 1: Core complaint loop
 
-### 4. Authentication (BetterAuth)
+### 4. Authentication (BetterAuth) · in-progress
 
 Email/password registration and sign-in for three roles (reporter, dicht_admin, dicht_technician) with HTTP-only cookie sessions and route-level RBAC checks.
 **Done when:** a user can register, sign in, and sign out; protected routes reject unauthenticated requests; role-based routes enforce the RBAC matrix.
-- [ ] Design it (spec): `/architect authentication`
+- [x] Design it (spec): `/architect authentication`
+- [ ] Build it: `/develop authentication`
+  - [ ] Install BetterAuth plus Mongoose adapter; add session, account, verification models (AC-5, AC-6)
+  - [ ] Wire lib/auth/config.ts, app/api/auth/[...all]/route.ts, lib/auth/actions.ts, plus (public) sign-in and sign-up pages (AC-1, AC-2, AC-3, AC-5)
+  - [ ] Add middleware.ts at project root for RBAC and refactor lib/auth/role-context.tsx to useCurrentUser (AC-4, AC-7)
+  - [ ] Retire MockRoleSwitcher and remove NEXT_PUBLIC_ALLOW_MOCK_ROLE from .env.example (AC-8)
+  - [ ] Extend scripts/seed.ts with the SEED_ADMIN plus SEED_TECH trios, .env.example entries, architecture text reconciliation (AC-9)
+  - [ ] Run all build gates plus Playwright sign-up, sign-in, sign-out, and 403 on role mismatch smoke (AC-10)
+- [ ] Verify it: `/check verify authentication`
+- [ ] Test it: `/test authentication`
+- [ ] Review it (fresh model): `/check review authentication`
+- [ ] Document it: `/document authentication`
+Spec 0004 · code in `../specs/0004-authentication.md`
 
 ### 5. Complaint submission with AI triage
 

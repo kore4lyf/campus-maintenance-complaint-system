@@ -8,4 +8,19 @@ class ApiError extends Error {
   }
 }
 
-export { ApiError };
+function toUserMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    if (error.message.includes("fetch")) {
+      return "A network error occurred. Please check your connection and try again.";
+    }
+    if (error.message.includes("timeout")) {
+      return "The request took too long. Please try again.";
+    }
+  }
+  return "Something went wrong. Please try again later.";
+}
+
+export { ApiError, toUserMessage };
