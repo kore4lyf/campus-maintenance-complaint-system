@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 jest.unmock("mongoose");
 
 import mongoose from "mongoose";
@@ -10,11 +13,16 @@ import { statusHistorySchema } from "../models/status-history";
 const MONGODB_URI = process.env.MONGODB_URI;
 const TEST_DB = `invariants_test_${Date.now()}`;
 
-let Complaint: mongoose.Model<mongoose.Document>;
-let User: mongoose.Model<mongoose.Document>;
-let Notification: mongoose.Model<mongoose.Document>;
-let Category: mongoose.Model<mongoose.Document>;
-let StatusHistory: mongoose.Model<mongoose.Document>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime test models don't need strict typing
+let Complaint: mongoose.Model<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let User: mongoose.Model<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Notification: mongoose.Model<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Category: mongoose.Model<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let StatusHistory: mongoose.Model<any>;
 
 beforeAll(async () => {
   if (!MONGODB_URI) {
@@ -26,7 +34,7 @@ beforeAll(async () => {
   User = mongoose.model("UserRuntime", userSchema);
   Notification = mongoose.model("NotificationRuntime", notificationSchema);
   Category = mongoose.model("CategoryRuntime", categorySchema);
-  StatusHistory = mongoose.model("StatusHistoryRuntime", statusHistorySchema);
+  StatusHistory = mongoose.model("StatusHistory", statusHistorySchema);
 });
 
 afterAll(async () => {

@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("locationSchema", () => {
   it("has all expected field definitions", () => {
-    const fieldNames = Object.keys(locationSchema.fields);
+    const fieldNames = Object.keys(locationSchema.paths);
     expect(fieldNames).toContain("name");
     expect(fieldNames).toContain("area");
   });

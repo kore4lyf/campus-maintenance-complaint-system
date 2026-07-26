@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("userSchema", () => {
   it("has all expected field definitions", () => {
-    const fieldNames = Object.keys(userSchema.fields);
+    const fieldNames = Object.keys(userSchema.paths);
     expect(fieldNames).toContain("email");
     expect(fieldNames).toContain("passwordHash");
     expect(fieldNames).toContain("name");
@@ -21,6 +21,7 @@ describe("userSchema", () => {
   });
 
   it("has no inline indexes", () => {
-    expect(userSchema._indexes).toHaveLength(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- _indexes is an internal Schema property for testing
+    expect((userSchema as any)._indexes).toHaveLength(0);
   });
 });

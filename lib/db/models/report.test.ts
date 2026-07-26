@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("reportSchema", () => {
   it("has all expected field definitions", () => {
-    const fieldNames = Object.keys(reportSchema.fields);
+    const fieldNames = Object.keys(reportSchema.paths);
     expect(fieldNames).toContain("period");
     expect(fieldNames).toContain("byCategory");
     expect(fieldNames).toContain("byLocation");

@@ -6,12 +6,15 @@ const Schema = jest.fn().mockImplementation((fields, options) => {
   function processFields(obj, prefix) {
     for (const key of Object.keys(obj)) {
       const fullKey = prefix ? `${prefix}.${key}` : key;
-      if (obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]) && obj[key].type) {
-        paths[fullKey] = { ...obj[key], path: fullKey };
-      } else if (obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key])) {
-        processFields(obj[key], fullKey);
+      const val = obj[key];
+      if (val && typeof val === "object" && val.fields && val.paths) {
+        paths[fullKey] = { ...val, path: fullKey };
+      } else if (val && typeof val === "object" && !Array.isArray(val) && val.type) {
+        paths[fullKey] = { ...val, path: fullKey };
+      } else if (val && typeof val === "object" && !Array.isArray(val)) {
+        processFields(val, fullKey);
       } else {
-        paths[fullKey] = obj[key];
+        paths[fullKey] = val;
       }
     }
   }

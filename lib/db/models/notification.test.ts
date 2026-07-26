@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("notificationSchema", () => {
   it("has all expected field definitions", () => {
-    const fieldNames = Object.keys(notificationSchema.fields);
+    const fieldNames = Object.keys(notificationSchema.paths);
     expect(fieldNames).toContain("complaintId");
     expect(fieldNames).toContain("recipientId");
     expect(fieldNames).toContain("type");
@@ -21,6 +21,7 @@ describe("notificationSchema", () => {
   });
 
   it("has no inline indexes", () => {
-    expect(notificationSchema._indexes).toHaveLength(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- _indexes is an internal Schema property for testing
+    expect((notificationSchema as any)._indexes).toHaveLength(0);
   });
 });

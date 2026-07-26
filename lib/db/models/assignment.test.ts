@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("assignmentSchema", () => {
   it("has all expected field definitions", () => {
-    const fieldNames = Object.keys(assignmentSchema.fields);
+    const fieldNames = Object.keys(assignmentSchema.paths);
     expect(fieldNames).toContain("complaintId");
     expect(fieldNames).toContain("assignedToTechId");
     expect(fieldNames).toContain("assignedById");
@@ -20,6 +20,7 @@ describe("assignmentSchema", () => {
   });
 
   it("has no inline indexes", () => {
-    expect(assignmentSchema._indexes).toHaveLength(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- _indexes is an internal Schema property for testing
+    expect((assignmentSchema as any)._indexes).toHaveLength(0);
   });
 });

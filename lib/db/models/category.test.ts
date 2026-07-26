@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("categorySchema", () => {
   it("has all expected field definitions", () => {
-    const fieldNames = Object.keys(categorySchema.fields);
+    const fieldNames = Object.keys(categorySchema.paths);
     expect(fieldNames).toContain("systemType");
     expect(fieldNames).toContain("defaultSeverity");
     expect(fieldNames).toContain("slaAcknowledgeHrs");

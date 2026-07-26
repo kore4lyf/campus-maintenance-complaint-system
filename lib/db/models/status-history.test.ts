@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("statusHistorySchema", () => {
   it("has all expected field definitions", () => {
-    const fieldNames = Object.keys(statusHistorySchema.fields);
+    const fieldNames = Object.keys(statusHistorySchema.paths);
     expect(fieldNames).toContain("complaintId");
     expect(fieldNames).toContain("fromStatus");
     expect(fieldNames).toContain("toStatus");
