@@ -34,15 +34,41 @@ file records, stop and update the relevant file before writing code.
   (`Developer Brief — AI Triage + Vercel AI SDK Migration.md`) before introducing
   new tooling or schemas.
 
-## Test Execution Policy (effective 2026-07-26)
+## Test Sizing
 
-During active development, **write tests but do not run them**. The user is
-time-constrained and will defer full test execution, lint, typecheck, and
-build verification to the end of the development cycle. Write code, write
-the tests that prove the code, commit them — do not block on `npm test`,
-`npm run lint`, `npx tsc --noEmit`, `npm run build`, or `npm run test:e2e`
-during feature work. Surface blockers by writing a follow-up note in
-`@./context/progress-tracker.md` instead of running the gate inline.
+Each feature adds tests only for **its own acceptance criteria**. Tests
+exercise what was *built in the current scope*, not the framework's internals,
+not adjacent features, not speculative coverage.
+
+- If an AC says "providers wire theme + Role + Query" — assert the providers
+  tree, not every child's props.
+- If an AC says "Tab reaches theme toggle" — assert that one Tab reaches the
+  toggle, not a full focus history log.
+- If an AC is "build gates green" — that AC is verified by running the build,
+  not by adding more tests.
+
+**Three categories of test, by scope:**
+
+1. **Scope tests** (most common) — assert each AC of the current feature.
+   Live next to the feature in `lib/`, `app/`, or `tests/unit/`.
+2. **Cross-feature integration tests** — added only when two features really
+   meet at a real boundary (e.g. auth + complaint submit). Live in
+   `tests/integration/`.
+3. **Framework smoke tests** — one per integration boundary across the whole
+   app. Live in `tests/e2e/` and a tiny `tests/unit/smoke/`.
+
+**Anti-patterns under this rule:**
+
+- Tests that assert library internals (`schema.paths`,
+  `(schema as any)._indexes`, internal CSS class names). These fail on
+  library upgrades, not on real bugs.
+- Tests that re-cover an adjacent feature's invariants. Those invariants
+  belong to that feature's own test suite.
+- Tests that duplicate a render-tree smoke check of every component prop.
+  Smoke-test the boundary once; trust the rest to typecheck and runtime.
+
+**Target per feature:** 3–8 new tests. If the draft lands higher, it almost
+certainly tests scope that belongs somewhere else.
 
 ## Session Notes
 
