@@ -34,6 +34,16 @@ file records, stop and update the relevant file before writing code.
   (`Developer Brief — AI Triage + Vercel AI SDK Migration.md`) before introducing
   new tooling or schemas.
 
+## Test Execution Policy (effective 2026-07-26)
+
+During active development, **write tests but do not run them**. The user is
+time-constrained and will defer full test execution, lint, typecheck, and
+build verification to the end of the development cycle. Write code, write
+the tests that prove the code, commit them — do not block on `npm test`,
+`npm run lint`, `npx tsc --noEmit`, `npm run build`, or `npm run test:e2e`
+during feature work. Surface blockers by writing a follow-up note in
+`@./context/progress-tracker.md` instead of running the gate inline.
+
 ## Session Notes
 
 See `@./context/progress-tracker.md` → Session Notes.
