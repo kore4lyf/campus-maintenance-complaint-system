@@ -1,0 +1,414 @@
+import { NextResponse } from "next/server";
+import { ZodError, z } from "zod";
+import { revalidatePath } from "next/cache";
+import { connect } from "@/lib/db/connection";
+import { ComplaintModel } from "@/lib/db/models/complaint";
+import { CategoryModel } from "@/lib/db/models/category";
+import { LocationModel } from "@/lib/db/models/location";
+import { UserModel } from "@/lib/db/models/user";
+import { findOrCreateDuplicateParent } from "@/lib/db/helpers/duplicate-detection";
+import { ApiError } from "@/lib/utils/errors";
+import { getSession } from "@/lib/auth/config";
+import { triageComplaint } from "@/lib/ai/triage";
+import { compressAndUpload } from "@/lib/storage/cloudinary";
+import { signAnonymousToken, verifyAnonymousToken } from "@/lib/auth/anonymous-token";
+import type { TriageResult } from "@/lib/ai/triage";
+import type { Severity } from "@/lib/ai/schemas";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+const DESCRIPTION_MIN = 10;
+const DESCRIPTION_MAX = 2000;
+
+const formSchema = z.object({
+  categoryId: z.string().min(1, "categoryId is required"),
+  locationId: z.string().min(1, "locationId is required"),
+  description: z
+    .string()
+    .trim()
+    .min(DESCRIPTION_MIN, `Description must be at least ${DESCRIPTION_MIN} characters`)
+    .max(DESCRIPTION_MAX, `Description must be at most ${DESCRIPTION_MAX} characters`),
+  isAnonymous: z.boolean().optional().default(false),
+});
+
+type FormInput = z.infer<typeof formSchema>;
+
+interface UserContext {
+  reporterId: string | null;
+  isAnonymous: boolean;
+  reporterIdsForPii: string[];
+  reporterEmailsForPii: string[];
+}
+
+interface CategoryLookup {
+  _id: string;
+  name: string;
+  systemType: string;
+  defaultSeverity: Severity;
+  slaAcknowledgeHrs: number;
+  slaResolveHrs: number;
+}
+
+interface LocationLookup {
+  _id: string;
+  name: string;
+}
+
+interface ParsedRequest {
+  fields: FormInput;
+  photo: { buffer: Buffer; mime: string; name: string | null } | null;
+}
+
+function badRequest(code: string, message: string, status: number) {
+  return NextResponse.json(
+    { error: { code, message } },
+    { status, headers: { "content-type": "application/json" } },
+  );
+}
+
+function isValidObjectId(value: string): boolean {
+  return /^[a-fA-F0-9]{24}$/.test(value);
+}
+
+function pickString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  if (typeof raw === "string") return raw;
+  if (raw instanceof File) return raw.name ?? "";
+  return "";
+}
+
+function pickBoolean(form: FormData, key: string): boolean {
+  const raw = form.get(key);
+  if (typeof raw === "string") {
+    const v = raw.trim().toLowerCase();
+    return v === "true" || v === "on" || v === "1" || v === "yes";
+  }
+  return false;
+}
+
+async function readFormFromRequest(request: Request): Promise<ParsedRequest> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const fileEntry = form.get("photo");
+    let photo: ParsedRequest["photo"] = null;
+    if (fileEntry instanceof File && fileEntry.size > 0) {
+      photo = {
+        buffer: Buffer.from(await fileEntry.arrayBuffer()),
+        mime: fileEntry.type || "application/octet-stream",
+        name: fileEntry.name ?? null,
+      };
+    }
+    return {
+      fields: {
+        categoryId: pickString(form, "categoryId"),
+        locationId: pickString(form, "locationId"),
+        description: pickString(form, "description"),
+        isAnonymous: pickBoolean(form, "isAnonymous"),
+      },
+      photo,
+    };
+  }
+  const body = await request.json().catch(() => ({}));
+  const raw: Record<string, unknown> = body && typeof body === "object" ? body : {};
+  return {
+    fields: {
+      categoryId: typeof raw.categoryId === "string" ? raw.categoryId : "",
+      locationId: typeof raw.locationId === "string" ? raw.locationId : "",
+      description:
+        typeof raw.description === "string" ? raw.description : "",
+      isAnonymous: Boolean(raw.isAnonymous),
+    },
+    photo: null,
+  };
+}
+
+async function readSessionUser(isAnonymousRequested: boolean): Promise<UserContext> {
+  if (isAnonymousRequested) {
+    return {
+      reporterId: null,
+      isAnonymous: true,
+      reporterIdsForPii: [],
+      reporterEmailsForPii: [],
+    };
+  }
+  const session = await getSession();
+  if (!session?.user) {
+    throw new ApiError("unauthenticated", "Authentication required", 401);
+  }
+  const userId = (session.user as { id?: string }).id;
+  const userEmail = (session.user as { email?: string | null }).email ?? null;
+  if (!userId || !isValidObjectId(userId)) {
+    throw new ApiError("invalid_session", "Session user id is invalid", 401);
+  }
+  return {
+    reporterId: userId,
+    isAnonymous: false,
+    reporterIdsForPii: [userId],
+    reporterEmailsForPii: userEmail ? [userEmail] : [],
+  };
+}
+
+async function validateCategoryAndLocation(
+  categoryId: string,
+  locationId: string,
+): Promise<{ category: CategoryLookup; location: LocationLookup }> {
+  if (!isValidObjectId(categoryId)) {
+    throw new ApiError("invalid_category", "categoryId is not a valid id", 422);
+  }
+  if (!isValidObjectId(locationId)) {
+    throw new ApiError("invalid_location", "locationId is not a valid id", 422);
+  }
+  const category = await CategoryModel.findById(categoryId).lean();
+  if (!category) {
+    throw new ApiError("invalid_category", "Category not found", 422);
+  }
+  const location = await LocationModel.findById(locationId).lean();
+  if (!location) {
+    throw new ApiError("invalid_location", "Location not found", 422);
+  }
+  return {
+    category: {
+      _id: String(category._id),
+      name: category.name,
+      systemType: category.systemType,
+      defaultSeverity: category.defaultSeverity as Severity,
+      slaAcknowledgeHrs: category.slaAcknowledgeHrs,
+      slaResolveHrs: category.slaResolveHrs,
+    },
+    location: {
+      _id: String(location._id),
+      name: location.name,
+    },
+  };
+}
+
+function pickPriority(triage: TriageResult): Severity {
+  return triage.severity;
+}
+
+function computeSlaDeadlines(args: {
+  now: Date;
+  acknowledgeHrs: number;
+  resolveHrs: number;
+}): { slaAcknowledgeBy: Date; slaResolveBy: Date } {
+  const ackMs = args.acknowledgeHrs * 60 * 60 * 1000;
+  const resMs = args.resolveHrs * 60 * 60 * 1000;
+  return {
+    slaAcknowledgeBy: new Date(args.now.getTime() + ackMs),
+    slaResolveBy: new Date(args.now.getTime() + resMs),
+  };
+}
+
+async function createAnonymousHiddenUser(token: string): Promise<string> {
+  const claims = await verifyAnonymousToken({ token });
+  const sid = claims.sid;
+  const syntheticEmail = `anon-${sid}@anonymous.lasu`;
+  const create = await UserModel.create({
+    email: syntheticEmail,
+    name: "Anonymous Reporter",
+    role: "reporter",
+    passwordHash: null,
+    anonymousId: token,
+  });
+  return String(create._id);
+}
+
+function aiSuggestionRecordFrom(triage: TriageResult): Record<string, unknown> {
+  if (triage.fallback) {
+    return {
+      enabled: true,
+      fallback: true,
+      model: "rules",
+      severity: triage.severity,
+      rationale: triage.rationale,
+      ranAt: triage.ranAt,
+      error: triage.error,
+      promptTokens: 0,
+      completionTokens: 0,
+      costUsd: 0,
+      latencyMs: 0,
+    };
+  }
+  return {
+    enabled: true,
+    fallback: false,
+    model: triage.model,
+    categoryId: undefined,
+    severity: triage.severity,
+    rationale: triage.rationale,
+    ranAt: triage.ranAt,
+    promptTokens: triage.promptTokens,
+    completionTokens: triage.completionTokens,
+    costUsd: triage.costUsd,
+    latencyMs: triage.latencyMs,
+  };
+}
+
+function duplicateTriageRecordFrom(
+  category: CategoryLookup,
+): TriageResult {
+  return {
+    enabled: true,
+    fallback: true,
+    model: "rules",
+    severity: category.defaultSeverity,
+    rationale: "Duplicate cluster (rules, no AI) within 30-minute window",
+    categoryId: undefined,
+    ranAt: new Date(),
+    error: "Duplicate detected within 30-minute category+location window",
+    promptTokens: 0,
+    completionTokens: 0,
+    costUsd: 0,
+    latencyMs: 0,
+  };
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+  await connect();
+
+  let userCtx: UserContext;
+  let formInput: FormInput;
+  let photo: ParsedRequest["photo"] = null;
+
+  try {
+    const parsed = await readFormFromRequest(request);
+    formInput = parsed.fields;
+    photo = parsed.photo;
+
+    const validated = formSchema.safeParse(formInput);
+    if (!validated.success) {
+      const issue = validated.error.issues[0];
+      return badRequest(
+        "invalid_complaint",
+        issue?.message ?? "Invalid complaint payload",
+        422,
+      );
+    }
+
+    userCtx = await readSessionUser(Boolean(validated.data.isAnonymous));
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return badRequest(err.code, err.message, err.status);
+    }
+    if (err instanceof ZodError) {
+      return badRequest(
+        "invalid_complaint",
+        err.issues[0]?.message ?? "Invalid input",
+        422,
+      );
+    }
+    return badRequest("server_error", "Failed to read submission", 500);
+  }
+
+  try {
+    const lookup = await validateCategoryAndLocation(
+      formInput.categoryId,
+      formInput.locationId,
+    );
+
+    let trackerToken: string | null = null;
+    if (userCtx.isAnonymous) {
+      const tempToken = await signAnonymousToken({ userId: "pending-anonymous" });
+      trackerToken = tempToken;
+      userCtx.reporterId = await createAnonymousHiddenUser(tempToken);
+    }
+
+    const dup = await findOrCreateDuplicateParent(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mongoose ObjectId cast
+      lookup.category._id as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mongoose ObjectId cast
+      lookup.location._id as any,
+    );
+
+    let photoUrls: string[] = [];
+    if (photo) {
+      const uploaded = await compressAndUpload({
+        buffer: photo.buffer,
+        mime: photo.mime,
+        ...(photo.name ? { originalName: photo.name } : {}),
+      });
+      photoUrls = [uploaded.url];
+    }
+
+    const triage = dup.isDuplicate
+      ? duplicateTriageRecordFrom(lookup.category)
+      : await triageComplaint({
+          description: formInput.description,
+          ...(userCtx.reporterIdsForPii.length > 0
+            ? { reporterIds: userCtx.reporterIdsForPii }
+            : {}),
+          ...(userCtx.reporterEmailsForPii.length > 0
+            ? { reporterEmails: userCtx.reporterEmailsForPii }
+            : {}),
+          location: { name: lookup.location.name },
+          category: {
+            _id: lookup.category._id,
+            name: lookup.category.name,
+            systemType: lookup.category.systemType,
+            defaultSeverity: lookup.category.defaultSeverity,
+          },
+        });
+
+    const priority = pickPriority(triage);
+    const now = new Date();
+    const sla = computeSlaDeadlines({
+      now,
+      acknowledgeHrs: lookup.category.slaAcknowledgeHrs,
+      resolveHrs: lookup.category.slaResolveHrs,
+    });
+    const aiSuggestionRecord = aiSuggestionRecordFrom(triage);
+
+    const created = await ComplaintModel.create({
+      reporterId: userCtx.reporterId,
+      isAnonymous: userCtx.isAnonymous,
+      categoryId: lookup.category._id,
+      locationId: lookup.location._id,
+      description: formInput.description,
+      photoUrls,
+      priority,
+      slaAcknowledgeBy: sla.slaAcknowledgeBy,
+      slaResolveBy: sla.slaResolveBy,
+      status: "Submitted",
+      escalated: false,
+      aiSuggestion: aiSuggestionRecord,
+      ...(dup.parentComplaintId ? { parentComplaintId: dup.parentComplaintId } : {}),
+    });
+
+    let trackerUrl: string | null = null;
+    if (userCtx.isAnonymous && trackerToken) {
+      trackerUrl = `/track/${trackerToken}`;
+    }
+
+    try {
+      revalidatePath("/complaints/mine");
+      revalidatePath("/admin/queue");
+    } catch {
+      // Cache revalidation may be unavailable in some runtimes; ignore errors.
+    }
+
+    return NextResponse.json(
+      {
+        data: {
+          id: String(created._id),
+          redirectTo: trackerUrl ?? `/complaints/${String(created._id)}`,
+          ...(trackerUrl ? { trackerUrl } : {}),
+        },
+      },
+      { status: 201, headers: { "content-type": "application/json" } },
+    );
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return badRequest(err.code, err.message, err.status);
+    }
+    if (err instanceof ZodError) {
+      return badRequest(
+        "invalid_complaint",
+        err.issues[0]?.message ?? "Invalid input",
+        422,
+      );
+    }
+    return badRequest("server_error", "Failed to create complaint", 500);
+  }
+}

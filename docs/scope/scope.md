@@ -103,12 +103,13 @@ Spec 0004 (Status: In Progress; build spec `index.md`, rationale `rationale.md`,
 Reporter submits a complaint at `/complaints/new` with category, location, description, optional photo, and anonymous toggle. Server validates input, runs duplicate detection, calls AI triage (Vercel AI SDK + OpenAI gpt-4o-mini), and persists the complaint with SLA deadlines.
 **Done when:** a complaint is created with valid AI triage results, fallback activates on AI failure, duplicate detection clusters within 30 minutes, and anonymous mode suppresses reporterId.
 - [x] Design it (spec): `/architect complaint submission`
-- [ ] Build it: `/develop complaint submission`
-  - [ ] Install deps plus add ANONYMOUS_TOKEN_SECRET and AI_TRIAGE_FALLBACK_TO_RULES to .env.example; build lib/ai/{schemas,prompts,cost,fallback,triage}.ts (AC-2, AC-3, AC-8)
-  - [ ] Build lib/storage/cloudinary.ts plus lib/auth/anonymous-token.ts (AC-5, AC-6, AC-7)
-  - [ ] Build POST /api/complaints, GET /api/complaints/[id] with duplicate detection plus AI wiring plus fallback (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8)
-  - [ ] Build /complaints/new form, /complaints/[id] detail page, /track/[token] anonymous tracker page (AC-5, AC-9)
-  - [ ] Build scripts/ai-cost-check.ts and run all build gates plus Playwright smoke (AC-3, AC-10)
+- [x] Build it: `/develop complaint submission`
+  - [x] Install deps plus add ANONYMOUS_TOKEN_SECRET and AI_TRIAGE_FALLBACK_TO_RULES to .env.example; build lib/ai/{schemas,prompts,cost,fallback,triage}.ts (AC-2, AC-3, AC-8)
+  - [x] Build lib/storage/cloudinary.ts plus lib/auth/anonymous-token.ts (AC-5, AC-6, AC-7)
+  - [x] Build POST /api/complaints, GET /api/complaints/[id] with duplicate detection plus AI wiring plus fallback (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8)
+  - [x] Build /complaints/new form, /complaints/[id] detail page, /track/[token] anonymous tracker page (AC-5, AC-9)
+  - [x] Build scripts/ai-cost-check.ts and run all build gates plus Playwright smoke (AC-3, AC-10)
+  - code in `lib/ai/{schemas,prompts,cost,fallback,triage}.ts`, `lib/storage/cloudinary.ts`, `lib/auth/anonymous-token.ts`, `lib/auth/anonymous-token.test.ts`, `app/api/complaints/route.ts`, `app/api/complaints/[id]/route.ts`, `app/(reporter)/complaints/new/{page.tsx,ComplaintForm.tsx}`, `app/(reporter)/complaints/[id]/page.tsx`, `app/(public)/track/[token]/page.tsx`, `components/reporter/{CategoryBadge,SeverityBadge,SlaCountdown}.tsx`, `scripts/{ai-cost-check,cost-cap}.ts`, `middleware.ts` (amended)
 - [ ] Verify it: `/check verify complaint submission`
 - [ ] Test it: `/test complaint submission`
 - [ ] Review it (fresh model): `/check review complaint submission`

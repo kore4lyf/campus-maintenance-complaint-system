@@ -12,7 +12,6 @@ const PROTECTED_PREFIXES = [
   "/technician",
   "/api/admin",
   "/api/technician",
-  "/api/complaints",
 ] as const;
 
 const ROLE_PREFIX_MAP: Record<string, "dicht_admin" | "dicht_technician" | null> = {
@@ -20,7 +19,6 @@ const ROLE_PREFIX_MAP: Record<string, "dicht_admin" | "dicht_technician" | null>
   "/technician": "dicht_technician",
   "/api/admin": "dicht_admin",
   "/api/technician": "dicht_technician",
-  "/api/complaints": null,
 };
 
 function resolveRequiredRole(pathname: string): "dicht_admin" | "dicht_technician" | null | undefined {
