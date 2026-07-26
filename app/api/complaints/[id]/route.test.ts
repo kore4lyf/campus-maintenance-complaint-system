@@ -16,14 +16,14 @@ jest.mock("@/lib/db/models/assignment", () => ({
   },
 }));
 
-jest.mock("@/lib/auth/config", () => ({
-  getSession: jest.fn(),
+jest.mock("@/lib/auth/dal", () => ({
+  getServerSession: jest.fn(),
 }));
 
 import { GET } from "./route";
-import { getSession } from "@/lib/auth/config";
+import { getServerSession } from "@/lib/auth/dal";
 
-const getSessionMock = getSession as jest.Mock;
+const getServerSessionMock = getServerSession as jest.Mock;
 
 const OWNER_ID = "60f1b9c8e7d8e2b1a4f3ed88";
 const ADMIN_ID = "60f1b9c8e7d8e2b1a4f3ed99";
@@ -69,7 +69,7 @@ beforeEach(() => {
 
 describe("GET /api/complaints/[id]", () => {
   test("returns 401 when there is no session", async () => {
-    getSessionMock.mockResolvedValueOnce(null);
+    getServerSessionMock.mockResolvedValueOnce(null);
     const res = await GET(new Request("http://x"), {
       params: Promise.resolve({ id: COMPLAINT_ID }),
     });
@@ -85,9 +85,9 @@ describe("GET /api/complaints/[id]", () => {
     expect(res.status).toBe(404);
   });
 
-  test("strips AI rationale and priority from a reporter's view of their own complaint", async () => {
-    getSessionMock.mockResolvedValueOnce({
-      user: { id: OWNER_ID, role: "reporter" },
+test("strips AI rationale and priority from a reporter's view of their own complaint", async () => {
+    getServerSessionMock.mockResolvedValueOnce({
+      user: { id: OWNER_ID, email: "owner@example.com", name: "Owner", role: "reporter" },
     });
     const res = await GET(new Request("http://x"), {
       params: Promise.resolve({ id: COMPLAINT_ID }),
@@ -101,9 +101,9 @@ describe("GET /api/complaints/[id]", () => {
     expect(body.data.photoUrls).toEqual(["https://example.cloudinary.com/x.jpg"]);
   });
 
-  test("returns 403 when reporter tries to view a complaint they do not own", async () => {
-    getSessionMock.mockResolvedValueOnce({
-      user: { id: ADMIN_ID, role: "reporter" },
+test("returns 403 when reporter tries to view a complaint they do not own", async () => {
+    getServerSessionMock.mockResolvedValueOnce({
+      user: { id: ADMIN_ID, email: "admin@example.com", name: "Admin", role: "reporter" },
     });
     const res = await GET(new Request("http://x"), {
       params: Promise.resolve({ id: COMPLAINT_ID }),
@@ -111,9 +111,9 @@ describe("GET /api/complaints/[id]", () => {
     expect(res.status).toBe(403);
   });
 
-  test("allows admin to view any complaint and keeps AI rationale fields", async () => {
-    getSessionMock.mockResolvedValueOnce({
-      user: { id: ADMIN_ID, role: "dicht_admin" },
+test("allows admin to view any complaint and keeps AI rationale fields", async () => {
+    getServerSessionMock.mockResolvedValueOnce({
+      user: { id: ADMIN_ID, email: "admin@example.com", name: "Admin", role: "dicht_admin" },
     });
     const res = await GET(new Request("http://x"), {
       params: Promise.resolve({ id: COMPLAINT_ID }),
@@ -127,10 +127,10 @@ describe("GET /api/complaints/[id]", () => {
     expect(ai.ranAt).toBeDefined();
   });
 
-  test("lets a technician see assigned complaints with priority but no AI rationale", async () => {
+test("lets a technician see assigned complaints with priority but no AI rationale", async () => {
     assignmentFindOneMock.mockResolvedValueOnce({ _id: "60f1b9c8e7d8e2b1a4f3edcc" });
-    getSessionMock.mockResolvedValueOnce({
-      user: { id: TECH_ID, role: "dicht_technician" },
+    getServerSessionMock.mockResolvedValueOnce({
+      user: { id: TECH_ID, email: "tech@example.com", name: "Tech", role: "dicht_technician" },
     });
     const res = await GET(new Request("http://x"), {
       params: Promise.resolve({ id: COMPLAINT_ID }),
@@ -141,10 +141,10 @@ describe("GET /api/complaints/[id]", () => {
     expect(body.data.aiSuggestion).toBeUndefined();
   });
 
-  test("returns 403 when technician is not assigned to the complaint", async () => {
+test("returns 403 when technician is not assigned to the complaint", async () => {
     assignmentFindOneMock.mockResolvedValueOnce(null);
-    getSessionMock.mockResolvedValueOnce({
-      user: { id: TECH_ID, role: "dicht_technician" },
+    getServerSessionMock.mockResolvedValueOnce({
+      user: { id: TECH_ID, email: "tech@example.com", name: "Tech", role: "dicht_technician" },
     });
     const res = await GET(new Request("http://x"), {
       params: Promise.resolve({ id: COMPLAINT_ID }),

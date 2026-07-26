@@ -45,8 +45,8 @@ jest.mock("@/lib/db/helpers/duplicate-detection", () => ({
   })),
 }));
 
-jest.mock("@/lib/auth/config", () => ({
-  getSession: jest.fn(),
+jest.mock("@/lib/auth/dal", () => ({
+  getServerSession: jest.fn(),
 }));
 
 jest.mock("@/lib/ai/triage", () => ({
@@ -65,13 +65,13 @@ jest.mock("@/lib/auth/anonymous-token", () => ({
 import { POST } from "./route";
 import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
-import { getSession } from "@/lib/auth/config";
+import { getServerSession } from "@/lib/auth/dal";
 import { triageComplaint } from "@/lib/ai/triage";
 import { compressAndUpload } from "@/lib/storage/cloudinary";
 import { signAnonymousToken, verifyAnonymousToken } from "@/lib/auth/anonymous-token";
 import { findOrCreateDuplicateParent } from "@/lib/db/helpers/duplicate-detection";
 
-const getSessionMock = getSession as jest.Mock;
+const getServerSessionMock = getServerSession as jest.Mock;
 const triageMock = triageComplaint as jest.Mock;
 const compressMock = compressAndUpload as jest.Mock;
 const signTokenMock = signAnonymousToken as jest.Mock;
@@ -129,10 +129,11 @@ beforeEach(() => {
     iat: 1,
     exp: 7_776_000,
   });
-  getSessionMock.mockResolvedValue({
+  getServerSessionMock.mockResolvedValue({
     user: {
       id: "60f1b9c8e7d8e2b1a4f3ed88",
       email: "alice@example.com",
+      name: "Alice",
       role: "reporter",
     },
   });
@@ -179,7 +180,7 @@ describe("POST /api/complaints", () => {
   });
 
   test("rejects an unauthenticated non-anonymous request with 401", async () => {
-    getSessionMock.mockResolvedValueOnce(null);
+    getServerSessionMock.mockResolvedValueOnce(null);
     const res = await POST(makeJsonRequest({
       categoryId: CATEGORY_ID,
       locationId: LOCATION_ID,

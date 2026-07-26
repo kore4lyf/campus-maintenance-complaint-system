@@ -8,7 +8,7 @@ import { LocationModel } from "@/lib/db/models/location";
 import { UserModel } from "@/lib/db/models/user";
 import { findOrCreateDuplicateParent } from "@/lib/db/helpers/duplicate-detection";
 import { ApiError } from "@/lib/utils/errors";
-import { getSession } from "@/lib/auth/config";
+import { getServerSession } from "@/lib/auth/dal";
 import { triageComplaint } from "@/lib/ai/triage";
 import { compressAndUpload } from "@/lib/storage/cloudinary";
 import { signAnonymousToken, verifyAnonymousToken } from "@/lib/auth/anonymous-token";
@@ -133,13 +133,13 @@ async function readSessionUser(isAnonymousRequested: boolean): Promise<UserConte
       reporterEmailsForPii: [],
     };
   }
-  const session = await getSession();
-  if (!session?.user) {
+  const session = await getServerSession();
+  if (!session) {
     throw new ApiError("unauthenticated", "Authentication required", 401);
   }
-  const userId = (session.user as { id?: string }).id;
-  const userEmail = (session.user as { email?: string | null }).email ?? null;
-  if (!userId || !isValidObjectId(userId)) {
+  const userId = session.user.id;
+  const userEmail = session.user.email;
+  if (!isValidObjectId(userId)) {
     throw new ApiError("invalid_session", "Session user id is invalid", 401);
   }
   return {

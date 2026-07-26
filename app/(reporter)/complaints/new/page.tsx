@@ -1,8 +1,7 @@
 import { connect } from "@/lib/db/connection";
 import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
-import { getSession } from "@/lib/auth/config";
-import { ApiError } from "@/lib/utils/errors";
+import { requireRole } from "@/lib/auth/dal";
 import { ComplaintForm } from "./ComplaintForm";
 
 export const dynamic = "force-dynamic";
@@ -42,23 +41,8 @@ async function loadFormData(): Promise<{
   return { categories, locations };
 }
 
-async function assertReporter(): Promise<void> {
-  const session = await getSession();
-  if (!session?.user) {
-    throw new ApiError("unauthenticated", "Sign in to submit a complaint", 401);
-  }
-  const role = (session.user as { role?: unknown }).role;
-  if (role !== "reporter") {
-    throw new ApiError(
-      "forbidden",
-      "Only reporters can submit complaints from this page",
-      403,
-    );
-  }
-}
-
 export default async function NewComplaintPage(): Promise<React.ReactElement> {
-  await assertReporter();
+  await requireRole("reporter");
   const { categories, locations } = await loadFormData();
 
   return (

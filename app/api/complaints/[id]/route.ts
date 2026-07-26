@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { connect } from "@/lib/db/connection";
 import { ComplaintModel } from "@/lib/db/models/complaint";
 import { AssignmentModel } from "@/lib/db/models/assignment";
-import { getSession } from "@/lib/auth/config";
+import { getServerSession, type Role } from "@/lib/auth/dal";
 import { toPublicComplaint } from "@/lib/utils/pii";
 import { ApiError } from "@/lib/utils/errors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type Role = "reporter" | "dicht_admin" | "dicht_technician" | null;
+type SessionRoleOrNull = Role | null;
 
 function isValidObjectId(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value);
@@ -40,7 +40,7 @@ function adminView(doc: Record<string, unknown>): Record<string, unknown> {
   return toPublicComplaint(doc) as Record<string, unknown>;
 }
 
-function mapperFor(role: Role) {
+function mapperFor(role: SessionRoleOrNull) {
   if (role === "dicht_admin") return adminView;
   if (role === "dicht_technician") return technicianView;
   return reporterView;
@@ -50,25 +50,14 @@ async function resolveSessionUser(): Promise<{
   userId: string;
   role: Role;
 } | null> {
-  const session = await getSession();
-  if (!session?.user) {
+  const session = await getServerSession();
+  if (!session) {
     return null;
   }
-  const candidate = session.user as {
-    id?: string;
-    role?: unknown;
-  };
-  if (!candidate.id || !isValidObjectId(candidate.id)) {
+  if (!isValidObjectId(session.user.id)) {
     return null;
   }
-  const roleRaw = candidate.role;
-  const role: Role =
-    roleRaw === "reporter" ||
-    roleRaw === "dicht_admin" ||
-    roleRaw === "dicht_technician"
-      ? roleRaw
-      : null;
-  return { userId: candidate.id, role };
+  return { userId: session.user.id, role: session.user.role };
 }
 
 function notFound() {

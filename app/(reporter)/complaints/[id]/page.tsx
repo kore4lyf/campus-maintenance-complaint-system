@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
 import { connect } from "@/lib/db/connection";
 import { ComplaintModel } from "@/lib/db/models/complaint";
 import { AssignmentModel } from "@/lib/db/models/assignment";
 import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
-import { getSession } from "@/lib/auth/config";
+import { getServerSession, type Role } from "@/lib/auth/dal";
 import { ApiError } from "@/lib/utils/errors";
 import { CategoryBadge } from "@/components/reporter/CategoryBadge";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
@@ -15,32 +15,26 @@ import type { Severity } from "@/lib/ai/schemas";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type Role = "reporter" | "dicht_admin" | "dicht_technician" | null;
+type SessionRoleOrNull = Role | null;
 
 function isValidObjectId(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value);
 }
 
 interface DetailContext {
-  reporterId: string | null;
+  reporterId: string;
   role: Role;
 }
 
-async function loadContext(): Promise<DetailContext | null> {
-  const session = await getSession();
-  if (!session?.user) return null;
-  const candidate = session.user as {
-    id?: string;
-    role?: unknown;
-  };
-  if (!candidate.id || !isValidObjectId(candidate.id)) return null;
-  const role: Role =
-    candidate.role === "reporter" ||
-    candidate.role === "dicht_admin" ||
-    candidate.role === "dicht_technician"
-      ? candidate.role
-      : null;
-  return { reporterId: candidate.id, role };
+async function loadContext(): Promise<DetailContext> {
+  const session = await getServerSession();
+  if (!session) {
+    redirect("/sign-in");
+  }
+  if (!isValidObjectId(session.user.id)) {
+    redirect("/sign-in");
+  }
+  return { reporterId: session.user.id, role: session.user.role };
 }
 
 interface RenderedComplaint {
@@ -110,9 +104,6 @@ export default async function ComplaintDetailPage({
   }
 
   const ctx = await loadContext();
-  if (!ctx) {
-    throw new ApiError("unauthenticated", "Sign in to view this complaint", 401);
-  }
 
   let complaint: RenderedComplaint;
   try {
