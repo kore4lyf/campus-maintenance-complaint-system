@@ -11,10 +11,10 @@ A web app for LASU students and staff to submit maintenance complaints with phot
 |---|---------|-------|--------|
 | 1 | Project setup & dependencies · done | Foundation | done |
 | 2 | Data model · in-progress | Foundation | in-progress |
-| 3 | Design system & UI foundation · in-progress | Foundation | in-progress |
+| 3 | Design system & UI foundation · done | Foundation | done |
 | 4 | Authentication (BetterAuth) · in-progress | Slice 1 | in-progress |
-| 5 | Complaint submission with AI triage | Slice 1 | planned |
-| 6 | Reporter dashboard | Slice 1 | planned |
+| 5 | Complaint submission with AI triage · in-progress | Slice 1 | in-progress |
+| 6 | Reporter dashboard · in-progress | Slice 1 | in-progress |
 | 7 | Admin queue & assignment | Slice 2 | planned |
 | 8 | Technician queue & status updates | Slice 2 | planned |
 | 9 | SLA engine & escalation | Slice 3 | planned |
@@ -58,20 +58,20 @@ Eight Mongoose collections (users, categories, locations, complaints, assignment
   - [x] Test it: `/test data model`
 Spec 0002 · code in `../specs/0002-data-model.md`
 
-### 3. Design system & UI foundation · in-progress
+### 3. Design system & UI foundation · done
 
 Astryx component integration, Tailwind theme tokens, layout shell with sidebar nav for reporter/admin/technician roles, and responsive base.
 **Done when:** `design.md` covers type/color/spacing/components, the layout renders for all three roles, and base components handle focus and keyboard navigation.
 - [x] Design it (spec): `/architect design system & UI foundation`
 - [x] Build it: `/develop design system & UI foundation`
-- [x] Install Astryx and providers, add NEXT_PUBLIC_ALLOW_MOCK_ROLE to .env.example
-- [x] Author docs/design.md tokens reference (AC-1)
-- [x] Wire app/globals.css, app/providers.tsx, app/layout.tsx (AC-2, AC-3, AC-7)
-- [x] Build lib/auth/role-context.tsx and the three role aware layouts (AC-4)
-- [x] Build the empty state composites and error boundaries (AC-5, AC-6)
-- [x] Verify all build gates green and dev server smoke (AC-9)
-- [ ] Verify it: `/check verify design system & UI foundation`
-- [ ] Test it: `/test design system & UI foundation`
+  - [x] Install Astryx and providers, add NEXT_PUBLIC_ALLOW_MOCK_ROLE to .env.example
+  - [x] Author docs/design.md tokens reference (AC-1)
+  - [x] Wire app/globals.css, app/providers.tsx, app/layout.tsx (AC-2, AC-3, AC-7)
+  - [x] Build lib/auth/role-context.tsx and the three role aware layouts (AC-4)
+  - [x] Build the empty state composites and error boundaries (AC-5, AC-6)
+  - [x] Verify all build gates green and dev server smoke (AC-9)
+- [x] Verify it: `/check verify design system & UI foundation`
+- [x] Test it: `/test design system & UI foundation`
 - [ ] Review it (fresh model): `/check review design system & UI foundation`
 - [ ] Document it: `/document design system & UI foundation`
 Spec 0003 · code in `../specs/0003-design-system-ui-foundation.md`
@@ -96,17 +96,38 @@ Email/password registration and sign-in for three roles (reporter, dicht_admin, 
 - [ ] Document it: `/document authentication`
 Spec 0004 · code in `../specs/0004-authentication.md`
 
-### 5. Complaint submission with AI triage
+### 5. Complaint submission with AI triage · in-progress
 
 Reporter submits a complaint at `/complaints/new` with category, location, description, optional photo, and anonymous toggle. Server validates input, runs duplicate detection, calls AI triage (Vercel AI SDK + OpenAI gpt-4o-mini), and persists the complaint with SLA deadlines.
 **Done when:** a complaint is created with valid AI triage results, fallback activates on AI failure, duplicate detection clusters within 30 minutes, and anonymous mode suppresses reporterId.
-- [ ] Design it (spec): `/architect complaint submission`
+- [x] Design it (spec): `/architect complaint submission`
+- [ ] Build it: `/develop complaint submission`
+  - [ ] Install deps plus add ANONYMOUS_TOKEN_SECRET and AI_TRIAGE_FALLBACK_TO_RULES to .env.example; build lib/ai/{schemas,prompts,cost,fallback,triage}.ts (AC-2, AC-3, AC-8)
+  - [ ] Build lib/storage/cloudinary.ts plus lib/auth/anonymous-token.ts (AC-5, AC-6, AC-7)
+  - [ ] Build POST /api/complaints, GET /api/complaints/[id] with duplicate detection plus AI wiring plus fallback (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8)
+  - [ ] Build /complaints/new form, /complaints/[id] detail page, /track/[token] anonymous tracker page (AC-5, AC-9)
+  - [ ] Build scripts/ai-cost-check.ts and run all build gates plus Playwright smoke (AC-3, AC-10)
+- [ ] Verify it: `/check verify complaint submission`
+- [ ] Test it: `/test complaint submission`
+- [ ] Review it (fresh model): `/check review complaint submission`
+- [ ] Document it: `/document complaint submission`
+Spec 0005 · code in `../specs/0005-complaint-submission.md`
 
-### 6. Reporter dashboard
+### 6. Reporter dashboard · in-progress
 
 Personal dashboard at `/complaints/mine` listing the reporter's complaints with live status, and complaint detail at `/complaints/:id` showing status timeline and proof-of-fix photo.
 **Done when:** the reporter sees their complaints sorted by date, status is current, and the detail page shows the full status history.
-- [ ] Design it (spec): `/architect reporter dashboard`
+- [x] Design it (spec): `/architect reporter dashboard`
+- [ ] Build it: `/develop reporter dashboard`
+  - [ ] Build lib/utils/pagination.ts plus GET /api/complaints route handler with reporter scoped filter (AC-1, AC-7)
+  - [ ] Build /complaints/mine page with ComplaintCard, ClosedClaimsToggle, LoadMore, TanStack Query polling (AC-1, AC-2, AC-3)
+  - [ ] Build ComplaintTimeline plus ProofPhotoDialog plus /complaints/[id] detail page owned by Feature 6 (AC-4, AC-5, AC-6, AC-8, AC-9)
+  - [ ] Cross spec amendment to spec 0005 redirect plus run all build gates plus Playwright smoke (AC-10)
+- [ ] Verify it: `/check verify reporter dashboard`
+- [ ] Test it: `/test reporter dashboard`
+- [ ] Review it (fresh model): `/check review reporter dashboard`
+- [ ] Document it: `/document reporter dashboard`
+Spec 0006 · code in `../specs/0006-reporter-dashboard.md`
 
 ## Slice 2: Admin and technician views
 
