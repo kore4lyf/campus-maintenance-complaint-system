@@ -1,21 +1,18 @@
 import { notFound, redirect } from "next/navigation";
-import { format } from "date-fns";
 import { connect } from "@/lib/db/connection";
 import { ComplaintModel } from "@/lib/db/models/complaint";
+import { StatusHistoryModel } from "@/lib/db/models/status-history";
 import { AssignmentModel } from "@/lib/db/models/assignment";
 import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
+import { UserModel } from "@/lib/db/models/user";
 import { getServerSession, type Role } from "@/lib/auth/dal";
 import { ApiError } from "@/lib/utils/errors";
-import { CategoryBadge } from "@/components/reporter/CategoryBadge";
-import { SeverityBadge } from "@/components/reporter/SeverityBadge";
-import { SlaCountdown } from "@/components/reporter/SlaCountdown";
+import { ComplaintDetailClient } from "@/components/reporter/ComplaintDetailClient";
 import type { Severity } from "@/lib/ai/schemas";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-type SessionRoleOrNull = Role | null;
 
 function isValidObjectId(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value);
@@ -38,26 +35,41 @@ async function loadContext(): Promise<DetailContext> {
 }
 
 interface RenderedComplaint {
+  _id: string;
   status: string;
-  slaAcknowledgeBy: Date;
-  slaResolveBy: Date;
+  slaAcknowledgeBy: string;
+  slaResolveBy: string;
   description: string;
   photoUrls: string[];
-  createdAt: Date;
+  createdAt: string;
   priority?: Severity;
   categoryName?: string;
   locationName?: string;
 }
 
+interface TimelineEntry {
+  fromStatus: string;
+  toStatus: string;
+  changedById?: string;
+  changedByName?: string;
+  changedByRole?: string;
+  changedBySystem?: boolean;
+  note?: string;
+  photoUrl?: string;
+  changedAt: string;
+}
+
 async function loadComplaint(
   id: string,
   ctx: DetailContext,
-): Promise<RenderedComplaint> {
+): Promise<{ complaint: RenderedComplaint; timeline: TimelineEntry[] }> {
   await connect();
+
   const doc = await ComplaintModel.findById(id).lean();
   if (!doc) {
     throw new ApiError("not_found", "Complaint not found", 404);
   }
+
   const reporterId = doc.reporterId ? String(doc.reporterId) : null;
 
   if (ctx.role === "reporter") {
@@ -74,23 +86,74 @@ async function loadComplaint(
     }
   }
 
-  const category = await CategoryModel.findById(doc.categoryId).lean();
-  const location = await LocationModel.findById(doc.locationId).lean();
+  const [category, location, history] = await Promise.all([
+    CategoryModel.findById(doc.categoryId).lean(),
+    LocationModel.findById(doc.locationId).lean(),
+    StatusHistoryModel.find({ complaintId: doc._id })
+      .sort({ changedAt: -1 })
+      .lean(),
+  ]);
 
-  const out: RenderedComplaint = {
+  const actorIds = [
+    ...new Set(
+      history
+        .filter((h) => h.changedById && !h.changedBySystem)
+        .map((h) => String(h.changedById)),
+    ),
+  ];
+
+  const actors =
+    actorIds.length > 0
+      ? await UserModel.find({ _id: { $in: actorIds } })
+          .lean()
+          .then((docs) =>
+            Object.fromEntries(
+              docs.map((d) => [
+                String(d._id),
+                { name: d.name, role: d.role },
+              ]),
+            ),
+          )
+      : {};
+
+  const complaint: RenderedComplaint = {
+    _id: String(doc._id),
     status: doc.status,
-    slaAcknowledgeBy: doc.slaAcknowledgeBy as Date,
-    slaResolveBy: doc.slaResolveBy as Date,
+    slaAcknowledgeBy: new Date(doc.slaAcknowledgeBy).toISOString(),
+    slaResolveBy: new Date(doc.slaResolveBy).toISOString(),
     description: doc.description,
     photoUrls: doc.photoUrls ?? [],
-    createdAt: doc.createdAt as Date,
+    createdAt: new Date(doc.createdAt).toISOString(),
   };
+
   if (ctx.role === "dicht_admin" || ctx.role === "dicht_technician") {
-    out.priority = doc.priority as Severity;
+    complaint.priority = doc.priority as Severity;
   }
-  if (category) out.categoryName = category.name;
-  if (location) out.locationName = location.name;
-  return out;
+  if (category) complaint.categoryName = category.name;
+  if (location) complaint.locationName = location.name;
+
+  const timeline: TimelineEntry[] = history.map((entry) => {
+    const actor = entry.changedById ? actors[String(entry.changedById)] : null;
+    return {
+      fromStatus: entry.fromStatus,
+      toStatus: entry.toStatus,
+      changedById: entry.changedById ? String(entry.changedById) : undefined,
+      changedByName: entry.changedBySystem
+        ? undefined
+        : actor?.name ?? undefined,
+      changedByRole: entry.changedBySystem
+        ? "system"
+        : actor?.role ?? undefined,
+      changedBySystem: entry.changedBySystem ?? false,
+      note: entry.note ?? undefined,
+      photoUrl: entry.photoUrl ?? undefined,
+      changedAt: entry.changedAt
+        ? new Date(entry.changedAt).toISOString()
+        : new Date().toISOString(),
+    };
+  });
+
+  return { complaint, timeline };
 }
 
 export default async function ComplaintDetailPage({
@@ -105,9 +168,9 @@ export default async function ComplaintDetailPage({
 
   const ctx = await loadContext();
 
-  let complaint: RenderedComplaint;
+  let result: { complaint: RenderedComplaint; timeline: TimelineEntry[] };
   try {
-    complaint = await loadComplaint(id, ctx);
+    result = await loadComplaint(id, ctx);
   } catch (err) {
     if (err instanceof ApiError) {
       if (err.code === "not_found") notFound();
@@ -117,81 +180,10 @@ export default async function ComplaintDetailPage({
   }
 
   return (
-    <article className="mx-auto max-w-2xl">
-      <header className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-strong">
-          Submission
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-foreground">
-          {complaint.categoryName ?? "Complaint"}
-          {complaint.locationName ? (
-            <span className="text-muted-strong"> · {complaint.locationName}</span>
-          ) : null}
-        </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <CategoryBadge
-            name={complaint.categoryName ?? "Complaint"}
-            systemType="Other"
-          />
-          {complaint.priority ? (
-            <SeverityBadge severity={complaint.priority} />
-          ) : null}
-          <span className="rounded-full bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted">
-            {complaint.status}
-          </span>
-          <span className="text-xs text-muted-strong">
-            Submitted {format(complaint.createdAt, "PP p")}
-          </span>
-        </div>
-      </header>
-
-      <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface-raised p-5 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">SLA deadlines</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <SlaCountdown
-              label="Acknowledge by"
-              deadline={complaint.slaAcknowledgeBy}
-            />
-            <SlaCountdown
-              label="Resolve by"
-              deadline={complaint.slaResolveBy}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Description</h2>
-          <p className="whitespace-pre-wrap rounded-md bg-surface px-3 py-2 text-sm text-foreground">
-            {complaint.description}
-          </p>
-        </div>
-
-        {complaint.photoUrls.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Photo</h2>
-            <ul className="flex flex-wrap gap-3">
-              {complaint.photoUrls.map((url) => (
-                <li key={url} className="overflow-hidden rounded-md border border-border">
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- image source is a remote Cloudinary URL */}
-                    <img
-                      src={url}
-                      alt="Reporter photo"
-                      className="h-32 w-32 object-cover"
-                    />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
-    </article>
+    <ComplaintDetailClient
+      complaintId={id}
+      initialComplaint={result.complaint}
+      initialTimeline={result.timeline}
+    />
   );
 }

@@ -19,12 +19,10 @@ function reporterView(doc: Record<string, unknown>): Record<string, unknown> {
   const publicDoc = toPublicComplaint(doc) as Record<string, unknown>;
   const {
     aiSuggestion: _aiSuggestion,
-    priority: _priority,
     escalated: _escalated,
     ...rest
   } = publicDoc;
   void _aiSuggestion;
-  void _priority;
   void _escalated;
   return rest;
 }

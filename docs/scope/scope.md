@@ -122,10 +122,11 @@ Personal dashboard at `/complaints/mine` listing the reporter's complaints with 
 **Done when:** the reporter sees their complaints sorted by date, status is current, and the detail page shows the full status history.
 - [x] Design it (spec): `/architect reporter dashboard`
 - [ ] Build it: `/develop reporter dashboard`
-  - [ ] Build lib/utils/pagination.ts plus GET /api/complaints route handler with reporter scoped filter (AC-1, AC-7)
-  - [ ] Build /complaints/mine page with ComplaintCard, ClosedClaimsToggle, LoadMore, TanStack Query polling (AC-1, AC-2, AC-3)
-  - [ ] Build ComplaintTimeline plus ProofPhotoDialog plus /complaints/[id] detail page owned by Feature 6 (AC-4, AC-5, AC-6, AC-8, AC-9)
-  - [ ] Cross spec amendment to spec 0005 redirect plus run all build gates plus Playwright smoke (AC-10)
+  - [x] Build lib/utils/pagination.ts plus GET /api/complaints route handler with reporter scoped filter (AC-1, AC-7)
+  - [x] Build /complaints/mine page with ComplaintCard, ClosedClaimsToggle, LoadMore, TanStack Query polling (AC-1, AC-2, AC-3)
+  - [x] Build ComplaintTimeline plus ProofPhotoDialog plus /complaints/[id] detail page owned by Feature 6 (AC-4, AC-5, AC-6, AC-8, AC-9)
+  - [x] Cross spec amendment to spec 0005 redirect plus run all build gates plus Playwright smoke (AC-10)
+    - code in `lib/utils/pagination.ts`, `app/api/complaints/route.ts` (GET handler added), `app/api/complaints/[id]/timeline/route.ts`, `components/reporter/ComplaintCard.tsx`, `components/reporter/ComplaintList.tsx`, `components/reporter/ClosedClaimsToggle.tsx`, `components/reporter/ComplaintTimeline.tsx`, `components/reporter/ProofPhotoDialog.tsx`, `components/reporter/ComplaintDetailClient.tsx`, `app/(reporter)/complaints/mine/page.tsx`, `app/(reporter)/complaints/[id]/page.tsx`
 - [ ] Verify it: `/check verify reporter dashboard`
 - [ ] Test it: `/test reporter dashboard`
 - [ ] Review it (fresh model): `/check review reporter dashboard`

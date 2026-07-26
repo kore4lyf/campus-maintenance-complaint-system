@@ -245,6 +245,7 @@ Tracer Bullet ordering: stand up the submission path end to end (route handler p
 
 ## Follow-up
 
+- [ ] Cross spec: the post submit redirect at `/complaints/<id>` is Feature 6's comprehensive detail page (per spec 0006 Q1-A decision). The redirect already points to the correct path; no code change needed. `/sync` should fold this note.
 - [ ] Daily cron that runs `runDailyCheck` from `scripts/ai-cost-check.ts` and writes the `AI_TRIAGE_FALLBACK_TO_RULES` env (or a runtime feature flag); lands with the SLA cron feature in Slice 3.
 - [ ] `$50` model downgrade trigger when monthly cost exceeds the second tier; out of scope in MVP per the architecture's NFR-5; surface in progress tracker open questions.
 - [ ] Rate limiting on `POST /api/complaints` via `@upstash/ratelimit` (in scope Deferred list).

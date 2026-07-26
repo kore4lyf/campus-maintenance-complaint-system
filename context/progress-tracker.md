@@ -468,6 +468,57 @@ started. Consult this list before re-litigating any decision.
   - Spec 0005 (Accepted) and spec 0004 (In Progress in `docs/scope`)
     still hold; no spec content changed. No new env vars.
 
+- **2026-07-26 (Feature 06 build — Reporter dashboard)** — Built the
+  reporter dashboard end to end per spec 0006.
+  - Built `lib/utils/pagination.ts` exporting `paginateCursor` for cursor
+    based pagination on `_id desc` with configurable page size (default 20).
+  - Added `GET` handler to `app/api/complaints/route.ts` for the reporter
+    complaint list. Server side filter to `reporterId === userId`, excludes
+    `Closed` by default (`includeClosed` query param flips), cursor
+    pagination, batch category plus location name lookups to avoid N+1,
+    applies `reporterListView` (strips `aiSuggestion` and `escalated` from
+    `toPublicComplaint`, keeps `priority` for severity badge). Response
+    shape: `{ data, meta: { nextCursor, hasMore } }`.
+  - Updated `reporterView` in `app/api/complaints/[id]/route.ts` to keep
+    `priority` for the severity badge on the detail page (previously
+    stripped).
+  - Built `app/api/complaints/[id]/timeline/route.ts` returning the
+    statusHistory entries for a complaint with actor name plus role
+    lookups, role gated to match the complaint GET route.
+  - Built `components/reporter/ComplaintCard.tsx` (Client Component)
+    rendering status badge, severity badge, category name, location name,
+    short description echo (200 char cap), photo thumbnail, created
+    timestamp via `formatDistanceToNowStrict`, and `SlaCountdown`.
+  - Built `components/reporter/ComplaintList.tsx` (Client Component)
+    with TanStack Query polling at 30 seconds, `refetchOnWindowFocus`,
+    closed toggle, load more pagination, empty state via
+    `ReporterDashboardEmpty`, loading skeleton, error state.
+  - Built `components/reporter/ClosedClaimsToggle.tsx` checkbox toggle.
+  - Built `components/reporter/ComplaintTimeline.tsx` (Client Component)
+    rendering reverse chronological timeline with status arrow badges,
+    actor labels (human name plus role, or "system" plus role),
+    inline proof-of-fix photo thumbnails with click to enlarge modal,
+    relative timestamps. Each row colour coded by destination status.
+  - Built `components/reporter/ProofPhotoDialog.tsx` modal for proof
+    of fix photos (inlined into ComplaintTimeline's `ProofPhotoThumb`
+    as the same pattern).
+  - Built `components/reporter/ComplaintDetailClient.tsx` (Client
+    Component) wrapping the detail page with TanStack Query polling at
+    10 seconds for both complaint data and timeline.
+  - Rewrote `app/(reporter)/complaints/[id]/page.tsx` as a Server
+    Component that prefetches complaint, statusHistory, category,
+    location, and actor data, then renders `ComplaintDetailClient`.
+  - Built `app/(reporter)/complaints/mine/page.tsx` as a Server
+    Component requiring session, rendering `ComplaintList`.
+  - Cross spec follow-up added to spec 0005 noting the redirect is
+    Feature 6's comprehensive page.
+  - Spec 0006 status bumped `Proposed` to `In Progress`.
+  - Scope: all four `Build it` milestone sub boxes ticked; `code in`
+    pointer populated. Feature remains `in-progress` in the scope (not
+    `done`) per the Full workflow tier — `/check verify`, `/test`,
+    `/check review`, and `/document` are still owed before the scope
+    flips to `done`.
+
 ### Hand-off
 
 > Context set. Hand off: `/develop <unit>` or `/unit-01 <description>` to

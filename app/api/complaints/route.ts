@@ -12,6 +12,8 @@ import { getServerSession } from "@/lib/auth/dal";
 import { triageComplaint } from "@/lib/ai/triage";
 import { compressAndUpload } from "@/lib/storage/cloudinary";
 import { signAnonymousToken, verifyAnonymousToken } from "@/lib/auth/anonymous-token";
+import { paginateCursor } from "@/lib/utils/pagination";
+import { toPublicComplaint } from "@/lib/utils/pii";
 import type { TriageResult } from "@/lib/ai/triage";
 import type { Severity } from "@/lib/ai/schemas";
 
@@ -411,4 +413,88 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
     return badRequest("server_error", "Failed to create complaint", 500);
   }
+}
+
+function reporterListView(doc: Record<string, unknown>): Record<string, unknown> {
+  const publicDoc = toPublicComplaint(doc) as Record<string, unknown>;
+  const {
+    aiSuggestion: _aiSuggestion,
+    escalated: _escalated,
+    ...rest
+  } = publicDoc;
+  void _aiSuggestion;
+  void _escalated;
+  return rest;
+}
+
+export async function GET(request: Request): Promise<NextResponse> {
+  await connect();
+
+  const session = await getServerSession();
+  if (!session) {
+    return NextResponse.json(
+      { error: { code: "unauthenticated", message: "Authentication required" } },
+      { status: 401, headers: { "content-type": "application/json" } },
+    );
+  }
+
+  if (!isValidObjectId(session.user.id)) {
+    return NextResponse.json(
+      { error: { code: "invalid_session", message: "Session user id is invalid" } },
+      { status: 401, headers: { "content-type": "application/json" } },
+    );
+  }
+
+  const userId = session.user.id;
+  const url = new URL(request.url);
+  const cursor = url.searchParams.get("cursor");
+  const includeClosed = url.searchParams.get("includeClosed") === "true";
+
+  const query: Record<string, unknown> = {
+    $or: [{ reporterId: userId }],
+  };
+
+  if (!includeClosed) {
+    query.status = { $ne: "Closed" };
+  }
+
+  const { data, meta } = await paginateCursor({
+    model: ComplaintModel,
+    query,
+    sort: { _id: -1 },
+    pageSize: 20,
+    cursor,
+  });
+
+  const categoryIds = [...new Set(data.map((d) => String(d.categoryId)))];
+  const locationIds = [...new Set(data.map((d) => String(d.locationId)))];
+
+  const [categories, locations] = await Promise.all([
+    CategoryModel.find({ _id: { $in: categoryIds } })
+      .lean()
+      .then((docs) =>
+        Object.fromEntries(docs.map((d) => [String(d._id), d.name])),
+      ),
+    LocationModel.find({ _id: { $in: locationIds } })
+      .lean()
+      .then((docs) =>
+        Object.fromEntries(docs.map((d) => [String(d._id), d.name])),
+      ),
+  ]);
+
+  const publicData = data.map((doc) => {
+    const publicDoc = reporterListView(
+      doc as unknown as Record<string, unknown>,
+    );
+    return {
+      ...publicDoc,
+      categoryName: categories[String(doc.categoryId)] ?? null,
+      locationName: locations[String(doc.locationId)] ?? null,
+    };
+  });
+
+  return NextResponse.json(
+    { data: publicData, meta },
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
 }

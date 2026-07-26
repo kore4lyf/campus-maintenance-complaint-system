@@ -1,7 +1,7 @@
 # 0006. Reporter dashboard
 
 **Date**: 2026-07-25
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 
