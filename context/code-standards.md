@@ -171,9 +171,9 @@ with the other five context files in this directory.
   globals.css                         # Tailwind directives only
 
 /lib/
-  auth/                               # BetterAuth config + middleware
+  auth/                               # BetterAuth config + DAL
     config.ts
-    middleware.ts
+    dal.ts                            # Server-only session plus role helpers
   db/
     connection.ts                     # Mongoose connection
     indexes.ts                        # MongoDB index setup

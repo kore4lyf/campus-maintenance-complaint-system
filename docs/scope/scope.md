@@ -86,12 +86,12 @@ Email/password registration and sign-in for three roles (reporter, dicht_admin, 
 - [ ] Build it: `/develop authentication`
   - [x] Install BetterAuth plus Mongoose adapter; add session, account, verification models (AC-5, AC-6)
   - [x] Wire lib/auth/config.ts, app/api/auth/[...all]/route.ts, lib/auth/actions.ts, plus (public) sign-in and sign-up pages (AC-1, AC-2, AC-3, AC-5)
-  - [x] Add middleware.ts at project root for RBAC and refactor lib/auth/role-context.tsx to useCurrentUser (AC-4, AC-7)
+  - [x] Add middleware.ts at project root for RBAC and refactor lib/auth/role-context.tsx to useCurrentUser (AC-4, AC-7). Note: `middleware.ts` was renamed to `proxy.ts` in Unit-06, and the role gate now lives in `lib/auth/dal.ts` rather than in the request boundary.
   - [x] Retire MockRoleSwitcher and remove NEXT_PUBLIC_ALLOW_MOCK_ROLE from .env.example (AC-8)
   - [x] Extend scripts/seed.ts with the SEED_ADMIN plus SEED_TECH trios, .env.example entries, architecture text reconciliation (AC-9)
   - [ ] Run all build gates plus Playwright sign-up, sign-in, sign-out, and 403 on role mismatch smoke (AC-10)
     - Deferred to end-of-cycle per Test Execution Policy in `AGENTS.md`; agents during development must not block on `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, or `npm run test:e2e`. End-of-cycle verify will re-run all gates against the final tree.
-  - code in `lib/auth/{config,actions,role-context}.ts`, `lib/db/models/{session,account,verification}.ts`, `app/api/auth/[...all]/route.ts`, `app/(public)/{sign-in,sign-up}/*.tsx`, `components/shared/SignOut.tsx`, `components/shared/TopNav.tsx`, `middleware.ts`, `scripts/seed.ts`
+  - code in `lib/auth/{config,actions,role-context,dal}.ts`, `lib/db/models/{session,account,verification}.ts`, `app/api/auth/[...all]/route.ts`, `app/(public)/{sign-in,sign-up}/*.tsx`, `components/shared/SignOut.tsx`, `components/shared/TopNav.tsx`, `proxy.ts` (renamed from `middleware.ts` per Unit-06), `scripts/seed.ts`
 - [ ] Verify it: `/check verify authentication`
 - [ ] Test it: `/test authentication`
 - [ ] Review it (fresh model): `/check review authentication`
@@ -109,7 +109,7 @@ Reporter submits a complaint at `/complaints/new` with category, location, descr
   - [x] Build POST /api/complaints, GET /api/complaints/[id] with duplicate detection plus AI wiring plus fallback (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8)
   - [x] Build /complaints/new form, /complaints/[id] detail page, /track/[token] anonymous tracker page (AC-5, AC-9)
   - [x] Build scripts/ai-cost-check.ts and run all build gates plus Playwright smoke (AC-3, AC-10)
-  - code in `lib/ai/{schemas,prompts,cost,fallback,triage}.ts`, `lib/storage/cloudinary.ts`, `lib/auth/anonymous-token.ts`, `lib/auth/anonymous-token.test.ts`, `app/api/complaints/route.ts`, `app/api/complaints/[id]/route.ts`, `app/(reporter)/complaints/new/{page.tsx,ComplaintForm.tsx}`, `app/(reporter)/complaints/[id]/page.tsx`, `app/(public)/track/[token]/page.tsx`, `components/reporter/{CategoryBadge,SeverityBadge,SlaCountdown}.tsx`, `scripts/{ai-cost-check,cost-cap}.ts`, `middleware.ts` (amended)
+  - code in `lib/ai/{schemas,prompts,cost,fallback,triage}.ts`, `lib/storage/cloudinary.ts`, `lib/auth/anonymous-token.ts`, `lib/auth/anonymous-token.test.ts`, `app/api/complaints/route.ts`, `app/api/complaints/[id]/route.ts`, `app/(reporter)/complaints/new/{page.tsx,ComplaintForm.tsx}`, `app/(reporter)/complaints/[id]/page.tsx`, `app/(public)/track/[token]/page.tsx`, `components/reporter/{CategoryBadge,SeverityBadge,SlaCountdown}.tsx`, `scripts/{ai-cost-check,cost-cap}.ts`, `proxy.ts` (renamed from `middleware.ts` per Unit-06, plus `/api/complaints/*` removed from the matcher scope)
 - [ ] Verify it: `/check verify complaint submission`
 - [ ] Test it: `/test complaint submission`
 - [ ] Review it (fresh model): `/check review complaint submission`

@@ -9,10 +9,10 @@ _Steps derived from spec 0004 authentication acceptance criteria. `/check verify
 - [ ] At `/sign-in`, sign in as an admin (seeded) → expect redirect to `/admin/queue`. → **AC-2**
 - [ ] At `/sign-in`, sign in as a technician (seeded) → expect redirect to `/technician/queue`. → **AC-2**
 - [ ] Sign in, click SignOut in the top nav → expect cookie clear, redirect to `/`, and a subsequent visit to `/complaints/mine` redirects to `/sign-in?redirect=/complaints/mine`. → **AC-3**
-- [ ] With no session cookie, hit `/admin/queue` → expect redirect to `/sign-in?redirect=%2Fadmin%2Fqueue`. → **AC-4**
-- [ ] As a signed in reporter, hit `/admin/queue` → expect a 403 response with a rendered HTML error card. → **AC-4**
-- [ ] As a signed in reporter, hit `/api/admin/anything` → expect a 403 response with JSON body `{ "error": { "code": "forbidden", "message": "Forbidden" } }`. → **AC-4**
-- [ ] As a signed in reporter, hit `/api/complaints` → expect the request to be permitted (allowed for any authenticated role). → **AC-4**
+- [ ] With no session cookie, hit `/admin/queue` → expect redirect to `/sign-in?redirect=%2Fadmin%2Fqueue` (the proxy handles this without a database lookup). → **AC-4**
+- [ ] As a signed in reporter, hit `/admin/queue` → expect a redirect to `/` (the page level `requireRole("dicht_admin")` from `lib/auth/dal.ts` triggers this). → **AC-4**
+- [ ] As a signed in reporter, hit `/api/admin/anything` → expect a 403 response with JSON body `{ "error": { "code": "forbidden", "message": "Forbidden" } }` (the route handler returns this via the `ApiError` class after `getServerSession` plus `authorizeRole` returns false). → **AC-4**
+- [ ] As a signed in reporter, hit `/api/complaints` → expect the request to be permitted (allowed for any authenticated role; the route handler only relies on `getServerSession`, not on a role check). → **AC-4**
 - [ ] Browser inspector on `/sign-in` → confirm no region labelled "Mock role switcher" / "Dev only: mock role". → **AC-8**
 - [ ] Build the production bundle (`npm run build`) → grep the production output for `NEXT_PUBLIC_ALLOW_MOCK_ROLE`; expect zero matches. → **AC-8**
 
@@ -43,7 +43,7 @@ _Steps derived from spec 0004 authentication acceptance criteria. `/check verify
 - **AC-1** sign-up reporter end to end → UI step "Visit /sign-up" + Playwright "Reporter happy path"
 - **AC-2** sign in role-based landing plus redirect → UI step "Sign in as reporter / admin / technician" + Playwright "Seeder admin"
 - **AC-3** sign out via Server Action → UI step "Sign out, then revisit" + Playwright "Sign out"
-- **AC-4** middleware redirects + 403 enforcement → UI steps "Unauthenticated → /admin/queue redirect", "Reporter → /admin/queue 403", "Reporter → /api/admin/... 403 JSON", "Reporter → /api/complaints allowed" + Playwright "Role mismatch" cases
+- **AC-4** proxy redirects on unauthenticated UI paths; DAL plus per page requireRole plus per route handler authorizeRole enforce RBAC → UI steps "Unauthenticated → /admin/queue redirect (proxy)", "Reporter → /admin/queue redirect to / (page requireRole)", "Reporter → /api/admin/... 403 JSON (route handler via ApiError)", "Reporter → /api/complaints allowed (route handler getServerSession only)" + Playwright "Role mismatch" cases
 - **AC-5** lib/auth/config.ts shape + catch-all route → Commands "Inspect lib/auth/config.ts", "ls app/api/auth/[...all]/route.ts"
 - **AC-6** three BetterAuth-managed Mongoose models → Commands "ls lib/db/models/{session,account,verification}.{ts,test.ts}" + Jest coverage
 - **AC-7** useCurrentUser contract plus back-compat alias → Jest suite `lib/auth/role-context.test.tsx`, assert `useCurrentUser` shape, assert `useCurrentRole` alias works, assert TopNav and MobileBottomNav render unchanged
@@ -60,7 +60,7 @@ Each row of the spec's **Value sourcing** table must be exercised. The gate is d
 - Sign-in session cookie is BetterAuth issued: log response cookies after sign-in.
 - Sign-in role-based landing: vary signing in as reporter, admin, technician and verify the redirect target matches the table.
 - Sign-in redirect param honored: pass `?redirect=/complaints/mine` and verify the post sign-in redirect picks it up; pass external URL and verify it falls back to the role landing.
-- Middleware redirect target: encoded request pathname appears in `?redirect=`.
-- Middleware allowlist: vary reporter token against all four protected prefixes and verify the right outcome (allowed for `/api/complaints`, 403 for `/admin`, `/api/admin`, `/technician`, `/api/technician`).
+- Proxy redirect target: encoded request pathname appears in `?redirect=` when the proxy redirects an unauthenticated UI request. (The proxy does not enforce role; only redirect on missing cookie.)
+- DAL role gate: vary reporter session through the DAL and verify the right outcome (allowed for any role on `/api/complaints`, `requireRole("dicht_admin")` redirects reporter to `/` on a `/admin/*` page, route handler returns 403 JSON for reporter on `/api/admin/*`).
 - TopNav displays user name: sign in as a user with a non empty `name` and assert it appears in the header.
 - SignOut clears cookie: assert `better-auth.session_token` is removed after SignOut.

@@ -9,7 +9,7 @@ This spec ships the reporter dashboard at `/complaints/mine` (a cards list of th
 
 ## Context
 
-Spec 0003 shipped the foundation shells plus `ReporterDashboardEmpty` plus the design tokens plus the `SlaCountdown` composite used on cards and detail rows. Spec 0004 shipped `useCurrentUser` plus project root middleware that gates the reporter route group. Spec 0005 shipped the complaint submission flow plus a basic detail page stub that showed status plus deadlines plus photo only. The remaining work is the comprehensive list at `/complaints/mine` (the scope's name for the reporter's own view), the comprehensive detail page at `/complaints/[id]` (the scope's original assignment, with timeline plus proof-of-fix per the Done when line), plus the cross spec amendment that moves the detail page entirely to Feature 6.
+Spec 0003 shipped the foundation shells plus `ReporterDashboardEmpty` plus the design tokens plus the `SlaCountdown` composite used on cards and detail rows. Spec 0004 shipped `useCurrentUser` plus the project root proxy plus the auth DAL that together gate the reporter route group. Spec 0005 shipped the complaint submission flow plus a basic detail page stub that showed status plus deadlines plus photo only. The remaining work is the comprehensive list at `/complaints/mine` (the scope's name for the reporter's own view), the comprehensive detail page at `/complaints/[id]` (the scope's original assignment, with timeline plus proof-of-fix per the Done when line), plus the cross spec amendment that moves the detail page entirely to Feature 6.
 
 The cross spec decision is real and material: spec 0005's build plan currently writes a basic detail page at `app/(reporter)/complaints/[id]/page.tsx` (per spec 0005 build plan step 12 and AC-9), but the scope row for Feature 6 already says "complaint detail at `/complaints/:id` showing status timeline and proof-of-fix photo" which means Feature 6 is the canonical owner of the page. Resolving in favour of Feature 6 ownership keeps one route responsible for one job and lets spec 0005's submit redirect land at Feature 6's richer page from day one.
 
@@ -33,7 +33,7 @@ The cross spec decision is real and material: spec 0005's build plan currently w
 - **AC-6**: The proof-of-fix photo thumbnail on a timeline row, when clicked, opens the large Cloudinary URL in an Astryx `Dialog` modal with a caption showing the transition text plus the absolute timestamp. The dialog closes on Esc, on click outside the dialog body, and on the X affordance.
 - **AC-7**: `GET /api/complaints` filters server side to the reporter's own complaints: `find({ reporterId: user._id })` UNION the reporter's anonymous hidden user row when one exists (the spec 0002 cross field invariant plus the existing `users._id` reuse means anonymous complaints are still attributable to the same reporter for this list). The response shape is `{ data: complaints[], meta: { nextCursor: ObjectId | null, hasMore: boolean } }` per the code-standards §API Routes response contract. `toPublicJSON` is applied per spec 0002 AC-13 before the response leaves the handler.
 - **AC-8**: TanStack Query polls `GET /api/complaints/[id]` every ten seconds while the detail page tab is focused; the SLA countdown text and the timeline order visibly update on each refresh; polling pauses on hidden tab and resumes on visibility regain.
-- **AC-9**: Defense in depth: the `GET /api/complaints/[id]` route handler calls `getSession()` and rejects 403 when the requester is not the reporter of record; middleware enforces RBAC per spec 0004 as the first layer. The page-level `getSession()` call in the Server Component (per spec 0004 page-level defense) covers the case where middleware is misconfigured.
+- **AC-9**: Defense in depth: the `GET /api/complaints/[id]` route handler calls `getServerSession` from `lib/auth/dal.ts` plus `authorizeRole` and rejects 403 when the requester is not the reporter of record; the route handler enforces RBAC per spec 0004 as the only layer that matters (the proxy does not run on API paths). The page-level `requireSession` call in the Server Component (per spec 0004 page-level defense) covers the case where the DAL is misconfigured.
 - **AC-10**: All build gates green: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`; smoke happy path covers reporter sees own complaints, status card updates on next poll, detail page timeline renders full audit trail, proof-of-fix photo opens in modal, pagination load more works, closed toggle changes the filter server side.
 
 ## Options considered
@@ -46,7 +46,7 @@ A list of complaint cards sorted by `createdAt` desc with TanStack Query polling
 - Matches the spec 0003 mobile first single column plus desktop two column layout pattern.
 - Standard data fetching pattern via TanStack Query (already wired from the foundation).
 - Closed by default toggle reduces page noise without losing the data.
-- Defence in depth via middleware plus per page `getSession()` keeps route handlers honest.
+- Defence in depth via the proxy plus the DAL plus per page `requireSession` plus per route handler `authorizeRole` keeps route handlers honest.
 
 **Cons**:
 - Polling creates some background load (small; TanStack Query dedupes active queries).
@@ -145,15 +145,15 @@ None. This feature is a read path; status transitions are owned by Feature 7 (ad
 - The reporter at `/complaints/mine` sees only their own complaints and their anonymous hidden ones; never another reporter's submission, never an admin only view (admins use `/admin/queue` in Feature 7).
 - The Closed status is hidden from the list by default; the toggle flips a server side filter so a refresh after enabling returns Closed claims.
 - `AI_TRIAGE_FALLBACK_TO_RULES`, `OPENAI_*`, and the cost and rationale fields are NEVER in the wire response (per spec 0002 AC-13 `toPublicJSON`).
-- The detail page's `/componets/[id]` request is also filtered reporter ID; even if middleware is misconfigured, the route handler rejects a non owner with 403.
+- The detail page's `/complaints/[id]` request is also filtered reporter ID; even if the proxy plus DAL are misconfigured, the route handler rejects a non owner with 403.
 - Pagination uses cursor on `_id desc`; the cursor advances monotonically; a stale cursor (page size changed) returns an empty next page rather than throwing.
 - Polling pauses on hidden tab and resumes on `visibilitychange`; no background fetch when the user cannot see the result.
 - The photo lightbox's Cloudinary URL is HTTPS only; a non HTTPS URL is filtered before render.
 
 **Security model**:
 
-- Authentication: BetterAuth session probed via `getSession()` plus middleware enforcement per spec 0004.
-- Authorization: server side filter ensures `reporterId` matches the signed in user's `_id`; the same filter covers the reporter's anonymous hidden user row. The detail page also calls `getSession()` server side.
+- Authentication: BetterAuth session probed via `getServerSession` from `lib/auth/dal.ts` plus DAL plus proxy enforcement per spec 0004.
+- Authorization: server side filter ensures `reporterId` matches the signed in user's `_id`; the same filter covers the reporter's anonymous hidden user row. The detail page also calls `requireRole("reporter")` server side through the DAL.
 - No new env var.
 - PII discipline: page payload carries only the fields needed for the card plus timeline; AI rationale plus cost fields are stripped by `toPublicJSON` per spec 0002 AC-13.
 - The `actor` label on a timeline row carries the actor's `users.name` only when the actor is a human; `system` is the literal anonymous label when `changedBySystem: true`. Admin doesn't get a "you can see who took the action" privilege at the reporter side; the reporter sees the same labels an admin does (minus the cost fields).
@@ -170,7 +170,7 @@ None. This feature does not introduce any new env vars. Every env var consumed (
 - **Polling**: the page is open for sixty seconds; two background fetches happen at the thirty and sixty second marks; the cards' SLA countdown text updates each tick. Verifies **AC-3**.
 - **Hidden tab**: the page is hidden for ninety seconds then made visible again; no background fetch happens during the hidden period; the first fetch after visibility regain happens within five seconds. Verifies **AC-3** polling pause plus resume.
 - **Happy path**: a signed in reporter visits `/complaints/[id]` for a complaint that has gone Submitted → Acknowledged → In Progress → Resolved; the timeline lists four rows in reverse chronological order; the Resolved row's actor is the technician's name plus role, plus an inline `photoUrl` thumbnail; the proof photo thumbnail, when clicked, opens the Astryx `Dialog` modal with a caption. Verifies **AC-4**, **AC-5**, **AC-6**.
-- **Defense in depth**: a signed in reporter from another account requests the same `/api/complaints/[id]`; the route handler returns 403; with the middleware momentarily disabled, the route handler still returns 403 because it calls `getSession()` server side. Verifies **AC-9**.
+- **Defense in depth**: a signed in reporter from another account requests the same `/api/complaints/[id]`; the route handler returns 403; with the DAL momentarily disabled, the route handler still returns 403 because it calls `getServerSession` from `lib/auth/dal.ts` and the request flow refuses once the session is missing. Verifies **AC-9**.
 - **Pagination**: a reporter with twenty five complaints loads the page; the first twenty render with a "load more" affordance; clicking "load more" brings in the remaining five plus a `hasMore: false` payload. Verifies **AC-1** pagination.
 - **AI fields hidden**: a reporter visiting `/complaints/[id]` whose complaint had `aiSuggestion.rationale` plus `priority` set by a successful AI call still sees no rationale plus no severity badge (severity is mapped from `priority` per the spec 0002 invariant, not from `aiSuggestion.severity`); the wire response is asserted in a test to contain neither `rationale` nor `costUsd`. Verifies **AC-4**.
 - **Build gates plus smoke**: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` all green; hand exercise or Playwright covers the list, the polling update, the detail timeline, the photo lightbox, the pagination, the closed toggle. Verifies **AC-10**.
@@ -238,7 +238,7 @@ Tracer Bullet ordering: stand up the list first (proves the data path end to end
 - `context/ai-workflow-rules.md` (one capability per PR rule; the cross spec amendment rule; the unit gating checklist before moving to the next unit)
 - `docs/specs/0002-data-model.md` (locked `complaints` schema with the fields the list plus detail read; locked `statusHistory` fields `fromStatus`, `toStatus`, `changedById`, `changedBySystem`, `note`, `photoUrl`, `changedAt` consumed by the timeline; locked users schema with `anonymousId` for the cross spec anonymous path; AC-13 `toPublicJSON` PII redaction)
 - `docs/specs/0003-design-system-ui-foundation.md` (`ReporterDashboardEmpty` composite re used as the empty state; the `SlaCountdown` composite reused per card plus detail; the mobile first single column plus desktop two column layout pattern; the severity to colour mapping consumed by the status badge plus timeline rows; the TanStack Query foundation wiring consumed by the polling)
-- `docs/specs/0004-authentication/` (build spec `index.md`, rationale `rationale.md`, verify `verify.md`); the `useCurrentUser` hook consumed by `/api/complaints` plus `/componets/[id]`; the project root middleware that enforces RBAC on `app/(reporter)/*` plus `/api/complaints`; the defense in depth `getSession()` call pattern)
+- `docs/specs/0004-authentication/` (build spec `index.md`, rationale `rationale.md`, verify `verify.md`); the `useCurrentUser` hook consumed by `/api/complaints` plus `/componets/[id]`; the auth DAL plus the project root proxy that together enforce RBAC on `app/(reporter)/*` plus `/api/complaints`; the defense in depth `getServerSession` plus `authorizeRole` call pattern from `lib/auth/dal.ts`)
 - `docs/specs/0005-complaint-submission.md` (cross spec amendment: the post submit redirect lands at Feature 6's `/componets/[id]`; the `GET /api/complaints/[id]` route handler consumed by Feature 6; the photo URL shape from `complaints.photoUrls`)
 
 **Practices and standards**:
@@ -248,7 +248,7 @@ Tracer Bullet ordering: stand up the list first (proves the data path end to end
 - Cursor pagination on `_id desc` for monotonically growing collections (matches MongoDB ObjectId invariant)
 - `date-fns` `formatDistanceToNowStrict` canonical pattern for "x minutes ago" style relative timestamps
 - Astryx `Dialog` modal close on Esc plus click outside plus X (canonical modal convention)
-- Defence in depth: middleware plus per page `getSession()` plus per route handler ownership filter
+- Defence in depth: proxy plus per page `requireSession` plus per route handler `authorizeRole` plus per route handler ownership filter
 - Closed by default with a toggle (TanStack Query `enabled` flag plus a server side filter parameter)
 - Cross spec amendment folded into a Follow up rather than re editing spec 0005 in place (per `context/ai-workflow-rules.md` cross spec amendment rule)
 - `toPublicJSON` applied uniformly to list plus detail responses (matches spec 0002 AC-13)

@@ -7,7 +7,7 @@ _Decision history (Context, Options considered, Rationale, References) lives in 
 
 ## Summary
 
-This spec ships real authentication on top of BetterAuth, replacing the placeholder role context from spec 0003 with email and password sign up and sign in backed by the locked `users` collection. It adds three BetterAuth managed Mongoose models (session, account, verification) without altering the locked eight collections, hardens role based access control at the request boundary through a project root `middleware.ts`, and lets BetterAuth own password hashing so no `bcrypt` dependency is added per the spec 0002 decision. Cross spec fallout: `useCurrentRole` is replaced by `useCurrentUser` (call sites in `TopNav`, `MobileBottomNav`, and the role aware layouts continue to work without a per call site rewrite), the `SignOut` button becomes a real Server Action, and the dev only `MockRoleSwitcher` is removed now that real auth exists.
+This spec ships real authentication on top of BetterAuth, replacing the placeholder role context from spec 0003 with email and password sign up and sign in backed by the locked `users` collection. It adds three BetterAuth managed Mongoose models (session, account, verification) without altering the locked eight collections, hardens role based access control through a project root `proxy.ts` together with the auth Data Access Layer at `lib/auth/dal.ts`, and lets BetterAuth own password hashing so no `bcrypt` dependency is added per the spec 0002 decision. Cross spec fallout: `useCurrentRole` is replaced by `useCurrentUser` (call sites in `TopNav`, `MobileBottomNav`, and the role aware layouts continue to work without a per call site rewrite), the `SignOut` button becomes a real Server Action, and the dev only `MockRoleSwitcher` is removed now that real auth exists.
 
 ## Requirements
 
@@ -18,7 +18,7 @@ This spec ships real authentication on top of BetterAuth, replacing the placehol
 - As a signed in user, I want to sign out from the top nav so that my session ends cleanly.
 - As an unauthenticated visitor who clicks a protected link, I want to land on `/sign-in?redirect=...` so that I can complete sign in and return to where I was headed.
 - As a developer, I want `useCurrentUser()` to expose the signed in identity so that existing layouts and components continue to work without a per call site rewrite.
-- As a developer, I want `middleware.ts` at project root to gate protected paths so that no protected page is reachable without a valid session and role.
+- As a developer, I want `proxy.ts` at project root plus `lib/auth/dal.ts` to gate protected paths so that no protected page is reachable without a valid session and role.
 - As an admin or technician, I want a seedable account I can sign in with so that the dev environment exercises role gated paths from first connect.
 
 **Acceptance criteria** (the contract, each criterion is IDed and independently checkable):
@@ -26,7 +26,7 @@ This spec ships real authentication on top of BetterAuth, replacing the placehol
 - **AC-1**: A new reporter can register at `/sign-up` by entering email, password (at least 8 characters), display name, and submitting the form. The user is created in the `users` collection with `role: 'reporter'` and `passwordHash` set by BetterAuth; a session cookie is set; the user is redirected to `/complaints/mine`. Verifies the "can register" half of the scope Done when line.
 - **AC-2**: A registered user can sign in at `/sign-in` with email and password; the session cookie is set; the user is redirected to `/complaints/mine` for reporters, `/admin/queue` for admins, `/technician/queue` for technicians, or to `?redirect=...` if that query parameter is present. Verifies the "can sign in" half of the scope Done when line.
 - **AC-3**: The `SignOut` button in the top nav calls a Server Action that invokes BetterAuth's `signOut`, clears the session cookie, and redirects the user to `/`. Verifies the "can sign out" half of the scope Done when line.
-- **AC-4**: `middleware.ts` at project root matches every request except static assets (`_next/*` and `favicon.ico`), the BetterAuth catch-all (`/api/auth/*`), and the public sign in and sign up pages. For paths under `/admin`, `/technician`, `/api/admin`, `/api/technician`, and `/api/complaints`, an unauthenticated request is redirected to `/sign-in?redirect=<encodedPath>`. An authenticated request with the wrong role receives a 403 response (JSON on `/api/*` paths, a rendered 403 page on UI paths). Verifies "protected routes reject unauthenticated requests; role based routes enforce the RBAC matrix" from the scope Done when line.
+- **AC-4**: `proxy.ts` at project root (Next.js 16 file convention, renamed from the legacy `middleware.ts`) matches the protected UI paths `/admin/*` and `/technician/*` and only inspects the BetterAuth session cookie. It does not call the database. An unauthenticated request to a protected UI path is redirected to `/sign-in?redirect=<encodedPath>`. `/api/admin/*`, `/api/technician/*`, and any other API path stay outside the proxy matcher; route handlers enforce their role gate through `lib/auth/dal.ts` (`getServerSession`) and return a typed 401 plus 403 JSON via the existing `ApiError` class. Per-page Server Components underneath the protected groups call `requireSession` plus `requireRole` for defense in depth. Net effect on the user: an unauthenticated request still cannot reach a protected page; a request with the wrong role still receives a 403. Verifies "protected routes reject unauthenticated requests; role based routes enforce the RBAC matrix" from the scope Done when line.
 - **AC-5**: `lib/auth/config.ts` instantiates BetterAuth with the `emailAndPassword` provider and the `nextCookies` plugin, and a Mongoose adapter pointed at the project's existing `User` model plus the three additive BetterAuth models. The shared client exports typed wrappers for `signInEmail`, `signUpEmail`, `signOut`, and `getSession`. The `/api/auth/[...all]/route.ts` handler delegates HTTP requests to BetterAuth's `toNextJsHandler(auth)`.
 - **AC-6**: Three BetterAuth managed Mongoose models exist at `lib/db/models/session.ts`, `lib/db/models/account.ts`, and `lib/db/models/verification.ts`. Each defines the schema per BetterAuth's `mongooseAdapter` contract and exports an `InferSchemaType` named export. The locked eight collections from spec 0002 remain unchanged.
 - **AC-7**: `useCurrentUser()` in `lib/auth/role-context.tsx` returns `{ id, email, name, role: 'reporter' | 'dicht_admin' | 'dicht_technician' } | null`. The existing call sites that consumed the old `useCurrentRole()` continue to compile and run correctly because the new hook returns the same role plus added identity fields; a back compatible `useCurrentRole()` alias exported from the same file returns `user?.role ?? null` so the call sites in `TopNav`, `MobileBottomNav`, and the three role aware layouts require no edit.
@@ -68,7 +68,8 @@ The `users` document does not introduce a status state machine here; sign in and
 | `/sign-in` (Server rendered page) | `GET` | public | none | email plus password form, optional `?redirect=...` query | none |
 | `/sign-up` (Server rendered page) | `GET` | public | none | email, password, name form | none (form errors rendered inline) |
 | `signOutAction` (Server Action) | `POST` | session | none | redirect to `/` after cookie clear | 401 if no session |
-| `middleware.ts` (request guard) | runs on every matched request | session probe | request URL plus cookies | redirect to `/sign-in?redirect=...` or 403 response | 401 at the protected API |
+| `proxy.ts` (request guard at project root) | runs on `/admin/*` and `/technician/*` | BetterAuth session cookie probe | request URL plus cookies | redirect to `/sign-in?redirect=...` when the cookie is missing | n/a (proxy never reaches the database) |
+| `lib/auth/dal.ts` (`getServerSession`, `requireSession`, `requireRole`) | invoked from each Route Handler plus each protected Server Component plus each protected Server Action | session plus role check | request `next/headers` plus BetterAuth | returns a normalized `ServerSession` or `null`, or redirects, or returns a typed JSON error | 401 unauthenticated, 403 forbidden |
 | `useCurrentUser` hook | reads session | n/a | none | `{ id, email, name, role } | null` | n/a |
 
 **Value sourcing** (every value each action produces, computes, or displays names where it comes from):
@@ -79,8 +80,9 @@ The `users` document does not introduce a status state machine here; sign in and
 | `/sign-up` Sets `passwordHash` | BetterAuth password hash | `auth.api.signUpEmail` in `lib/auth/config.ts` |
 | `/sign-in` Sets session cookie | BetterAuth issued cookie | `auth.api.signInEmail` |
 | `/sign-in` redirects to role landing page | role string | `user.role` from the returned session payload |
-| `middleware.ts` decides redirect | next URL | encoded request pathname, then `?redirect=...` appended to `/sign-in` |
-| `middleware.ts` allows through when no role mismatch | role string | `user.role` from `getSession` compared to allowlist |
+| `proxy.ts` decides redirect | next URL | encoded request pathname, then `?redirect=...` appended to `/sign-in` |
+| `lib/auth/dal.ts` (`requireRole`) lets through or redirects | role string | `getServerSession().user.role` compared to allowlist; mismatch redirects to `/` |
+| `lib/auth/dal.ts` (`requireSession`) lets through or redirects | session shape | `getServerSession()`; null redirects to `/sign-in` |
 | `TopNav` displays user name | display name | `useCurrentUser().name` |
 | `SignOut` button click clears cookie | deleted session row | `auth.api.signOut` |
 | Seed script creates admin | `users` document with `role: 'dicht_admin'` | `scripts/seed.ts` reads env, calls `auth.api.signUpEmail` |
@@ -91,7 +93,7 @@ The `users` document does not introduce a status state machine here; sign in and
 - Sign up at the public `/sign-up` route always writes `role: 'reporter'` server side regardless of any client supplied value; if the payload includes any other role, the server rewrites or rejects.
 - `useCurrentUser()` returns `null` at any route that does not have a valid BetterAuth session. There is no fallback to `MockRoleSwitcher` or any other dev affordance after AC-8.
 - `SignOut` is a Server Action through a `'use server'` boundary; client cannot spoof sign out without a real Server Action call.
-- `middleware.ts` matcher excludes `_next/*`, `favicon.ico`, `/api/auth/*`, `/sign-in`, and `/sign-up`. The matcher is the safety net, not path based checks inside the function body alone.
+- `proxy.ts` matcher is the explicit string list `["/admin", "/admin/:path*", "/technician", "/technician/:path*"]`. The matcher is the safety net, not path based checks inside the function body alone. The proxy never reaches the database; request paths outside the matcher are handled directly by the route handler plus the DAL.
 - `passwordHash` is written by BetterAuth only. The seed script must use `auth.api.signUpEmail`, not raw Mongoose writes, to keep hashing consistent.
 - `name` for non anonymous human users is required by the locked schema; `/sign-up` form collects it before submitting; the seed script supplies it from env.
 - `anonymousId` is left untouched by this feature. Anonymous paths land in Feature 5.
@@ -103,8 +105,8 @@ The `users` document does not introduce a status state machine here; sign in and
 - Session cookie attributes: `HttpOnly`, `SameSite=Lax`, `Secure` only in production builds, `maxAge` 604800 seconds (7 days per architecture).
 - CSRF: BetterAuth default tokens on the catch all.
 - Rate limiting on sign in and sign up: out of scope; on the scope Deferred list. The rate limiting feature in a later slice will land `@upstash/ratelimit` at the same `/api/auth/*` boundary.
-- Account enumeration: `users.email` unique index plus BetterAuth's typed error mapped to a 409 Conflict at the route boundary (consistent with spec 0002 AC-2). The middleware `redirect=/sign-in?redirect=` on failed sign in does not leak whether the email exists.
-- RBAC enforcement: `middleware.ts` at project root enforces the allowlist per AC-4. Per page Server Components underneath those groups also call `getSession()` defensively and early return 403 if role mismatched (defense in depth).
+- Account enumeration: `users.email` unique index plus BetterAuth's typed error mapped to a 409 Conflict at the route boundary (consistent with spec 0002 AC-2). The proxy `redirect=/sign-in?redirect=` on failed sign in does not leak whether the email exists.
+- RBAC enforcement: `proxy.ts` at project root redirects unauthenticated requests on protected UI paths per AC-4. Authoritative role checks happen in `lib/auth/dal.ts`, called from each Route Handler and each protected Server Component; a role mismatch in a Server Component redirects to `/`, a role mismatch in a Route Handler returns 403 JSON via the `ApiError` class (defense in depth).
 - PII discipline: client side `useCurrentUser()` payload is `{ id, email, name, role }` only. `passwordHash`, BetterAuth internal columns, and `anonymousId` (when the related complaint is Resolved or Closed; per spec 0002 AC-13) are scrubbed by `lib/utils/pii.ts` `toPublicJSON`.
 
 **Configuration required**:
@@ -116,7 +118,7 @@ The `users` document does not introduce a status state machine here; sign in and
 
 ## Build plan
 
-Tracer Bullet ordering: stand up the auth surface end to end (BetterAuth client plus BetterAuth models plus middleware) before thickening with the public pages and the seed script. Each task tagged with the AC or ACs it satisfies.
+Tracer Bullet ordering: stand up the auth surface end to end (BetterAuth client plus BetterAuth models plus proxy plus DAL) before thickening with the public pages and the seed script. Each task tagged with the AC or ACs it satisfies.
 
 1. **Install BetterAuth and the Mongoose adapter. Confirm BetterAuth env vars in `.env.example`** (already present per Feature 01: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`). Add a one line note about generating `BETTER_AUTH_SECRET` via `openssl rand -base64 32`. Satisfies **AC-5** prereqs.
 
@@ -130,7 +132,7 @@ Tracer Bullet ordering: stand up the auth surface end to end (BetterAuth client 
 
 6. **Add `app/api/auth/[...all]/route.ts`** exporting `GET` and `POST` handlers that delegate to BetterAuth's `toNextJsHandler(auth)`. The route is the only HTTP handler BetterAuth owns in this architecture. Satisfies **AC-5**.
 
-7. **Add `middleware.ts` at project root** with a `config.matcher` array `["/((?!api/auth|_next/static|_next/image|favicon.ico|sign-in|sign-up).*)"]`. The middleware reads the session via `getSession`. For paths matching the protected allowlist (`/admin/*`, `/technician/*`, `/api/admin/*`, `/api/technician/*`, `/api/complaints`), redirect to `/sign-in?redirect=<encodedPath>` when no session; return 403 (JSON on `/api/*`, a simple rendered page on UI paths) when role mismatched. Page level Server Components underneath the protected groups still defensively call `getSession()` so misconfigured middleware cannot open protected pages silently. Satisfies **AC-4**.
+7. **Add `proxy.ts` at project root** with a `config.matcher` array of `["/admin", "/admin/:path*", "/technician", "/technician/:path*"]`. The proxy inspects the BetterAuth session cookie via `getSessionCookie` (no database call). An unauthenticated request is redirected to `/sign-in?redirect=<encodedPath>`. API paths stay outside the matcher; route handlers enforce their role gate through `lib/auth/dal.ts`. Page level Server Components underneath the protected groups still defensively call `requireSession` plus `requireRole` so misconfigured boundaries cannot open protected pages silently. Satisfies **AC-4**. The actual code path is split because Next.js 16's authentication guide prescribes optimistic checks in the proxy plus authoritative checks at the data layer; matching that posture is what the architecture was missing before.
 
 8. **Replace `lib/auth/role-context.tsx`**. Export `RoleProvider`, `useCurrentUser` (returns `{ id, email, name, role } | null`), and a back compatible `useCurrentRole()` alias returning `user?.role ?? null`. Remove the `MockRoleSwitcher` export. The hook still reads from `RoleProvider` so consumers in `TopNav`, `MobileBottomNav`, and the role aware layouts compile unchanged. Satisfies **AC-7**.
 
@@ -147,7 +149,7 @@ Tracer Bullet ordering: stand up the auth surface end to end (BetterAuth client 
 **Positive**:
 
 - Slice 1 features (submission, reporter dashboard) get a real session to build on; spec 0003's placeholder is retired outright.
-- Defense in depth: page level checks catch misconfigurations of `middleware.ts`.
+- Defense in depth: page level checks catch misconfigurations of `proxy.ts` plus the DAL.
 - Three BetterAuth managed Mongoose models stay in the same MongoDB cluster via the project's shared connection; no new infrastructure.
 - The locked `users` collection stays byte for byte unchanged; spec 0002's contract is preserved.
 - Reporter sign up is one form submission; admin and technician onboarding is a single env var driven seed.
@@ -159,7 +161,7 @@ Tracer Bullet ordering: stand up the auth surface end to end (BetterAuth client 
 - Self service password reset is deferred; admin must re seed via BetterAuth admin tooling for forgotten passwords in MVP.
 - Magic link and OAuth are deferred; LASU IT might require SSO before go live, in which case this is a feature delta, not a foundation rewrite.
 - Account enumeration is partially mitigated via typed errors mapped to 409, but is not fully mitigated until rate limiting is on.
-- The middleware matcher must be carefully maintained; a future page added under, for example, `/api/admin/foo` must reuse the matcher or call `getSession` defensively.
+- The DAL is the actual enforcement point; the proxy is an optimistic redirect. A future route handler added under, for example, `/api/admin/foo` must call `getServerSession` plus `requireRole` from `lib/auth/dal.ts`, and a future Server Component under `/admin/foo` must call `requireRole("dicht_admin")`, since the proxy no longer runs there.
 
 **Neutral**:
 

@@ -73,10 +73,10 @@ Total: 41 of 41 sections locked across 6 files.
     `signOutAction` (AC-3).
   - `components/shared/TopNav.tsx` consumes `useCurrentUser` and shows
     the user's name beside the theme toggle when signed in.
-  - `middleware.ts` at project root with Node runtime, configured
-    matcher per spec AC-4; redirects unauthenticated requests on
-    protected allowlist to `/sign-in?redirect=...`; returns 403 (JSON on
-    `/api/*`, inline HTML on UI paths) when role mismatches (AC-4).
+  - `middleware.ts` at project root (Node runtime, configured matcher
+    per spec AC-4) that did the redirect plus 403 dance; this file was
+    renamed to `proxy.ts` in Unit-06 and the role gate now lives in
+    the DAL at `lib/auth/dal.ts`. (AC-4).
   - `MockRoleSwitcher` removed from `lib/auth/role-context.tsx` and
     `NEXT_PUBLIC_ALLOW_MOCK_ROLE` removed from `.env.example` (AC-8).
   - `scripts/seed.ts` extended with `seedAdmin()` and `seedTechnician()`
@@ -119,10 +119,10 @@ Total: 41 of 41 sections locked across 6 files.
 - **End-of-cycle `/check verify`** — Feature 03 and Feature 04 together
   once the active build cycle closes. Feature 03 covers AC-1 through
   AC-9 (theme tokens, role layouts, focus order); Feature 04 covers
-  AC-1 through AC-10 (sign-up, sign-in, sign-out, middleware RBAC,
-  contractors, schema, hook contract, dev-affordance cleanup, seeder,
-  build gates). Followed by `/test`, `/check review`, `/document`
-  per the project's `Full` workflow tier.
+AC-1 through AC-10 (sign-up, sign-in, sign-out, proxy RBAC plus DAL,
+   contractors, schema, hook contract, dev-affordance cleanup, seeder,
+   build gates). Followed by `/test`, `/check review`, `/document`
+   per the project's `Full` workflow tier.
 - **Update `context/architecture.md`** — add e2e test layer (Playwright)
   to the Testing subsection; add an Open Question about CI Playwright
   build strategy (system Chrome vs bundled chromium download).
@@ -166,9 +166,10 @@ started. Consult this list before re-litigating any decision.
    §3.3.6.5. Decided to keep LASU's hosting footprint within free-tier.
 4. **Auth** — BetterAuth with three role classes
    (`reporter` / `dicht_admin` / `dicht_technician`); HTTP-only cookie
-   sessions. Per academic doc §3.3.1. Decided over custom JWT+bcrypt because
-   BetterAuth provides email/password, session management, role middleware
-   out of the box.
+   sessions plus a project root proxy plus the auth DAL. Per academic doc
+   §3.3.1. Decided over custom JWT+bcrypt because BetterAuth provides
+   email/password and session management out of the box; the proxy plus
+   DAL pair handles the network boundary and the role gate.
 5. **Realtime** — Ably push for assignment + escalation notifications.
    Per academic doc §3.3.1 and Sprint 3. Decided over polling because
    technicians need instant assignment alerts in the field.
@@ -307,12 +308,12 @@ started. Consult this list before re-litigating any decision.
     `NEXT_PUBLIC_ALLOW_MOCK_ROLE` env var are removed (AC-8). Wired
     `components/shared/SignOut.tsx` to `signOutAction` (form submit). Updated
     `components/shared/TopNav.tsx` to consume `useCurrentUser` so the user's
-    name shows beside the theme toggle when signed in. Added `middleware.ts`
-    at project root (`runtime = "nodejs"`, matcher per spec AC-4) that
-    checks the BetterAuth session cookie, redirects unauthenticated requests
-    on `/admin/*`, `/technician/*`, `/api/admin/*`, `/api/technician/*`,
-    `/api/complaints/*` to `/sign-in?redirect=...`, returns 403 (JSON on
-    `/api/*`, inline HTML on UI paths) when role mismatches. Extended
+    name shows beside the theme toggle when signed in. Added
+    `middleware.ts` at project root (`runtime = "nodejs"`, matcher per
+    spec AC-4) that checked the BetterAuth session cookie, redirected
+    unauthenticated requests on `/admin/*`, `/technician/*`,
+    `/api/admin/*`, `/api/technician/*`, `/api/complaints/*`
+    to `/sign-in?redirect=...`, and returned 403 on role mismatch. Extended
     `scripts/seed.ts` with `seedAdmin()` and `seedTechnician()` callers that
     read `SEED_ADMIN_*` / `SEED_TECH_*` env trios and create or upsert
     users through BetterAuth's `signUpEmail` so password hashing stays
@@ -383,11 +384,11 @@ started. Consult this list before re-litigating any decision.
     recommended `AI_TRIAGE_FALLBACK_TO_RULES` value. Wired
     `npm run check:ai-cost`. Daily cron coverage is deferred to the SLA
     Engine feature.
-  - **Amended `middleware.ts`**: removed `/api/complaints/*` from the
-    protected-prefix list so anonymous submissions are not redirected to
-    `/sign-in`. Each route under `/api/complaints/*` enforces its own role
-    gate; the UI path `/complaints/*` is handled per page (defense in depth).
-    `context/architecture.md` reflects the updated grouping.
+  - **Amended `middleware.ts` (later renamed to `proxy.ts` in Unit-06)**:
+    removed `/api/complaints/*` from the protected-prefix list so
+    anonymous submissions are not redirected to `/sign-in`. Each route
+    under `/api/complaints/*` enforces its own role gate through the
+    DAL; the UI path `/complaints/*` is handled per page.
   - **API-surface exception to flag**: spec 0005 step 9 said "return
     NextResponse with `redirect('/complaints/<id>')` for authenticated
     submissions or `{ data: { trackerUrl } }` for anonymous ones". The build

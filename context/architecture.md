@@ -87,8 +87,12 @@ patterns established by Adelowo et al. (2026) — UniMaintain — and Winasis et
 ### Application tier — `/app/api/` + Server Actions
 - Route handlers (`.ts`, e.g. `/app/api/complaints/route.ts`) and Server Actions
   are the **only** paths that touch Mongoose models in `/lib/db/models/`.
-- Auth middleware runs on every protected route per the RBAC matrix in
-  `code-standards.md` §API Routes.
+- The proxy at `proxy.ts` runs on every protected UI path and only inspects
+  the BetterAuth session cookie; the authoritative session plus role
+  check happens in `lib/auth/dal.ts`, called from each Route Handler,
+  Server Component, and Server Action. The proxy never issues a database
+  call, in line with the Next.js 16 Authentication guide's "Optimistic
+  checks with Proxy" recommendation.
 - Side effects from this tier only: AI calls, queue writes, Ably pushes,
   Cloudinary uploads, rate limit checks.
 - All input schemas validated by **Zod** before reaching Mongoose.
@@ -191,9 +195,18 @@ in handlers.
 - BetterAuth's `nextCookies` plugin wires the cookie to Next.js Server Actions.
 
 ### RBAC enforcement
-- `/lib/auth/middleware.ts` runs on every protected request.
-- The middleware extracts the BetterAuth session, looks up the user's role
-  from `users`, and checks it against the route's allowlist.
+- `proxy.ts` at project root handles the optimistic redirect: when a
+  request hits `/admin/*` or `/technician/*` without a BetterAuth
+  session cookie, the proxy sends a 307 redirect to `/sign-in`.
+  The proxy does not read the database and does not enforce roles.
+- Authoritative session verification and role gating live in
+  `lib/auth/dal.ts`. Every Server Component, Server Action, and Route
+  Handler calls `getServerSession` (React `cache()` wrapped, returns
+  the normalized user shape), `requireSession` (Server Component
+  redirect to `/sign-in`), or `requireRole(...allowed)` (Server
+  Component redirect to `/`). Route Handlers use `getServerSession`
+  and return a typed 401 plus 403 JSON via the existing
+  `lib/utils/errors.ts` `ApiError` class.
 
 ### Route groups
 - `/app/api/admin/*` and `/app/(admin)/*` — admins only.
@@ -205,14 +218,12 @@ in handlers.
   (`getServerSession`, `requireSession`, `requireRole`). Anonymous
   submissions arrive with no session and a synthesized `users` row carries
   the `anonymousId` JWT so the page re-entry is read only.
-- `proxy.ts` at project root is the Next.js 16 rename of the legacy
-  `middleware.ts`. It runs on every protected UI path (`/admin/*` and
-  `/technician/*`) and only inspects the BetterAuth session cookie; it
-  redirects to `/sign-in` when the cookie is missing. Authoritative
-  session verification and role gating live in the Data Access Layer
-  helper, not in the proxy. The proxy never issues a database call on
-  the request path; DB sessions are read once per render pass by the
-  DAL, which is wrapped in React `cache()`.
+- `proxy.ts` at project root runs on every protected UI path (`/admin/*`
+  and `/technician/*`) and only inspects the BetterAuth session cookie;
+  it redirects to `/sign-in` when the cookie is missing. The proxy
+  never issues a database call on the request path; DB sessions are
+  read once per render pass by the DAL, which is wrapped in React
+  `cache()`.
 - An **anonymous reporter** flow uses a special signed token (not BetterAuth);
   the resulting complaint has `isAnonymous = true`, `reporterId` set to the
   hidden user's `_id` (so `users.email` is unique by JWT jti), and
