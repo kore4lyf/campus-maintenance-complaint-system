@@ -6,6 +6,7 @@ import { FilterPanel } from "@/components/admin/FilterPanel";
 import { QueueRow } from "@/components/admin/QueueRow";
 import { AssignDialog } from "@/components/admin/AssignDialog";
 import { RecentActionsFeed } from "@/components/admin/RecentActionsFeed";
+import { QueueRibbon } from "@/components/admin/QueueRibbon";
 import { AdminQueueEmpty } from "@/components/admin/AdminQueueEmpty";
 import { useSearchParams } from "next/navigation";
 
@@ -40,6 +41,7 @@ interface Location {
 interface QueueResponse {
   data: Complaint[];
   meta: { nextCursor: string | null; hasMore: boolean };
+  escalatedRecentCount: number;
 }
 
 function QueueContent() {
@@ -86,6 +88,7 @@ function QueueContent() {
   const complaints = queueData?.data ?? [];
   const technicians = techData?.data ?? [];
   const locations = locationData?.data ?? [];
+  const escalatedRecentCount = queueData?.escalatedRecentCount ?? 0;
 
   if (queueLoading) {
     return (
@@ -106,6 +109,7 @@ function QueueContent() {
       </div>
 
       <div className="flex-1 min-w-0">
+        <QueueRibbon escalatedCount={escalatedRecentCount} />
         {complaints.length === 0 ? (
           <AdminQueueEmpty />
         ) : (

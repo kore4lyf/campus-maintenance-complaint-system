@@ -4,6 +4,7 @@ import { ComplaintModel } from "@/lib/db/models/complaint";
 import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
 import { AssignmentModel } from "@/lib/db/models/assignment";
+import { NotificationModel } from "@/lib/db/models/notification";
 import { UserModel } from "@/lib/db/models/user";
 import { getServerSession, authorizeRole } from "@/lib/auth/dal";
 import { evaluateBreachState } from "@/lib/sla/breach-detection";
@@ -167,8 +168,14 @@ export async function GET(request: Request): Promise<NextResponse> {
     return resA - resB;
   });
 
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const escalatedComplaintIds = await NotificationModel.distinct("complaintId", {
+    type: "escalation",
+    createdAt: { $gte: oneHourAgo },
+  });
+
   return NextResponse.json(
-    { data: publicData, meta },
+    { data: publicData, meta, escalatedRecentCount: escalatedComplaintIds.length },
     { status: 200, headers: { "content-type": "application/json" } },
   );
 }

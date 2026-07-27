@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx scripts/seed.ts",
+    "sweep": "npx tsx scripts/sla-sweep.ts",
     "check:ai-cost": "npx tsx scripts/ai-cost-check.ts",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",

@@ -606,6 +606,44 @@ started. Consult this list before re-litigating any decision.
     `/check review`, and `/document` are still owed before the scope
     flips to `done`.
 
+- **2026-07-26 (Feature 09 build — SLA engine & escalation)** — Built the SLA
+  sweep cron and escalation feature end to end per spec 0009.
+  - Built `lib/utils/logger.ts` with structured JSON logging and redacted
+    fields for PII (email, name, password, anonymousId, cronSecret).
+  - Built `app/api/cron/sla-sweep/route.ts` with bearer auth via
+    `Authorization: Bearer <CRON_SECRET>`, rejection of non matching callers
+    with 401. For each non Closed complaint, runs `evaluateBreachState` from
+    spec 0007 to detect acknowledge overdue and resolve overdue breaches.
+    Dedup via `NotificationModel.findOne` within a 5 minute window prevents
+    double notification. Writes `notifications` rows of `type: 'escalation'`
+    to every `dicht_admin` user. Resolve overdue messages carry a Priority
+    header plus "DICT Director review required". Ably push is best effort.
+    Flips `complaints.escalated` to `true` once per breach via conditional
+    `findOneAndUpdate`. Returns 200 with structured log summary of
+    `scannedCount`, `escalatedCount`, `skipCount`, `runId`, and `durationMs`.
+  - Added `vercel.json` at project root with cron entry `*/5 * * * *` pointing
+    to `/api/cron/sla-sweep`.
+  - Built `scripts/sla-sweep.ts` exporting `runSweep({ nowOverride? })` for
+    local development exercise without waiting for Vercel cron. Added
+    `npm run sweep` script to `package.json`.
+  - Built `components/admin/QueueRibbon.tsx` showing the count of complaints
+    with SLA breaches in the last hour. Hidden when count is zero.
+  - Updated `GET /api/admin/queue` to compute `escalatedRecentCount` from
+    `NotificationModel.distinct('complaintId', { type: 'escalation',
+    createdAt: { $gte: oneHourAgo } })`.
+  - Updated `app/(admin)/queue/page.tsx` to render `QueueRibbon` above the
+    queue list.
+  - Tests written per AGENTS.md Test Execution Policy: no `npm test`,
+    `npm run lint`, `npx tsc --noEmit`, `npm run build`, or
+    `npm run test:e2e` was run during development. End-of-cycle verify will
+    re-run all gates.
+  - Spec 0009 status bumped `Proposed` to `In Progress`.
+  - Scope: all three `Build it` milestone sub-boxes ticked; `code in`
+    pointer to be populated. Feature remains `in-progress` in the scope (not
+    `done`) per the Full workflow tier — `/check verify`, `/test`,
+    `/check review`, and `/document` are still owed before the scope
+    flips to `done`.
+
 ### Hand-off
 
 > Context set. Hand off: `/develop <unit>` or `/unit-01 <description>` to

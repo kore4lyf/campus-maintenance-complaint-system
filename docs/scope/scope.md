@@ -175,10 +175,10 @@ Spec 0008 · code in `../specs/0008-technician-queue-and-status-updates.md`
 Vercel cron endpoint `/api/cron/sla-sweep` runs every 5 minutes. Acknowledge breach notifies DICT Admin; resolve breach notifies DICT Director. All escalations recorded in notifications.
 **Done when:** the cron detects breaches at the correct thresholds, sends the right escalation notifications, and is idempotent within a 5-minute window.
 - [x] Design it (spec): `/architect SLA engine`
-- [ ] Build it: `/develop SLA engine & escalation`
-  - [ ] Build /api/cron/sla-sweep with bearer auth, evaluateBreachState from spec 0007, dedup via notifications.find, notifications writes, Ably push, complaints.escalated flip (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7)
-  - [ ] Add vercel.json cron entry plus scripts/sla-sweep simulator for local exercise (AC-1, AC-8)
-  - [ ] Add escalatedRecentCount plus QueueRibbon on /admin/queue and run all build gates plus Playwright cron smoke (AC-8)
+- [x] Build it: `/develop SLA engine & escalation`
+  - [x] Build /api/cron/sla-sweep with bearer auth, evaluateBreachState from spec 0007, dedup via notifications.find, notifications writes, Ably push, complaints.escalated flip (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7)
+  - [x] Add vercel.json cron entry plus scripts/sla-sweep simulator for local exercise (AC-1, AC-8)
+  - [x] Add escalatedRecentCount plus QueueRibbon on /admin/queue and run all build gates plus Playwright cron smoke (AC-8)
 - [ ] Verify it: `/check verify SLA engine & escalation`
 - [ ] Test it: `/test SLA engine & escalation`
 - [ ] Review it (fresh model): `/check review SLA engine & escalation`
