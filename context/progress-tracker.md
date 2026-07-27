@@ -644,6 +644,40 @@ started. Consult this list before re-litigating any decision.
     `/check review`, and `/document` are still owed before the scope
     flips to `done`.
 
+- **2026-07-26 (Feature 10 build — Real-time notifications)** — Built the client
+  side Ably subscription layer per spec 0010.
+  - Built `lib/realtime/ably-client.ts` exporting `getAblyClient()` that lazily
+    creates an `Ably.Realtime` instance using `NEXT_PUBLIC_ABLY_API_KEY`. The
+    client is shared across the browser session and seeded once per page load.
+  - Built `lib/realtime/use-ably-channel.ts` exporting `useAblyChannel({
+    name, queryKey })` that subscribes to a channel on mount, unsubscribes on
+    unmount, and calls `queryClient.invalidateQueries({ queryKey })` on every
+    event. Exposes `connectionState` from `Ably.connection.on(stateChange)`.
+  - Built `components/RealtimeStatusBadge.tsx` consuming `useAblyChannel` and
+    rendering "Live" when connected, "Live updates paused, using polling
+    fallback" after five seconds of disconnection, and "Connecting..." during
+    the initial handshake.
+  - Built `app/ably-provider.tsx` wrapping children in `AblyProvider` from
+    `ably/react`. Client is created in `useEffect` with cleanup via
+    `realtime.close()`.
+  - Updated `app/providers.tsx` to include `AblyClientProvider` inside
+    `QueryClientProvider` and above `RoleProvider`.
+  - Updated `app/(admin)/queue/page.tsx` to call `useAblyChannel` for
+    `admin:queue` and `admin:escalations` channels, and render
+    `RealtimeStatusBadge` at the top of the queue column. The existing
+    `refetchInterval: 30_000` on the queue query serves as the polling
+    fallback when Ably disconnects.
+  - Tests written per AGENTS.md Test Execution Policy: no `npm test`,
+    `npm run lint`, `npx tsc --noEmit`, `npm run build`, or
+    `npm run test:e2e` was run during development. End-of-cycle verify will
+    re-run all gates.
+  - Spec 0010 status bumped `Proposed` to `In Progress`.
+  - Scope: two of four `Build it` milestone sub-boxes ticked; `code in`
+    pointer to be populated. Feature remains `in-progress` in the scope (not
+    `done`) per the Full workflow tier — `/check verify`, `/test`,
+    `/check review`, and `/document` are still owed before the scope
+    flips to `done`.
+
 ### Hand-off
 
 > Context set. Hand off: `/develop <unit>` or `/unit-01 <description>` to

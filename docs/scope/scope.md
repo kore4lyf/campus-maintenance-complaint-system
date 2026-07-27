@@ -18,9 +18,9 @@ A web app for LASU students and staff to submit maintenance complaints with phot
 | 7 | Admin queue & assignment · in-progress | Slice 2 | in-progress |
 | 8 | Technician queue & status updates · in-progress | Slice 2 | in-progress |
 | 9 | SLA engine & escalation · in-progress | Slice 3 | in-progress |
-| 10 | Real-time notifications (Ably) | Slice 3 | planned |
-| 11 | Reporting dashboard & export | Slice 4 | planned |
-| 12 | Image pipeline (sharp + Cloudinary) | Slice 4 | planned |
+| 10 | Real-time notifications (Ably) · in-progress | Slice 3 | in-progress |
+| 11 | Reporting dashboard & export · in-progress | Slice 4 | in-progress |
+| 12 | Image pipeline (sharp + Cloudinary) · in-progress | Slice 4 | in-progress |
 
 ## Foundations
 
@@ -185,25 +185,53 @@ Vercel cron endpoint `/api/cron/sla-sweep` runs every 5 minutes. Acknowledge bre
 - [ ] Document it: `/document SLA engine & escalation`
 Spec 0009 · code in `../specs/0009-sla-engine-and-escalation.md`
 
-### 10. Real-time notifications (Ably)
+### 10. Real-time notifications (Ably) · in-progress
 
 Push notifications for assignment alerts to technicians, escalation warnings to admins, and status-update fan-out so the admin console refreshes without page reload.
 **Done when:** a technician receives a push notification on assignment, an admin receives escalation warnings, and the queue updates in real time.
-- [ ] Design it (spec): `/architect real-time notifications`
+- [x] Design it (spec): `/architect real-time notifications`
+- [x] Build it: `/develop real-time notifications`
+  - [x] Build lib/realtime/ably-client.ts plus useAblyChannel hook with TanStack Query invalidation and connection state (AC-5, AC-6)
+  - [x] Build components/RealtimeStatusBadge.tsx plus wire admin queue to subscribe to admin:queue and admin:escalations (AC-1, AC-3, AC-4)
+  - [ ] Verify existing publish sides from specs 0007 plus 0008 plus 0009 by integration test and run all build gates plus Playwright cron smoke (AC-7, AC-8)
+- [ ] Verify it: `/check verify real-time notifications`
+- [ ] Test it: `/test real-time notifications`
+- [ ] Review it (fresh model): `/check review real-time notifications`
+- [ ] Document it: `/document real-time notifications`
+Spec 0010 · code in `../specs/0010-real-time-notifications.md`
 
 ## Slice 4: Reporting and images
 
-### 11. Reporting dashboard & export
+### 11. Reporting dashboard & export · in-progress
 
 Admin reporting dashboard with Recharts visualisations (volume by category/location/severity, average resolution time, SLA-breach count, backlog). PDF export via @react-pdf/renderer; CSV export for offline analysis.
 **Done when:** the dashboard renders all four chart types, filters by time window/severity/location/status, and exports to PDF and CSV.
-- [ ] Design it (spec): `/architect reporting dashboard`
+- [x] Design it (spec): `/architect reporting dashboard`
+- [ ] Build it: `/develop reporting dashboard`
+  - [ ] Build /api/admin/reports route handler with single aggregation pipeline driving all four charts plus numeric cards (AC-1, AC-2, AC-6)
+  - [ ] Build /api/admin/reports/export.csv plus export.pdf route handlers reusing the same aggregation (AC-4, AC-5)
+  - [ ] Build /admin/reports page with chart components plus FilterPanel plus ExportButtons plus 60 second polling (AC-1, AC-2, AC-3, AC-7)
+  - [ ] Run all build gates plus Playwright four chart rendering plus filter plus PDF plus CSV smoke (AC-8)
+- [ ] Verify it: `/check verify reporting dashboard`
+- [ ] Test it: `/test reporting dashboard`
+- [ ] Review it (fresh model): `/check review reporting dashboard`
+- [ ] Document it: `/document reporting dashboard`
+Spec 0011 · code in `../specs/0011-reporting-dashboard.md`
 
-### 12. Image pipeline (sharp + Cloudinary)
+### 12. Image pipeline (sharp + Cloudinary) · in-progress
 
-Server-side image pipeline: multipart/form-data upload, sharp compression, Cloudinary upload, URL persisted in complaints.photoUrls[]. MIME-type and size validation.
+Server-side image pipeline: multipart/form-data upload, sharp compression, Cloudinary upload, URL persisted on the complaint. MIME-type and size validation.
 **Done when:** a valid image is compressed, uploaded to Cloudinary, and the URL is stored on the complaint; non-image uploads are rejected.
-- [ ] Design it (spec): `/architect image pipeline`
+- [x] Design it (spec): `/architect image pipeline`
+- [ ] Build it: `/develop image pipeline`
+  - [ ] Update lib/storage/cloudinary.ts with EXIF strip, HTTPS URL filter, Cloudinary 409 retry once with nanoid suffix (AC-4, AC-5, AC-6)
+  - [ ] Add tests/integration/image-pipeline.test.ts and lib/storage/integration-test-helpers.ts with stub Cloudinary client covering both spec 0005 submission plus spec 0008 Resolve surfaces (AC-7)
+  - [ ] Update package.json deps if needed and run all build gates plus Playwright end to end submission plus Resolve smoke (AC-8)
+- [ ] Verify it: `/check verify image pipeline`
+- [ ] Test it: `/test image pipeline`
+- [ ] Review it (fresh model): `/check review image pipeline`
+- [ ] Document it: `/document image pipeline`
+Spec 0012 · code in `../specs/0012-image-pipeline.md`
 
 ## Deferred
 

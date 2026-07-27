@@ -8,6 +8,8 @@ import { AssignDialog } from "@/components/admin/AssignDialog";
 import { RecentActionsFeed } from "@/components/admin/RecentActionsFeed";
 import { QueueRibbon } from "@/components/admin/QueueRibbon";
 import { AdminQueueEmpty } from "@/components/admin/AdminQueueEmpty";
+import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
+import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import { useSearchParams } from "next/navigation";
 
 interface Complaint {
@@ -90,6 +92,10 @@ function QueueContent() {
   const locations = locationData?.data ?? [];
   const escalatedRecentCount = queueData?.escalatedRecentCount ?? 0;
 
+  const queueQueryKey = ["admin-queue", severity, age, locationId];
+  useAblyChannel({ name: "admin:queue", queryKey: queueQueryKey });
+  useAblyChannel({ name: "admin:escalations", queryKey: queueQueryKey });
+
   if (queueLoading) {
     return (
       <div className="space-y-4">
@@ -109,6 +115,13 @@ function QueueContent() {
       </div>
 
       <div className="flex-1 min-w-0">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-foreground">Queue</h2>
+          <RealtimeStatusBadge
+            channelName="admin:queue"
+            queryKey={queueQueryKey}
+          />
+        </div>
         <QueueRibbon escalatedCount={escalatedRecentCount} />
         {complaints.length === 0 ? (
           <AdminQueueEmpty />

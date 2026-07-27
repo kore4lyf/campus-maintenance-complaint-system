@@ -9,6 +9,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { RoleProvider } from "@/lib/auth/role-context";
 import { queryClient } from "@/lib/query-client";
+import { AblyClientProvider } from "./ably-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -22,7 +23,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           <QueryClientProvider client={queryClient}>
-            <RoleProvider>{children}</RoleProvider>
+            <AblyClientProvider>
+              <RoleProvider>{children}</RoleProvider>
+            </AblyClientProvider>
           </QueryClientProvider>
           <Toaster
             position="top-right"
