@@ -678,6 +678,55 @@ started. Consult this list before re-litigating any decision.
     `/check review`, and `/document` are still owed before the scope
     flips to `done`.
 
+- **2026-07-26 (Feature 11 build — Reporting dashboard & export)** — Built the
+  admin reporting dashboard with Recharts visualizations, PDF export, and CSV
+  export per spec 0011.
+  - Built `GET /api/admin/reports` route handler with a single MongoDB
+    aggregation pipeline using `$facet` to produce volume by category, volume
+    by location, volume by severity, SLA breach counts (acknowledge overdue
+    plus resolve overdue), average resolution time, and backlog count. Filter
+    composition via Zod validated query params for time window, severity,
+    location, and status. Admin role check via `authorizeRole`.
+  - Built `lib/utils/csv.ts` exporting `toCsv(rows, columns)` and
+    `formatDateForFilename(date)`. Hand rolled per code standards small
+    surface notice.
+  - Built `GET /api/admin/reports/export.csv` route handler running the same
+    aggregation pipeline, mapping complaints to the documented column shape,
+    and streaming `text/csv` with `Content-Disposition` attachment.
+  - Built `POST /api/admin/reports/export.pdf` route handler running the same
+    aggregation pipeline and rendering via `@react-pdf/renderer`
+    `renderToBuffer`. Returns `application/pdf` with attachment filename.
+    Failure path returns 500 `pdf_render_failed`.
+  - Built `components/admin/PdfReport.tsx` as a `@react-pdf/renderer`
+    Document with Page containing the four bar charts, three numeric cards,
+    filter summary, and notes section.
+  - Built `components/admin/BarChartCard.tsx` wrapping Recharts `BarChart`
+    with `ResponsiveContainer`, colored cells, empty state, and the project
+    design tokens.
+  - Built `components/admin/NumericCard.tsx` and
+    `components/admin/BreachCountCard.tsx` for the SLA breach, average
+    resolution, and backlog cards.
+  - Built `components/admin/ReportsFilterPanel.tsx` with time window chips,
+    multi select severity chips, multi select location chips, multi select
+    status chips, all synced with URL search params.
+  - Built `components/admin/ExportButtons.tsx` triggering CSV download via
+    fetch plus blob plus anchor click, and PDF download via POST plus blob
+    plus anchor click. Sonner toasts for success and failure.
+  - Built `app/(admin)/reports/page.tsx` as a Client Component with left
+    sidebar filter panel and right content area containing the three numeric
+    cards, four chart cards, export buttons, and TanStack Query polling at
+    60 seconds with `refetchOnWindowFocus: true`.
+  - Tests written per AGENTS.md Test Execution Policy: no `npm test`,
+    `npm run lint`, `npx tsc --noEmit`, `npm run build`, or
+    `npm run test:e2e` was run during development. End-of-cycle verify will
+    re-run all gates.
+  - Spec 0011 status bumped `Proposed` to `In Progress`.
+  - Scope: three of four `Build it` milestone sub-boxes ticked; `code in`
+    pointer to be populated. Feature remains `in-progress` in the scope (not
+    `done`) per the Full workflow tier — `/check verify`, `/test`,
+    `/check review`, and `/document` are still owed before the scope
+    flips to `done`.
+
 ### Hand-off
 
 > Context set. Hand off: `/develop <unit>` or `/unit-01 <description>` to

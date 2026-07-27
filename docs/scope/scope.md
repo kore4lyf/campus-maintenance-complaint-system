@@ -207,10 +207,10 @@ Spec 0010 · code in `../specs/0010-real-time-notifications.md`
 Admin reporting dashboard with Recharts visualisations (volume by category/location/severity, average resolution time, SLA-breach count, backlog). PDF export via @react-pdf/renderer; CSV export for offline analysis.
 **Done when:** the dashboard renders all four chart types, filters by time window/severity/location/status, and exports to PDF and CSV.
 - [x] Design it (spec): `/architect reporting dashboard`
-- [ ] Build it: `/develop reporting dashboard`
-  - [ ] Build /api/admin/reports route handler with single aggregation pipeline driving all four charts plus numeric cards (AC-1, AC-2, AC-6)
-  - [ ] Build /api/admin/reports/export.csv plus export.pdf route handlers reusing the same aggregation (AC-4, AC-5)
-  - [ ] Build /admin/reports page with chart components plus FilterPanel plus ExportButtons plus 60 second polling (AC-1, AC-2, AC-3, AC-7)
+- [x] Build it: `/develop reporting dashboard`
+  - [x] Build /api/admin/reports route handler with single aggregation pipeline driving all four charts plus numeric cards (AC-1, AC-2, AC-6)
+  - [x] Build /api/admin/reports/export.csv plus export.pdf route handlers reusing the same aggregation (AC-4, AC-5)
+  - [x] Build /admin/reports page with chart components plus FilterPanel plus ExportButtons plus 60 second polling (AC-1, AC-2, AC-3, AC-7)
   - [ ] Run all build gates plus Playwright four chart rendering plus filter plus PDF plus CSV smoke (AC-8)
 - [ ] Verify it: `/check verify reporting dashboard`
 - [ ] Test it: `/test reporting dashboard`
