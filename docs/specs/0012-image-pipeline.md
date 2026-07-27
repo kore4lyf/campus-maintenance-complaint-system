@@ -1,7 +1,7 @@
 # 0012. Image pipeline
 
 **Date**: 2026-07-25
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 

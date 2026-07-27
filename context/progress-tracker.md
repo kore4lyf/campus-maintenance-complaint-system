@@ -727,6 +727,37 @@ started. Consult this list before re-litigating any decision.
     `/check review`, and `/document` are still owed before the scope
     flips to `done`.
 
+- **2026-07-26 (Feature 12 build — Image pipeline)** — Consolidated the server
+  side image pipeline with four defence in depth decisions per spec 0012.
+  - Updated `lib/storage/cloudinary.ts` with `assertHttps(url)` that rejects
+    non HTTPS Cloudinary URLs with typed `cloudinary_url_insecure` 502. Added
+    `.withMetadata({})` to the sharp pipeline for explicit EXIF metadata
+    strip before encoding. Added Cloudinary 409 collision retry that appends
+    a nanoid suffix once; persistent collision returns typed
+    `cloudinary_collision_persistent` 502. Exported `assertHttps` for route
+    handler reuse.
+  - Built `lib/storage/integration-test-helpers.ts` exporting
+    `CloudinaryStub` class with `control.nextCallFailsOnce` shape for
+    forced 409 testing, `getCloudinaryClient({ env })` returning the stub
+    when env vars are missing, and `createTestImageBuffer(format)` for test
+    fixtures. The module is imported only by tests and never bundled in
+    production.
+  - Built `tests/integration/image-pipeline.test.ts` covering MIME validation
+    (accepts JPEG, PNG, WebP; rejects PDF and HEIC), size validation (rejects
+    over 10 MB), HTTPS assertion (passes for https, throws for http),
+    compress and upload happy path (returns HTTPS URL), 409 retry once with
+    nanoid suffix, and ALLOWED_MIME set integrity.
+  - Tests written per AGENTS.md Test Execution Policy: no `npm test`,
+    `npm run lint`, `npx tsc --noEmit`, `npm run build`, or
+    `npm run test:e2e` was run during development. End-of-cycle verify will
+    re-run all gates.
+  - Spec 0012 status bumped `Proposed` to `In Progress`.
+  - Scope: two of three `Build it` milestone sub-boxes ticked; `code in`
+    pointer to be populated. Feature remains `in-progress` in the scope (not
+    `done`) per the Full workflow tier — `/check verify`, `/test`,
+    `/check review`, and `/document` are still owed before the scope
+    flips to `done`.
+
 ### Hand-off
 
 > Context set. Hand off: `/develop <unit>` or `/unit-01 <description>` to

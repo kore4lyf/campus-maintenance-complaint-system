@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import sharp from "sharp";
 import { v2 as cloudinaryV2 } from "cloudinary";
+import { nanoid } from "nanoid";
 import { ApiError } from "@/lib/utils/errors";
 
 const ALLOWED_MIME = new Set([
@@ -58,6 +59,34 @@ function readCloudinaryConfig(): {
   return { cloudName, apiKey, apiSecret };
 }
 
+function assertHttps(url: string): void {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") {
+      throw new ApiError(
+        "cloudinary_url_insecure",
+        "Cloudinary returned a non HTTPS URL",
+        502,
+      );
+    }
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    throw new ApiError(
+      "cloudinary_url_insecure",
+      "Cloudinary returned an invalid URL",
+      502,
+    );
+  }
+}
+
+function generatePublicId(originalName: string | undefined): string {
+  const baseName = (originalName ?? "complaint")
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .slice(0, 60);
+  return `complaints/${Date.now()}-${baseName}`;
+}
+
 async function validateMimeAndSize(input: PhotoInput): Promise<void> {
   if (!ALLOWED_MIME.has(input.mime)) {
     throw new ApiError(
@@ -76,7 +105,7 @@ async function validateMimeAndSize(input: PhotoInput): Promise<void> {
 }
 
 async function compress(input: PhotoInput): Promise<CompressedPhoto> {
-  const image = sharp(input.buffer, { failOn: "error" }).rotate();
+  const image = sharp(input.buffer, { failOn: "error" }).rotate().withMetadata({});
   const metadata = await image.metadata();
   const longest = Math.max(metadata.width ?? 0, metadata.height ?? 0);
   let pipeline = image;
@@ -131,11 +160,7 @@ async function uploadToCloudinary(
     secure: true,
   });
 
-  const baseName = (originalName ?? "complaint")
-    .replace(/\.[^.]+$/, "")
-    .replace(/[^a-zA-Z0-9_-]/g, "_")
-    .slice(0, 60);
-  const publicId = `complaints/${Date.now()}-${baseName}`;
+  const publicId = generatePublicId(originalName);
 
   const readStream = new Readable({
     read() {
@@ -167,6 +192,47 @@ async function uploadToCloudinary(
       },
     );
     readStream.pipe(stream);
+  }).catch(async (err: Error & { http_code?: number }) => {
+    if (err.http_code === 409) {
+      const retryPublicId = `${publicId}-${nanoid(8)}`;
+      return new Promise<{
+        secure_url: string;
+        public_id: string;
+        bytes: number;
+        format: string;
+      }>((resolve, reject) => {
+        const retryStream = new Readable({
+          read() {
+            this.push(compressed.buffer);
+            this.push(null);
+          },
+        });
+        const stream = cloudinaryV2.uploader.upload_stream(
+          {
+            folder: "complaints",
+            public_id: retryPublicId,
+            format: compressed.format,
+            overwrite: false,
+            resource_type: "image",
+          },
+          (retryErr, retryResult) => {
+            if (retryErr || !retryResult) {
+              reject(
+                new ApiError(
+                  "cloudinary_collision_persistent",
+                  "Cloudinary collision persisted after retry",
+                  502,
+                ),
+              );
+              return;
+            }
+            resolve(retryResult);
+          },
+        );
+        retryStream.pipe(stream);
+      });
+    }
+    throw err;
   });
 
   if (!upload.secure_url || !upload.public_id) {
@@ -176,6 +242,8 @@ async function uploadToCloudinary(
       502,
     );
   }
+
+  assertHttps(upload.secure_url);
 
   return {
     url: upload.secure_url,
@@ -199,6 +267,7 @@ export {
   compressAndUpload,
   compress,
   validateMimeAndSize,
+  assertHttps,
   MAX_RAW_BYTES,
   MAX_LONGEST_SIDE,
   ALLOWED_MIME,

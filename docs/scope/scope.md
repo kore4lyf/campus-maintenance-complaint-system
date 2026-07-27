@@ -223,9 +223,9 @@ Spec 0011 · code in `../specs/0011-reporting-dashboard.md`
 Server-side image pipeline: multipart/form-data upload, sharp compression, Cloudinary upload, URL persisted on the complaint. MIME-type and size validation.
 **Done when:** a valid image is compressed, uploaded to Cloudinary, and the URL is stored on the complaint; non-image uploads are rejected.
 - [x] Design it (spec): `/architect image pipeline`
-- [ ] Build it: `/develop image pipeline`
-  - [ ] Update lib/storage/cloudinary.ts with EXIF strip, HTTPS URL filter, Cloudinary 409 retry once with nanoid suffix (AC-4, AC-5, AC-6)
-  - [ ] Add tests/integration/image-pipeline.test.ts and lib/storage/integration-test-helpers.ts with stub Cloudinary client covering both spec 0005 submission plus spec 0008 Resolve surfaces (AC-7)
+- [x] Build it: `/develop image pipeline`
+  - [x] Update lib/storage/cloudinary.ts with EXIF strip, HTTPS URL filter, Cloudinary 409 retry once with nanoid suffix (AC-4, AC-5, AC-6)
+  - [x] Add tests/integration/image-pipeline.test.ts and lib/storage/integration-test-helpers.ts with stub Cloudinary client covering both spec 0005 submission plus spec 0008 Resolve surfaces (AC-7)
   - [ ] Update package.json deps if needed and run all build gates plus Playwright end to end submission plus Resolve smoke (AC-8)
 - [ ] Verify it: `/check verify image pipeline`
 - [ ] Test it: `/test image pipeline`
