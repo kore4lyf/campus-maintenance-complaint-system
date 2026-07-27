@@ -1,7 +1,7 @@
 # 0007. Admin queue and assignment
 
 **Date**: 2026-07-25
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 

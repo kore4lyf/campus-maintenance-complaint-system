@@ -140,11 +140,11 @@ Spec 0006 · code in `../specs/0006-reporter-dashboard.md`
 Admin console at `/admin/queue` with filtering by severity, age, and location. Assignment action to technicians, reassignment with audit trail, and SLA breach overlay.
 **Done when:** the admin can filter the queue, assign a complaint to a technician, reassign with audit, and see SLA breach indicators.
 - [x] Design it (spec): `/architect admin queue`
-- [ ] Build it: `/develop admin queue & assignment`
-  - [ ] Build lib/sla/breach-detection.ts plus GET /api/admin/queue with severity/age/location filters and live breach overlay (AC-1, AC-2, AC-3)
-  - [ ] Build POST /api/admin/queue/assign with optimistic concurrency, audit trail writes, Ably push and notifications row (AC-5, AC-6, AC-7, AC-8)
-  - [ ] Build /app/(admin)/queue three column page with FilterPanel, QueueRow, AssignDialog, AdminQueueEmpty reuse (AC-1, AC-2, AC-4)
-  - [ ] Build GET /api/admin/queue/recent-actions and components/admin/RecentActionsFeed (AC-9)
+- [x] Build it: `/develop admin queue & assignment`
+  - [x] Build lib/sla/breach-detection.ts plus GET /api/admin/queue with severity/age/location filters and live breach overlay (AC-1, AC-2, AC-3)
+  - [x] Build POST /api/admin/queue/assign with optimistic concurrency, audit trail writes, Ably push and notifications row (AC-5, AC-6, AC-7, AC-8)
+  - [x] Build /app/(admin)/queue three column page with FilterPanel, QueueRow, AssignDialog, AdminQueueEmpty reuse (AC-1, AC-2, AC-4)
+  - [x] Build GET /api/admin/queue/recent-actions and components/admin/RecentActionsFeed (AC-9)
   - [ ] Run all build gates plus Playwright filter/breach/assign/reassign/recent-actions smoke (AC-10)
 - [ ] Verify it: `/check verify admin queue & assignment`
 - [ ] Test it: `/test admin queue & assignment`
@@ -157,10 +157,10 @@ Spec 0007 · code in `../specs/0007-admin-queue-and-assignment.md`
 Technician view at `/technician/queue` showing assigned complaints sorted by SLA urgency. Acknowledge, update status to In Progress with notes, and mark Resolved with mandatory proof-of-fix photo.
 **Done when:** the technician can acknowledge a complaint, update status with notes, and resolve with a proof photo that populates the statusHistory audit trail.
 - [x] Design it (spec): `/architect technician queue`
-- [ ] Build it: `/develop technician queue & status updates`
-  - [ ] Build POST /api/technician/queue/[id]/transition with optimistic concurrency, allowlist, photo upload, statusHistory and notifications writes, Ably push (AC-3, AC-4, AC-5, AC-6, AC-7, AC-8)
-  - [ ] Build GET /api/technician/queue plus [id] route handlers with technician scoped assignment filter (AC-1, AC-2)
-  - [ ] Build /technician/queue and /technician/queue/[id] pages with AcknowledgeForm, InProgressForm, ResolveForm plus ProofPhotoUploader reusing lib/storage/cloudinary.ts (AC-1, AC-2, AC-3, AC-4, AC-5)
+- [x] Build it: `/develop technician queue & status updates`
+  - [x] Build POST /api/technician/queue/[id]/transition with optimistic concurrency, allowlist, photo upload, statusHistory and notifications writes, Ably push (AC-3, AC-4, AC-5, AC-6, AC-7, AC-8)
+  - [x] Build GET /api/technician/queue plus [id] route handlers with technician scoped assignment filter (AC-1, AC-2)
+  - [x] Build /technician/queue and /technician/queue/[id] pages with AcknowledgeForm, InProgressForm, ResolveForm plus ProofPhotoUploader reusing lib/storage/cloudinary.ts (AC-1, AC-2, AC-3, AC-4, AC-5)
   - [ ] Run all build gates plus Playwright acknowledge, in progress, resolved with photo, version mismatch 409, reverse transition rejected (AC-9)
 - [ ] Verify it: `/check verify technician queue & status updates`
 - [ ] Test it: `/test technician queue & status updates`

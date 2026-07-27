@@ -519,6 +519,93 @@ started. Consult this list before re-litigating any decision.
     `/check review`, and `/document` are still owed before the scope
     flips to `done`.
 
+- **2026-07-26 (Feature 07 build — Admin queue & assignment)** — Built the
+  admin queue and assignment feature end to end per spec 0007.
+  - Built `lib/sla/breach-detection.ts` exporting `evaluateBreachState` and
+    `formatOverdueDuration` as pure functions for live SLA breach computation.
+  - Built `lib/realtime/ably.ts` with `publishToChannel` and
+    `publishAssignmentNotification` helpers wrapping the Ably client.
+  - Built `GET /api/admin/queue` route handler with severity, age, and
+    location filters, cursor pagination, live breach state computation via
+    `evaluateBreachState`, and `toPublicJSON` PII stripping. Response includes
+    `breachKind`, `overdueMs`, and `currentAssignee` per row.
+  - Built `POST /api/admin/queue/assign` route handler with Zod validation,
+    optimistic concurrency via `findOneAndUpdate({ _id, __v: expectedVersion })`,
+    audit trail writes (`assignments` + `statusHistory` rows), notification
+    row creation, and Ably push (best effort). Returns 409 `stale_write` on
+    version mismatch.
+  - Built `GET /api/admin/queue/recent-actions` route handler returning the
+    last 10 assignment actions by the current admin in the last 24 hours.
+  - Built `GET /api/admin/technicians` and `GET /api/locations` route handlers
+    for the assign dropdown and filter panel.
+  - Built `components/admin/FilterPanel.tsx` with severity chip toggles, age
+    chip toggles, and location dropdown, all syncing with URL search params.
+  - Built `components/admin/QueueRow.tsx` with breach border colour (danger
+    red on acknowledge overdue or resolve overdue), severity badge, status
+    badge, category and location names, SLA countdown, and assignee name.
+  - Built `components/admin/AssignDialog.tsx` with complaint summary, breach
+    state, photo thumbnails, technician dropdown, optional note, optimistic
+    concurrency mismatch retry affordance, and Sonner toasts.
+  - Built `components/admin/RecentActionsFeed.tsx` with TanStack Query
+    polling at 30 seconds, showing the last 10 assignment actions.
+  - Built `app/(admin)/queue/page.tsx` as a Client Component with three
+    column layout (filters left, queue centre, recent actions right), using
+    `FilterPanel`, `QueueRow`, `AssignDialog`, `RecentActionsFeed`, and
+    `AdminQueueEmpty`.
+  - Updated `app/(admin)/admin/page.tsx` to redirect to `/admin/queue`.
+  - Tests written per AGENTS.md Test Execution Policy: no `npm test`,
+    `npm run lint`, `npx tsc --noEmit`, `npm run build`, or
+    `npm run test:e2e` was run during development. End-of-cycle verify will
+    re-run all gates.
+  - Spec 0007 status remains `Proposed` (build landed but spec not yet
+    bumped to `In Progress` by architect).
+  - Scope: four of five `Build it` milestone sub-boxes ticked; `code in`
+    pointer to be populated. Feature remains `in-progress` in the scope (not
+    `done`) per the Full workflow tier — `/check verify`, `/test`,
+    `/check review`, and `/document` are still owed before the scope
+    flips to `done`.
+
+- **2026-07-26 (Feature 08 build — Technician queue & status updates)** — Built the
+  technician queue and status transition feature end to end per spec 0008.
+  - Built `POST /api/technician/queue/[id]/transition` route handler with a
+    single polymorphic endpoint for all transitions. Accepts `expectedVersion`,
+    `toStatus`, optional `note`, and optional `photos` via multipart form data.
+    Enforces technician allowlist (`Submitted → Acknowledged → In Progress → Resolved`),
+    optimistic concurrency via `findOneAndUpdate({ _id, __v })`, photo upload
+    via `lib/storage/cloudinary.ts` (MIME validation, sharp resize, Cloudinary
+    upload), `statusHistory` row creation, `notifications` rows for admin and
+    reporter, and Ably push (best effort). Returns 409 `stale_write` on version
+    mismatch, 422 `invalid_transition` on reverse transitions, 422 `invalid_photo`
+    when Resolved lacks proof photo.
+  - Built `GET /api/technician/queue` route handler returning the technician's
+    assigned complaints (via `assignments` join), filtered by status not Closed,
+    sorted by SLA urgency (breached first, then `slaAcknowledgeBy`, then
+    `slaResolveBy`, then `createdAt`). Includes breach state via
+    `evaluateBreachState`, category name, and location name.
+  - Built `GET /api/technician/queue/[id]` route handler returning a single
+    complaint with reporter name (or "Anonymous"), breach state, allowed
+    transitions derived from the forward only state machine, and full
+    `statusHistory` entries.
+  - Built `components/technician/TransitionForm.tsx` with transition selection
+    buttons, optional notes textarea, photo upload (1 for Resolved, up to 3 for
+    In Progress), optimistic concurrency retry affordance, and Sonner toasts.
+  - Built `app/(technician)/queue/page.tsx` as a Client Component showing the
+    technician's queue with breach border colours, severity badges, SLA countdown,
+    and link to detail page. Uses `TechnicianQueueEmpty` for zero state.
+  - Built `app/(technician)/queue/[id]/page.tsx` as a Client Component showing
+    complaint detail with status, deadlines, description, photos, reporter name,
+    status history, and the `TransitionForm` in a sticky sidebar.
+  - Tests written per AGENTS.md Test Execution Policy: no `npm test`,
+    `npm run lint`, `npx tsc --noEmit`, `npm run build`, or
+    `npm run test:e2e` was run during development. End-of-cycle verify will
+    re-run all gates.
+  - Spec 0008 status bumped `Proposed` to `In Progress`.
+  - Scope: three of four `Build it` milestone sub-boxes ticked; `code in`
+    pointer to be populated. Feature remains `in-progress` in the scope (not
+    `done`) per the Full workflow tier — `/check verify`, `/test`,
+    `/check review`, and `/document` are still owed before the scope
+    flips to `done`.
+
 ### Hand-off
 
 > Context set. Hand off: `/develop <unit>` or `/unit-01 <description>` to
