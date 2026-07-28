@@ -12,7 +12,7 @@ describe("ReporterDashboardEmpty", () => {
   test("shows explanatory copy", () => {
     render(<ReporterDashboardEmpty />);
     expect(
-      screen.getByText(/haven.{0,3}t submitted any complaints/i)
+      screen.getByText(/submit your first maintenance complaint/i)
     ).toBeInTheDocument();
   });
 

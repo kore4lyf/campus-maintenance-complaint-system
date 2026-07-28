@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll } from "vitest";
+
+import sharp from "sharp";
 import {
-  compressAndUpload,
   validateMimeAndSize,
   assertHttps,
   ALLOWED_MIME,
@@ -14,21 +14,21 @@ import {
 describe("Image Pipeline Integration", () => {
   describe("validateMimeAndSize", () => {
     it("accepts valid JPEG MIME", async () => {
-      const buffer = createTestImageBuffer("jpeg");
+      const buffer = await createTestImageBuffer("jpeg");
       await expect(
         validateMimeAndSize({ buffer, mime: "image/jpeg" }),
       ).resolves.toBeUndefined();
     });
 
     it("accepts valid PNG MIME", async () => {
-      const buffer = createTestImageBuffer("png");
+      const buffer = await createTestImageBuffer("png");
       await expect(
         validateMimeAndSize({ buffer, mime: "image/png" }),
       ).resolves.toBeUndefined();
     });
 
     it("accepts valid WebP MIME", async () => {
-      const buffer = createTestImageBuffer("webp");
+      const buffer = await createTestImageBuffer("webp");
       await expect(
         validateMimeAndSize({ buffer, mime: "image/webp" }),
       ).resolves.toBeUndefined();
@@ -70,68 +70,46 @@ describe("Image Pipeline Integration", () => {
   describe("compressAndUpload", () => {
     it("compresses JPEG and returns HTTPS URL", async () => {
       const stub = new CloudinaryStub();
-      const buffer = createTestImageBuffer("jpeg", 2000, 1500);
+      const buffer = await createTestImageBuffer("jpeg", 2000, 1500);
 
       const originalUpload = stub.upload.bind(stub);
       stub.upload = async (file: string | Buffer, options: Record<string, unknown> = {}) => {
         return originalUpload(file, options as { public_id?: string; format?: string });
       };
 
-      const result = await new Promise<{ url: string; publicId: string }>((resolve, reject) => {
-        import("sharp").then(({ default: sharp }) => {
-          const image = sharp(buffer, { failOn: "error" }).rotate().withMetadata({});
-          image
-            .resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
-            .jpeg({ quality: 80, mozjpeg: true })
-            .toBuffer()
-            .then((compressed) => {
-              stub
-                .upload(compressed, { public_id: "test/complaint", format: "jpg" })
-                .then((uploadResult) => {
-                  resolve({ url: uploadResult.secure_url, publicId: uploadResult.public_id });
-                })
-                .catch(reject);
-            })
-            .catch(reject);
-        });
-      });
+      const image = sharp(buffer, { failOn: "error" }).rotate().withMetadata({});
+      const compressed = await image
+        .resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer();
 
-      expect(result.url).toMatch(/^https:\/\//);
-      expect(result.publicId).toBe("test/complaint");
+      const uploadResult = await stub.upload(compressed, { public_id: "test/complaint", format: "jpg" });
+
+      expect(uploadResult.secure_url).toMatch(/^https:\/\//);
+      expect(uploadResult.public_id).toBe("test/complaint");
     });
 
     it("retries once on 409 collision with nanoid suffix", async () => {
       const stub = new CloudinaryStub({ nextCallFailsOnce: true });
-      const buffer = createTestImageBuffer("jpeg");
+      const buffer = await createTestImageBuffer("jpeg");
 
       const originalUpload = stub.upload.bind(stub);
       stub.upload = async (file: string | Buffer, options: Record<string, unknown> = {}) => {
         return originalUpload(file, options as { public_id?: string; format?: string });
       };
 
-      const result = await new Promise<{ url: string; publicId: string }>((resolve, reject) => {
-        import("sharp").then(({ default: sharp }) => {
-          const image = sharp(buffer, { failOn: "error" }).rotate().withMetadata({});
-          image
-            .jpeg({ quality: 80, mozjpeg: true })
-            .toBuffer()
-            .then((compressed) => {
-              stub
-                .upload(compressed, { public_id: "test/complaint", format: "jpg" })
-                .catch(() => {
-                  stub
-                    .upload(compressed, { public_id: "test/complaint-retry", format: "jpg" })
-                    .then((retryResult) => {
-                      resolve({ url: retryResult.secure_url, publicId: retryResult.public_id });
-                    })
-                    .catch(reject);
-                });
-            })
-            .catch(reject);
-        });
-      });
+      const image = sharp(buffer, { failOn: "error" }).rotate().withMetadata({});
+      const compressed = await image
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer();
 
-      expect(result.url).toMatch(/^https:\/\//);
+      try {
+        await stub.upload(compressed, { public_id: "test/complaint", format: "jpg" });
+      } catch {
+        const retryResult = await stub.upload(compressed, { public_id: "test/complaint-retry", format: "jpg" });
+        expect(retryResult.secure_url).toMatch(/^https:\/\//);
+      }
+
       expect(stub.getCallCount()).toBe(2);
     });
   });

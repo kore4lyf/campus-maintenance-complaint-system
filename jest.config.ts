@@ -7,6 +7,9 @@ config({ path: resolve(process.cwd(), ".env") });
 
 const createJestConfig = nextJest({ dir: "./" });
 
+const ESM_PATTERN =
+  "node_modules/(?!(bson|mongodb|mongoose|@astryxdesign|better-auth|@better-auth|jose|nanoid|@ai-sdk)/)";
+
 const config_: Config = {
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
@@ -24,9 +27,15 @@ const config_: Config = {
     "<rootDir>/node_modules/",
     "<rootDir>/tests/e2e/",
   ],
-  transformIgnorePatterns: [
-    "node_modules/(?!(bson|mongodb|mongoose|@astryxdesign)/)",
-  ],
+  transformIgnorePatterns: [ESM_PATTERN],
 };
 
-export default createJestConfig(config_);
+// next/jest's createJestConfig returns a function; we wrap it to patch
+// transformIgnorePatterns back in after the wrapper processes our config.
+const resolvedConfig = createJestConfig(config_);
+
+export default async function jestConfig() {
+  const cfg = await resolvedConfig();
+  cfg.transformIgnorePatterns = [ESM_PATTERN];
+  return cfg;
+}

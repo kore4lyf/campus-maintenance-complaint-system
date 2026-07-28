@@ -26,6 +26,17 @@ jest.mock("better-auth/react", () => ({
   }),
 }));
 
+jest.mock("@/lib/auth/config", () => ({
+  getSession: jest.fn(),
+  signInEmail: jest.fn(),
+  signUpEmail: jest.fn(),
+  signOutFromSession: jest.fn(),
+}));
+
+jest.mock("@/lib/auth/actions", () => ({
+  signOutAction: jest.fn(),
+}));
+
 import { render, screen } from "@testing-library/react";
 import { RoleProvider } from "@/lib/auth/role-context";
 import { TopNav } from "./TopNav";
@@ -35,6 +46,13 @@ jest.mock("next-themes", () => ({
     theme: "light",
     setTheme: jest.fn(),
     resolvedTheme: "light",
+  }),
+}));
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    refresh: jest.fn(),
   }),
 }));
 

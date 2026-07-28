@@ -1,3 +1,20 @@
+jest.mock("better-auth", () => ({
+  betterAuth: jest.fn(() => ({
+    api: {
+      signInEmail: jest.fn(),
+      signUpEmail: jest.fn(),
+      signOut: jest.fn(),
+      getSession: jest.fn(),
+    },
+  })),
+}));
+
+jest.mock("better-auth/react", () => ({
+  createAuthClient: () => ({
+    useSession: () => ({ data: null, subscribe: () => () => {} }),
+  }),
+}));
+
 import { metadata } from "./layout";
 
 describe("RootLayout", () => {

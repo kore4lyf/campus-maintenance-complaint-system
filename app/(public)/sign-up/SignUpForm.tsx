@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Mail,
-  Lock,
   UserPlus,
   AlertCircle,
   CheckCircle2,
@@ -18,7 +17,7 @@ import { toast } from "sonner";
 import { signUpAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Field, Input } from "@/components/ui/Field";
+import { Field, Input, PasswordInput } from "@/components/ui/Field";
 
 const signUpSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -121,12 +120,10 @@ export function SignUpForm() {
         hint="Minimum 8 characters. Use a memorable phrase."
         required
       >
-        <Input
+        <PasswordInput
           id="sign-up-password"
-          type="password"
           autoComplete="new-password"
           placeholder="At least 8 characters"
-          leadingIcon={<Lock className="h-4 w-4" aria-hidden="true" />}
           invalid={Boolean(errors.password)}
           {...register("password")}
         />

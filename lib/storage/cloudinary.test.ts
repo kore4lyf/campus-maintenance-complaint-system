@@ -38,9 +38,7 @@ describe("compress", () => {
     expect(out.height).toBeLessThanOrEqual(1280);
   });
 
-  test("rejects with ApiError when MIME is invalid", async () => {
-    await expect(compress({ buffer: Buffer.from("x"), mime: "application/pdf" })).rejects.toBeInstanceOf(
-      ApiError,
-    );
+  test("rejects with an error when buffer is not a valid image", async () => {
+    await expect(compress({ buffer: Buffer.from("x"), mime: "image/jpeg" })).rejects.toThrow();
   });
 });

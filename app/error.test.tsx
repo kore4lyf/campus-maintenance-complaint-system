@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { ApiError, toUserMessage } from "@/lib/utils/errors";
+import { ApiError } from "@/lib/utils/errors";
 import ErrorBoundary from "./error";
 
 const reset = jest.fn();
@@ -21,7 +21,7 @@ describe("app/error.tsx boundary", () => {
     ).toBeInTheDocument();
   });
 
-  test("renders the user safe message from toUserMessage(error), not the raw message", () => {
+  test("renders the role intro and the raw error message in a pre tag", () => {
     render(
       <ErrorBoundary
         error={new Error("An unexpected thing happened")}
@@ -29,11 +29,11 @@ describe("app/error.tsx boundary", () => {
       />
     );
     expect(
-      screen.getByText(/try again later/i)
+      screen.getByText(/we hit an unexpected error rendering this page/i)
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(/An unexpected thing happened/i)
-    ).not.toBeInTheDocument();
+      screen.getByText(/An unexpected thing happened/i)
+    ).toBeInTheDocument();
   });
 
   test("renders raw ApiError messages as-is (user safe by construction)", () => {
@@ -60,8 +60,8 @@ describe("app/error.tsx boundary", () => {
   });
 });
 
-describe("toUserMessage helper as exercised through the boundary", () => {
-  test("renders fetch failure with the friendly network message", () => {
+describe("error message rendering as exercised through the boundary", () => {
+  test("renders fetch failure message in the pre element", () => {
     render(
       <ErrorBoundary
         error={new Error("fetch failed at url")}
@@ -69,11 +69,11 @@ describe("toUserMessage helper as exercised through the boundary", () => {
       />
     );
     expect(
-      screen.getByText(/a network error occurred/i)
+      screen.getByText("fetch failed at url")
     ).toBeInTheDocument();
   });
 
-  test("renders timeout failure with the friendly timeout message", () => {
+  test("renders timeout failure message in the pre element", () => {
     render(
       <ErrorBoundary
         error={new Error("Request timeout exceeded")}
@@ -81,7 +81,7 @@ describe("toUserMessage helper as exercised through the boundary", () => {
       />
     );
     expect(
-      screen.getByText(/request took too long/i)
+      screen.getByText("Request timeout exceeded")
     ).toBeInTheDocument();
   });
 });

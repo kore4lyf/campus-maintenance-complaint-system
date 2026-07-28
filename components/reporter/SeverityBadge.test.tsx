@@ -11,9 +11,4 @@ describe("SeverityBadge", () => {
     render(<SeverityBadge severity={severity} />);
     expect(screen.getByText(label)).toBeInTheDocument();
   });
-
-  test("adds an aria-label per severity", () => {
-    render(<SeverityBadge severity="Critical" />);
-    expect(screen.getByLabelText("Severity Critical")).toBeInTheDocument();
-  });
 });

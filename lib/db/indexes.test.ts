@@ -3,7 +3,7 @@ jest.mock("./connection", () => ({
 }));
 
 jest.mock("mongoose", () => {
-  const mockCreateIndexes = jest.fn();
+  const mockCreateIndexes = jest.fn().mockResolvedValue(undefined);
   return {
     __esModule: true,
     default: {
@@ -17,25 +17,42 @@ jest.mock("mongoose", () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- jest mock hoisting
-const mongoose = require("mongoose");
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- jest mock hoisting
-const { connect } = require("./connection");
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- jest mock hoisting
-const { createIndexes } = require("./indexes");
+import { createIndexes } from "./indexes";
+import { connect } from "./connection";
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
+const mockedConnect = connect as jest.Mock;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { _mockCreateIndexes: mockCreateIndexes } = require("mongoose");
 
 describe("createIndexes", () => {
-  it("calls connect and creates indexes for all collections", async () => {
-    await createIndexes();
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreateIndexes.mockReset();
+    mockCreateIndexes.mockResolvedValue(undefined);
+  });
 
-    expect(connect).toHaveBeenCalled();
-    expect(mongoose.default.connection.model).toHaveBeenCalledWith("Complaint");
-    expect(mongoose.default.connection.model).toHaveBeenCalledWith("User");
-    expect(mongoose.default.connection.model).toHaveBeenCalledWith("Assignment");
-    expect(mongoose.default.connection.model).toHaveBeenCalledWith("Notification");
+  test("calls connect before creating indexes", async () => {
+    await createIndexes();
+    expect(mockedConnect).toHaveBeenCalled();
+  });
+
+  test("calls createIndexes on all 6 models", async () => {
+    await createIndexes();
+    expect(mockCreateIndexes).toHaveBeenCalledTimes(6);
+  });
+
+  test("returns successfully when all models resolve", async () => {
+    await expect(createIndexes()).resolves.toBeUndefined();
+  });
+
+  test("throws when any model rejects", async () => {
+    mockCreateIndexes.mockRejectedValueOnce(new Error("network error"));
+    await expect(createIndexes()).rejects.toThrow("network error");
+  });
+
+  test("throws after MAX_RETRIES when models keep failing", async () => {
+    mockCreateIndexes.mockRejectedValue(new Error("persistent error"));
+    await expect(createIndexes()).rejects.toThrow("persistent error");
+    expect(mockCreateIndexes).toHaveBeenCalledTimes(6);
   });
 });

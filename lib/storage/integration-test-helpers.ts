@@ -71,11 +71,11 @@ export function getCloudinaryClient(options?: {
   return { client: null, isStub: false };
 }
 
-export function createTestImageBuffer(
+export async function createTestImageBuffer(
   format: "jpeg" | "png" | "webp" = "jpeg",
   width = 100,
   height = 100,
-): Buffer {
+): Promise<Buffer> {
   const sharp = require("sharp");
   if (format === "jpeg") {
     return sharp({

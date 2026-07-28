@@ -12,13 +12,14 @@ describe("TechnicianQueueEmpty", () => {
   test("shows explanatory copy", () => {
     render(<TechnicianQueueEmpty />);
     expect(
-      screen.getByText(/don.{0,3}t have any assigned complaints/i)
+      screen.getByText(/don't have any assigned complaints yet/i)
     ).toBeInTheDocument();
   });
 
-  test("does not include a CTA when there are no assignments to act on", () => {
+  test("includes a Refresh queue link by default", () => {
     render(<TechnicianQueueEmpty />);
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /refresh queue/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/technician/queue");
   });
 });

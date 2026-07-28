@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Mail,
-  Lock,
   LogIn,
   AlertCircle,
   ShieldCheck,
@@ -16,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { signInAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/Button";
-import { Field, Input } from "@/components/ui/Field";
+import { Field, Input, PasswordInput } from "@/components/ui/Field";
 import { Card } from "@/components/ui/Card";
 
 const signInSchema = z.object({
@@ -96,12 +95,10 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         error={errors.password?.message}
         required
       >
-        <Input
+        <PasswordInput
           id="sign-in-password"
-          type="password"
           autoComplete="current-password"
           placeholder="Minimum 8 characters"
-          leadingIcon={<Lock className="h-4 w-4" aria-hidden="true" />}
           invalid={Boolean(errors.password)}
           {...register("password")}
         />

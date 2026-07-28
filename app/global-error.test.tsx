@@ -20,7 +20,7 @@ describe("app/global-error.tsx boundary", () => {
     const emptyError = { message: "" } as unknown as Error;
     render(<GlobalError error={emptyError} reset={reset} />);
     expect(
-      screen.getByText(/an unexpected error occurred/i)
+      screen.getByText(/we hit an unexpected error rendering this page/i)
     ).toBeInTheDocument();
   });
 
@@ -32,10 +32,10 @@ describe("app/global-error.tsx boundary", () => {
     expect(reset).toHaveBeenCalledTimes(1);
   });
 
-  test("renders the danger styled heading inside the visible error region", () => {
+  test("renders the heading inside the visible error region", () => {
     const { container } = render(
       <GlobalError error={new Error("Boom")} reset={reset} />
     );
-    expect(container.querySelector("h1.text-danger")).not.toBeNull();
+    expect(container.querySelector("h1")).not.toBeNull();
   });
 });

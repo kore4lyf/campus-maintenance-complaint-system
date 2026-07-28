@@ -1,15 +1,20 @@
+/**
+ * @jest-environment node
+ */
 jest.mock("@/lib/db/connection", () => ({
   connect: jest.fn(async () => undefined),
 }));
 
-const complaintFindByIdMock = jest.fn();
+const complaintFindOneMock = jest.fn();
+const leanMock = jest.fn();
 jest.mock("@/lib/db/models/complaint", () => ({
   ComplaintModel: {
-    findById: (...args: unknown[]) => complaintFindByIdMock(...args),
+    findOne: (...args: unknown[]) => complaintFindOneMock(...args),
   },
 }));
 
 const assignmentFindOneMock = jest.fn();
+const assignmentLeanMock = jest.fn();
 jest.mock("@/lib/db/models/assignment", () => ({
   AssignmentModel: {
     findOne: (...args: unknown[]) => assignmentFindOneMock(...args),
@@ -63,8 +68,10 @@ function complaintDoc(opts?: { reporterId?: string; status?: string; priority?: 
 
 beforeEach(() => {
   jest.clearAllMocks();
-  complaintFindByIdMock.mockImplementation(async () => complaintDoc());
-  assignmentFindOneMock.mockResolvedValue(null);
+  leanMock.mockImplementation(async () => complaintDoc());
+  complaintFindOneMock.mockReturnValue({ lean: leanMock });
+  assignmentLeanMock.mockImplementation(async () => null);
+  assignmentFindOneMock.mockReturnValue({ lean: assignmentLeanMock });
 });
 
 describe("GET /api/complaints/[id]", () => {
@@ -128,7 +135,7 @@ test("allows admin to view any complaint and keeps AI rationale fields", async (
   });
 
 test("lets a technician see assigned complaints with priority but no AI rationale", async () => {
-    assignmentFindOneMock.mockResolvedValueOnce({ _id: "60f1b9c8e7d8e2b1a4f3edcc" });
+    assignmentLeanMock.mockResolvedValueOnce({ _id: "60f1b9c8e7d8e2b1a4f3edcc" });
     getServerSessionMock.mockResolvedValueOnce({
       user: { id: TECH_ID, email: "tech@example.com", name: "Tech", role: "dicht_technician" },
     });
@@ -142,7 +149,7 @@ test("lets a technician see assigned complaints with priority but no AI rational
   });
 
 test("returns 403 when technician is not assigned to the complaint", async () => {
-    assignmentFindOneMock.mockResolvedValueOnce(null);
+    assignmentLeanMock.mockResolvedValueOnce(null);
     getServerSessionMock.mockResolvedValueOnce({
       user: { id: TECH_ID, email: "tech@example.com", name: "Tech", role: "dicht_technician" },
     });

@@ -10,13 +10,14 @@ describe("AdminQueueEmpty", () => {
   test("shows explanatory copy", () => {
     render(<AdminQueueEmpty />);
     expect(
-      screen.getByText(/nothing in the queue right now/i)
+      screen.getByText(/no complaints are waiting/i)
     ).toBeInTheDocument();
   });
 
-  test("renders an icon-only visual (aria hidden decoration, no interactive elements)", () => {
+  test("includes a View reports link by default", () => {
     render(<AdminQueueEmpty />);
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /view reports/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/admin/reports");
   });
 });

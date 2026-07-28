@@ -14,9 +14,8 @@ jest.mock("next/navigation", () => ({
   }),
 }));
 
-const getSessionMock = jest.fn();
 jest.mock("@/lib/auth/config", () => ({
-  getSession: (...args: unknown[]) => getSessionMock(...args),
+  getSession: jest.fn(),
 }));
 
 import {
@@ -28,22 +27,22 @@ import {
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/config";
 
-const getSessionImpl = getSession as jest.Mock;
+const getSessionMock = getSession as jest.Mock;
 const redirectMock = redirect as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  getSessionImpl.mockReset();
+  getSessionMock.mockReset();
 });
 
 describe("getServerSession", () => {
   test("returns null when BetterAuth yields no session", async () => {
-    getSessionImpl.mockResolvedValueOnce(null);
+    getSessionMock.mockResolvedValueOnce(null);
     await expect(getServerSession()).resolves.toBeNull();
   });
 
   test("returns a normalized ServerSession when the session is well-formed", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
         email: "alice@example.com",
@@ -63,7 +62,7 @@ describe("getServerSession", () => {
   });
 
   test("falls back to email when name is missing", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
         email: "alice@example.com",
@@ -75,21 +74,21 @@ describe("getServerSession", () => {
   });
 
   test("returns null when session has no id", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: { email: "alice@example.com", role: "reporter" },
     });
     await expect(getServerSession()).resolves.toBeNull();
   });
 
   test("returns null when session has no email", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: { id: "60f1b9c8e7d8e2b1a4f3ed88", role: "reporter" },
     });
     await expect(getServerSession()).resolves.toBeNull();
   });
 
   test("returns null when role is unknown", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
         email: "alice@example.com",
@@ -100,20 +99,20 @@ describe("getServerSession", () => {
   });
 
   test("returns null when BetterAuth throws", async () => {
-    getSessionImpl.mockRejectedValueOnce(new Error("boom"));
+    getSessionMock.mockRejectedValueOnce(new Error("boom"));
     await expect(getServerSession()).resolves.toBeNull();
   });
 });
 
 describe("requireSession", () => {
   test("redirects to /sign-in when no session", async () => {
-    getSessionImpl.mockResolvedValueOnce(null);
+    getSessionMock.mockResolvedValueOnce(null);
     await expect(requireSession()).rejects.toThrow(/__redirect:\/sign-in/);
     expect(redirectMock).toHaveBeenCalledWith("/sign-in");
   });
 
   test("returns the session when one is present", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
         email: "alice@example.com",
@@ -126,7 +125,7 @@ describe("requireSession", () => {
   });
 
   test("supports a custom redirect target", async () => {
-    getSessionImpl.mockResolvedValueOnce(null);
+    getSessionMock.mockResolvedValueOnce(null);
     await expect(requireSession("/custom-sign-in")).rejects.toThrow(
       /__redirect:\/custom-sign-in/,
     );
@@ -136,7 +135,7 @@ describe("requireSession", () => {
 
 describe("requireRole", () => {
   test("redirects to / when the role does not match", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
         email: "alice@example.com",
@@ -147,7 +146,7 @@ describe("requireRole", () => {
   });
 
   test("returns the session when role matches", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
         email: "alice@example.com",
@@ -159,7 +158,7 @@ describe("requireRole", () => {
   });
 
   test("accepts zero allowed list (always blocks)", async () => {
-    getSessionImpl.mockResolvedValueOnce({
+    getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
         email: "alice@example.com",

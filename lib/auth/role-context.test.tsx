@@ -1,3 +1,5 @@
+import React from "react";
+
 type Listener = (state: { data: SessionData | null }) => void;
 
 type SessionData = {
@@ -9,26 +11,20 @@ type SessionData = {
   } | null;
 } | null;
 
-const listeners = new Set<Listener>();
-let current: SessionData = null;
+let setSessionState: ((next: SessionData) => void) | null = null;
 
 jest.mock("better-auth/react", () => ({
   createAuthClient: () => ({
     useSession: () => {
-      return {
-        data: current,
-        subscribe(listener: Listener) {
-          listeners.add(listener);
-          return () => listeners.delete(listener);
-        },
-      };
+      const [data, setData] = React.useState<SessionData>(null);
+      setSessionState = setData;
+      return { data };
     },
   }),
 }));
 
 function setSession(next: SessionData) {
-  current = next;
-  for (const l of listeners) l({ data: next });
+  if (setSessionState) setSessionState(next);
 }
 
 import { act, render, screen } from "@testing-library/react";
@@ -47,8 +43,7 @@ function ReadCurrent({ testId }: { testId: string }) {
 }
 
 beforeEach(() => {
-  current = null;
-  listeners.clear();
+  setSessionState = null;
 });
 
 describe("RoleProvider with BetterAuth session", () => {
@@ -71,39 +66,45 @@ describe("RoleProvider with BetterAuth session", () => {
   });
 
   test("useCurrentUser returns the codified user (id, email, name, role) when session present", () => {
-    setSession({
-      user: {
-        id: "user_1",
-        email: "reporter@example.com",
-        name: "Reporter One",
-        role: "reporter",
-      },
-    });
     render(
       <RoleProvider>
         <ReadCurrent testId="r" />
       </RoleProvider>
     );
+    act(() => {
+      setSession({
+        user: {
+          id: "user_1",
+          email: "reporter@example.com",
+          name: "Reporter One",
+          role: "reporter",
+        },
+      });
+    });
     expect(screen.getByTestId("r")).toHaveTextContent(
       "user_1|reporter@example.com|Reporter One|reporter|reporter"
     );
   });
 
-  test("useCurrentRole returns null when session has no role", () => {
-    setSession({
-      user: {
-        id: "user_no_role",
-        email: "norole@example.com",
-        name: "No Role",
-        role: null,
-      },
-    });
+  test("useCurrentRole defaults to reporter when session has no role", () => {
     render(
       <RoleProvider>
         <ReadCurrent testId="r" />
       </RoleProvider>
     );
-    expect(screen.getByTestId("r")).toHaveTextContent("null");
+    act(() => {
+      setSession({
+        user: {
+          id: "user_no_role",
+          email: "norole@example.com",
+          name: "No Role",
+          role: null,
+        },
+      });
+    });
+    expect(screen.getByTestId("r")).toHaveTextContent(
+      "user_no_role|norole@example.com|No Role|reporter|reporter"
+    );
   });
 
   test("reactive update when session changes from null to reporter", () => {

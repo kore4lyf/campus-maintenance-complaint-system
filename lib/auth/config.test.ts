@@ -1,3 +1,18 @@
+jest.mock("better-auth", () => ({
+  betterAuth: jest.fn(() => ({
+    api: {
+      signInEmail: jest.fn(),
+      signUpEmail: jest.fn(),
+      signOut: jest.fn(),
+      getSession: jest.fn(),
+    },
+  })),
+}));
+
+jest.mock("better-auth/adapters/mongodb", () => ({
+  mongodbAdapter: jest.fn(() => ({})),
+}));
+
 jest.mock("mongoose", () => ({
   __esModule: true,
   default: {

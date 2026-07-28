@@ -1,3 +1,10 @@
+/**
+ * @jest-environment node
+ */
+jest.mock("next/cache", () => ({
+  revalidatePath: jest.fn(),
+}));
+
 jest.mock("@/lib/db/connection", () => ({
   connect: jest.fn(async () => undefined),
 }));
@@ -7,6 +14,13 @@ jest.mock("@/lib/db/models/category", () => {
   return {
     CategoryModel: {
       findById: jest.fn(async (id: string) => docs.get(id) ?? null),
+      findOne: jest.fn((query: Record<string, unknown>) => {
+        const id = query._id as string;
+        const doc = docs.get(id) ?? null;
+        return {
+          lean: jest.fn(async () => doc),
+        };
+      }),
       __seed: (id: string, doc: unknown) => docs.set(id, doc),
     },
   };
@@ -17,6 +31,13 @@ jest.mock("@/lib/db/models/location", () => {
   return {
     LocationModel: {
       findById: jest.fn(async (id: string) => docs.get(id) ?? null),
+      findOne: jest.fn((query: Record<string, unknown>) => {
+        const id = query._id as string;
+        const doc = docs.get(id) ?? null;
+        return {
+          lean: jest.fn(async () => doc),
+        };
+      }),
       __seed: (id: string, doc: unknown) => docs.set(id, doc),
     },
   };

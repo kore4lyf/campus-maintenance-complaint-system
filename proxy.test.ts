@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 const sessionCookieMock = jest.fn();
 
 jest.mock("better-auth/cookies", () => ({

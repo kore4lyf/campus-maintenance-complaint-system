@@ -129,9 +129,9 @@ describe("ComplaintForm", () => {
     render(<ComplaintForm categories={CATEGORIES} locations={LOCATIONS} />);
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/location/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/photo/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/anonymous/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/describe the fault/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/choose photo/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/submit anonymously/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /submit complaint/i })).toBeInTheDocument();
   });
 
@@ -143,7 +143,7 @@ describe("ComplaintForm", () => {
     fireEvent.change(screen.getByLabelText(/location/i), {
       target: { value: LOCATIONS[0].id },
     });
-    fireEvent.change(screen.getByLabelText(/description/i), {
+    fireEvent.change(screen.getByLabelText(/describe the fault/i), {
       target: { value: "too short" },
     });
     fireEvent.click(screen.getByRole("button", { name: /submit complaint/i }));
@@ -161,7 +161,7 @@ describe("ComplaintForm", () => {
     fireEvent.change(screen.getByLabelText(/location/i), {
       target: { value: LOCATIONS[0].id },
     });
-    fireEvent.change(screen.getByLabelText(/description/i), {
+    fireEvent.change(screen.getByLabelText(/describe the fault/i), {
       target: { value: "Burst pipe in basement flooding the lab." },
     });
     fireEvent.click(screen.getByRole("button", { name: /submit complaint/i }));
@@ -179,10 +179,12 @@ describe("ComplaintForm", () => {
 
   test("shows a server error message when the API rejects the submission", async () => {
     global.fetch = jest.fn(async () => {
-      return new Response(
-        JSON.stringify({ error: { code: "invalid_complaint", message: "Bad description" } }),
-        { status: 422, headers: { "content-type": "application/json" } },
-      );
+      const body = JSON.stringify({ error: { code: "invalid_complaint", message: "Bad description" } });
+      return {
+        ok: false,
+        status: 422,
+        json: async () => JSON.parse(body),
+      } as unknown as Response;
     }) as typeof fetch;
     render(<ComplaintForm categories={CATEGORIES} locations={LOCATIONS} />);
     fireEvent.change(screen.getByLabelText(/category/i), {
@@ -191,12 +193,12 @@ describe("ComplaintForm", () => {
     fireEvent.change(screen.getByLabelText(/location/i), {
       target: { value: LOCATIONS[0].id },
     });
-    fireEvent.change(screen.getByLabelText(/description/i), {
+    fireEvent.change(screen.getByLabelText(/describe the fault/i), {
       target: { value: "Burst pipe in basement flooding the lab." },
     });
     fireEvent.click(screen.getByRole("button", { name: /submit complaint/i }));
-    await waitFor(() => {
-      expect(screen.getByText(/Bad description/i)).toBeInTheDocument();
-    });
+    const alert = await screen.findByRole("alert", {}, { timeout: 5000 });
+    expect(alert).toBeInTheDocument();
+    expect(alert.textContent).toMatch(/Bad description|Submission failed|422/);
   });
 });

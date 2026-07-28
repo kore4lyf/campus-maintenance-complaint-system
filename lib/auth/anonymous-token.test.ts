@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { signAnonymousToken, verifyAnonymousToken } from "./anonymous-token";
 
 const PREVIOUS_ENV = { ...process.env };

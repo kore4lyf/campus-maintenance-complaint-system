@@ -13,10 +13,10 @@ jest.mock("ai", () => ({
 }));
 
 jest.mock("@ai-sdk/openai", () => ({
-  createOpenAI: () => ({
-    chat: (model: string) => ({ provider: "openai", modelId: model }),
-    responses: (model: string) => ({ provider: "openai", modelId: model }),
-  }),
+  createOpenAI: () => {
+    const fn = (model: string) => ({ provider: "openai", modelId: model });
+    return fn;
+  },
 }));
 
 import { triageComplaint } from "./triage";
@@ -54,7 +54,7 @@ describe("triageComplaint", () => {
         severity: "Critical",
         rationale: "Basement flooding requires immediate response.",
       },
-      usage: { promptTokens: 120, completionTokens: 60 },
+      usage: { inputTokens: 120, outputTokens: 60 },
     });
 
     const result = await triageComplaint(baseInput);
@@ -100,7 +100,7 @@ describe("triageComplaint", () => {
         severity: "Medium",
         rationale: "Slow drip under the sink.",
       },
-      usage: { promptTokens: 80, completionTokens: 40 },
+      usage: { inputTokens: 80, outputTokens: 40 },
     });
     await triageComplaint({
       ...baseInput,
