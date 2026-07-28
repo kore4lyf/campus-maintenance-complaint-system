@@ -119,7 +119,7 @@ function ProofPhotoThumb({ url, caption }: { url: string; caption: string }) {
           aria-label="Proof of fix photo"
         >
           <div
-            className="relative max-w-2xl overflow-hidden rounded-xl bg-surface-overlay shadow-2xl"
+            className="relative max-w-2xl overflow-hidden rounded-xl border border-border bg-surface-overlay shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <button

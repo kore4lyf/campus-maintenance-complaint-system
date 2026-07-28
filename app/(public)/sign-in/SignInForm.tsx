@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock, LogIn, AlertCircle, ShieldCheck } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  LogIn,
+  AlertCircle,
+  ShieldCheck,
+  ArrowRight,
+} from "lucide-react";
+import { toast } from "sonner";
 import { signInAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
@@ -35,17 +43,31 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
   const onSubmit = handleSubmit((data) => {
     setFormError(null);
     startTransition(async () => {
-      const result = await signInAction({
-        email: data.email,
-        password: data.password,
-        ...(redirectParam ? { redirect: redirectParam } : {}),
-      });
-      if (result.ok) {
-        router.push(result.redirectTo);
-        router.refresh();
-        return;
+      try {
+        const result = await signInAction({
+          email: data.email,
+          password: data.password,
+          ...(redirectParam ? { redirect: redirectParam } : {}),
+        });
+        if (result.ok) {
+          if (result.message) toast.success(result.message);
+          // Brief hold so the toast is on-screen before the route swap.
+          setTimeout(() => {
+            router.push(result.redirectTo);
+            router.refresh();
+          }, 250);
+          return;
+        }
+        setFormError(result.error);
+        toast.error(result.error);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Sign-in failed. Please try again.";
+        setFormError(message);
+        toast.error(message);
       }
-      setFormError(result.error);
     });
   });
 
@@ -91,8 +113,14 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
           variant="surface"
           className="border-danger/40 bg-danger/5 text-danger"
         >
-          <p role="alert" className="flex items-start gap-2 text-sm font-medium">
-            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <p
+            role="alert"
+            className="flex items-start gap-2 text-sm font-medium"
+          >
+            <AlertCircle
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              aria-hidden="true"
+            />
             <span>{formError}</span>
           </p>
         </Card>
@@ -104,12 +132,20 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         size="lg"
         loading={isPending}
         leadingIcon={<LogIn className="h-4 w-4" />}
+        trailingIcon={
+          !isPending ? (
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          ) : undefined
+        }
       >
         {isPending ? "Signing in" : "Sign in"}
       </Button>
 
       <p className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-strong">
-        <ShieldCheck className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+        <ShieldCheck
+          className="h-3 w-3 text-accent-strong"
+          aria-hidden="true"
+        />
         Your session is encrypted. We never store passwords in plain text.
       </p>
     </form>

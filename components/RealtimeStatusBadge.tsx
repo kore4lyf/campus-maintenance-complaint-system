@@ -1,25 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Radio, RadioOff, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import type { QueryKey } from "@tanstack/react-query";
+
+interface RealtimeStatusBadgeProps {
+  channelName: string;
+  queryKey: QueryKey;
+}
+
+const FALLBACK_DELAY_MS = 5000;
 
 export function RealtimeStatusBadge({
   channelName,
   queryKey,
-}: {
-  channelName: string;
-  queryKey: QueryKey;
-}) {
+}: RealtimeStatusBadgeProps) {
   const { connectionState } = useAblyChannel({
     name: channelName,
     queryKey,
   });
+  // Defer showing the "paused" badge for five seconds so a quick
+  // re-handshake doesn't flash as a degraded state to the user.
   const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
     if (connectionState === "disconnected" || connectionState === "suspended") {
-      const timer = setTimeout(() => setShowFallback(true), 5000);
+      const timer = setTimeout(() => setShowFallback(true), FALLBACK_DELAY_MS);
       return () => clearTimeout(timer);
     }
     setShowFallback(false);
@@ -27,26 +35,34 @@ export function RealtimeStatusBadge({
 
   if (connectionState === "connected") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-        Live
-      </span>
+      <Badge
+        tone="success"
+        leadingIcon={<Radio className="h-3 w-3" aria-hidden="true" />}
+      >
+        Live · auto-refreshing
+      </Badge>
     );
   }
 
   if (showFallback) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-        Live updates paused, using polling fallback
-      </span>
+      <Badge
+        tone="warning"
+        leadingIcon={<RadioOff className="h-3 w-3" aria-hidden="true" />}
+      >
+        Paused · polling fallback
+      </Badge>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-      Connecting...
-    </span>
+    <Badge
+      tone="neutral"
+      leadingIcon={
+        <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+      }
+    >
+      Connecting…
+    </Badge>
   );
 }

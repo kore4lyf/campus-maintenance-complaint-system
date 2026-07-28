@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock, UserPlus, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  UserPlus,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
+import { toast } from "sonner";
 import { signUpAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -39,17 +48,33 @@ export function SignUpForm() {
   const onSubmit = handleSubmit((data) => {
     setFormError(null);
     startTransition(async () => {
-      const result = await signUpAction({
-        email: data.email,
-        password: data.password,
-        name: data.name,
-      });
-      if (result.ok) {
-        router.push(result.redirectTo);
-        router.refresh();
-        return;
+      try {
+        const result = await signUpAction({
+          email: data.email,
+          password: data.password,
+          name: data.name,
+        });
+        if (result.ok) {
+          toast.success(
+            result.message ?? `Account created. Signed in as ${data.name}.`,
+          );
+          // Toast appears before the route swap so the user sees it.
+          setTimeout(() => {
+            router.push(result.redirectTo);
+            router.refresh();
+          }, 350);
+          return;
+        }
+        setFormError(result.error);
+        toast.error(result.error);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Could not create account. Please try again.";
+        setFormError(message);
+        toast.error(message);
       }
-      setFormError(result.error);
     });
   });
 
@@ -113,8 +138,14 @@ export function SignUpForm() {
           variant="surface"
           className="border-danger/40 bg-danger/5 text-danger"
         >
-          <p role="alert" className="flex items-start gap-2 text-sm font-medium">
-            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <p
+            role="alert"
+            className="flex items-start gap-2 text-sm font-medium"
+          >
+            <AlertCircle
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              aria-hidden="true"
+            />
             <span>{formError}</span>
           </p>
         </Card>
@@ -125,14 +156,24 @@ export function SignUpForm() {
         variant="primary"
         size="lg"
         loading={isPending}
-        leadingIcon={<UserPlus className="h-4 w-4" />}
+        leadingIcon={
+          isPending ? undefined : <UserPlus className="h-4 w-4" />
+        }
+        trailingIcon={
+          !isPending ? (
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          ) : undefined
+        }
       >
         {isPending ? "Creating account" : "Create account"}
       </Button>
 
       <p className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-strong">
-        <CheckCircle2 className="h-3 w-3 text-accent-strong" aria-hidden="true" />
-        Reporter accounts are auto-approved. DICT/Director accounts are seeded
+        <Sparkles
+          className="h-3 w-3 text-accent-strong"
+          aria-hidden="true"
+        />
+        Reporter accounts are auto-approved. DICT accounts are seeded
         by administrators.
       </p>
     </form>

@@ -28,12 +28,15 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const VARIANT: Record<Variant, string> = {
-  surface:
-    "bg-surface border border-border shadow-sm",
-  raised:
-    "bg-surface-raised border border-border",
-  overlay:
-    "bg-surface-overlay border border-border shadow-lg",
+  // surface sits on bg/surface; the hairline border alone is enough to
+  // demarcate a card. Save the lift shadow for interactive states.
+  surface: "bg-surface border border-border",
+  // raised is used inside a card or grouping — never lift, just shade.
+  raised: "bg-surface-raised border border-border",
+  // overlay is the modal surface. Soft shadow lifted off the page.
+  overlay: "bg-surface-overlay border border-border shadow-lg",
+  // hero is a marketing-grade block on the landing page — strongest shadow
+  // in the system, but still under the old Tailwind defaults.
   hero: "bg-brand text-white shadow-xl",
 };
 
@@ -64,7 +67,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           VARIANT[variant],
           PADDING[padding],
           interactive
-            ? "transition-[shadow,transform,border-color] duration-200 hover:-translate-y-px hover:shadow-md hover:border-border-strong cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            ? "transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             : "",
           className,
         ].join(" ")}

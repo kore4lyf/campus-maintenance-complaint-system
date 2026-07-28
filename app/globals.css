@@ -62,6 +62,25 @@
   --color-success: #059669;
   --color-success-strong: #047857;
   --color-success-soft: #d1fae5;
+
+  /* ---------- Shadows — restrained, Apple-tier ----------
+     Each step uses the brand navy at low alpha so shadows feel like a
+     calm tint rather than a heavy drop. Token definitions replace
+     Tailwind's heavier defaults so every `shadow-*` utility in the
+     codebase picks up these values automatically. */
+  --shadow-xs: 0 1px 1px -1px rgb(12 40 72 / 0.05);
+  --shadow-sm: 0 1px 2px -1px rgb(12 40 72 / 0.06);
+  --shadow-md:
+    0 2px 4px -1px rgb(12 40 72 / 0.06),
+    0 4px 6px -2px rgb(12 40 72 / 0.04);
+  --shadow-lg:
+    0 4px 10px -2px rgb(12 40 72 / 0.08),
+    0 10px 24px -6px rgb(12 40 72 / 0.06);
+  --shadow-xl:
+    0 12px 30px -8px rgb(12 40 72 / 0.10),
+    0 24px 60px -16px rgb(12 40 72 / 0.08);
+  --shadow-2xl: 0 20px 50px -12px rgb(12 40 72 / 0.12);
+  --shadow-none: 0 0 #0000;
 }
 
 .dark {

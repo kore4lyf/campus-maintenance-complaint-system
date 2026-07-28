@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function TechnicianLandingPage() {
-  redirect("/technician/queue");
+  redirect("/technician/assignments");
 }

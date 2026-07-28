@@ -2,8 +2,14 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import { formatDistanceToNowStrict } from "date-fns";
+import { X, UserPlus, AlertTriangle, RefreshCw, Camera } from "lucide-react";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
+import { StatusPill } from "@/components/ui/StatusPill";
+import { Button } from "@/components/ui/Button";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import { Field, Label, Select, Textarea } from "@/components/ui/Field";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 import { toast } from "sonner";
 
@@ -37,14 +43,6 @@ interface AssignDialogProps {
   onAssigned: () => void;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  Submitted: "bg-muted/15 text-muted",
-  Acknowledged: "bg-accent/15 text-accent",
-  "In Progress": "bg-warning/15 text-warning",
-  Resolved: "bg-success/15 text-success",
-  Closed: "bg-muted/15 text-muted",
-};
-
 export function AssignDialog({
   complaint,
   technicians,
@@ -57,7 +55,7 @@ export function AssignDialog({
   );
   const [note, setNote] = useState("");
   const [staleError, setStaleError] = useState(false);
-  const [currentVersion, setCurrentVersion] = useState(complaint.__v);
+  const [currentVersion] = useState(complaint.__v);
 
   const assignMutation = useMutation({
     mutationFn: async (payload: {
@@ -115,140 +113,241 @@ export function AssignDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-surface p-6 shadow-xl">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-lg font-semibold text-foreground">
-            Complaint Detail
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-foreground"
-          >
-            &times;
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[complaint.status] ?? "bg-muted/15 text-muted"}`}
-            >
-              {complaint.status}
-            </span>
-            <SeverityBadge
-              severity={complaint.priority as "Critical" | "High" | "Medium" | "Low"}
-            />
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Assign ${complaint.categoryName ?? "complaint"}`}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand/85 p-4"
+    >
+      <Card
+        padding="none"
+        variant="overlay"
+        className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto"
+      >
+        {/* ---------- Header strip ---------- */}
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-surface px-6 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
+              Assign complaint
+            </p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-foreground-strong">
+              {complaint.categoryName ?? "Complaint"}
+              {complaint.locationName ? (
+                <span className="ml-1 font-medium text-muted-strong">
+                  · {complaint.locationName}
+                </span>
+              ) : null}
+            </h2>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close assign dialog"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </header>
 
-          <div className="text-sm text-muted-strong">
-            <p>
-              <span className="font-medium text-foreground">Category:</span>{" "}
-              {complaint.categoryName ?? "Unknown"}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">Location:</span>{" "}
-              {complaint.locationName ?? "Unknown"}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">Created:</span>{" "}
+        <div className="flex flex-col gap-5 p-6">
+          {/* ---------- Status row ---------- */}
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill status={complaint.status} />
+            <SeverityBadge
+              severity={
+                complaint.priority as "Critical" | "High" | "Medium" | "Low"
+              }
+            />
+            <span className="numeric ml-auto text-xs text-muted-strong">
+              Filed{" "}
               {formatDistanceToNowStrict(new Date(complaint.createdAt), {
                 addSuffix: true,
               })}
-            </p>
+            </span>
           </div>
 
+          {/* ---------- Breach banner ---------- */}
           {complaint.breachKind !== "none" ? (
-            <div className="rounded-lg bg-danger/10 p-3 text-sm text-danger">
-              {complaint.breachKind === "acknowledge_overdue"
-                ? "Acknowledgement overdue"
-                : "Resolution overdue"}{" "}
-              by {formatOverdueDuration(complaint.overdueMs)}
-            </div>
-          ) : null}
-
-          <div className="rounded-lg bg-surface-raised p-3">
-            <p className="text-sm text-muted-strong">{complaint.description}</p>
-          </div>
-
-          {complaint.photoUrls.length > 0 ? (
-            <div className="flex gap-2 overflow-x-auto">
-              {complaint.photoUrls.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt={`Complaint photo ${i + 1}`}
-                  className="h-20 w-20 rounded-md object-cover"
-                />
-              ))}
-            </div>
-          ) : null}
-
-          <div className="border-t border-border pt-4">
-            <h3 className="text-sm font-medium text-foreground mb-2">
-              Assign to Technician
-            </h3>
-
-            {complaint.currentAssignee ? (
-              <p className="text-xs text-muted-strong mb-2">
-                Currently assigned to: {complaint.currentAssignee.assignedToName}
-              </p>
-            ) : (
-              <p className="text-xs text-warning mb-2">Currently unassigned</p>
-            )}
-
-            <select
-              value={selectedTechId}
-              onChange={(e) => setSelectedTechId(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-foreground"
+            <Card
+              padding="sm"
+              variant="surface"
+              className="border-danger/40 bg-danger/5"
             >
-              <option value="">Select a technician</option>
-              {technicians.map((tech) => (
-                <option key={tech._id} value={tech._id}>
-                  {tech.name} ({tech.email})
-                </option>
-              ))}
-            </select>
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-danger text-white">
+                  <AlertTriangle
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-danger-strong">
+                    {complaint.breachKind === "acknowledge_overdue"
+                      ? "Acknowledgement is overdue"
+                      : "Resolution is overdue"}
+                  </p>
+                  <p className="numeric mt-0.5 text-xs text-danger">
+                    {formatOverdueDuration(complaint.overdueMs)} past the SLA
+                    deadline. DICT escalation may be required.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ) : null}
 
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional note (max 500 chars)"
-              maxLength={500}
-              className="mt-2 w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-foreground resize-none"
-              rows={2}
+          {/* ---------- Description ---------- */}
+          <Card padding="md" variant="raised">
+            <SectionHeader title="Reporter's description" />
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground-strong">
+              {complaint.description}
+            </p>
+          </Card>
+
+          {/* ---------- Photos ---------- */}
+          {complaint.photoUrls.length > 0 ? (
+            <Card padding="md" variant="surface">
+              <SectionHeader
+                eyebrow="Photos"
+                title={`${complaint.photoUrls.length} attached`}
+                meta={
+                  <span className="text-xs text-muted-strong">Click to enlarge</span>
+                }
+              />
+              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                {complaint.photoUrls.map((url, i) => (
+                  <li
+                    key={url}
+                    className="relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised"
+                  >
+                    <Image
+                      src={url}
+                      alt={`Complaint photo ${i + 1}`}
+                      fill
+                      sizes="120px"
+                      className="object-cover"
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : (
+            <p className="inline-flex items-center gap-2 text-xs text-muted-strong">
+              <Camera className="h-3 w-3" aria-hidden="true" />
+              No photos attached to this complaint.
+            </p>
+          )}
+
+          {/* ---------- Assignment form ---------- */}
+          <Card padding="lg" variant="surface">
+            <SectionHeader
+              eyebrow="Assign to technician"
+              title={
+                complaint.currentAssignee
+                  ? "Reassign"
+                  : "Pick a technician"
+              }
+              meta={
+                <span className="numeric text-xs text-muted-strong">
+                  {technicians.length} on roster
+                </span>
+              }
             />
 
-            {staleError ? (
-              <div className="mt-2 rounded-lg bg-warning/10 p-3 text-sm text-warning">
-                Version mismatch. Another admin may have updated this complaint.
-                <button
-                  onClick={handleRefresh}
-                  className="ml-2 underline hover:no-underline"
+            <div className="space-y-5">
+              <Field
+                label="Technician"
+                htmlFor="assign-technician"
+                hint={
+                  complaint.currentAssignee
+                    ? `Currently assigned to ${complaint.currentAssignee.assignedToName}. Choosing a different technician reassigns the complaint and writes a new audit row.`
+                    : "Unassigned complaints appear on the chosen technician's queue in real time."
+                }
+              >
+                <Select
+                  id="assign-technician"
+                  value={selectedTechId}
+                  onChange={(e) => setSelectedTechId(e.target.value)}
                 >
-                  Refresh
-                </button>
-              </div>
-            ) : null}
+                  <option value="">Choose a technician…</option>
+                  {technicians.map((tech) => (
+                    <option key={tech._id} value={tech._id}>
+                      {tech.name} · {tech.email}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
 
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={onClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-strong hover:text-foreground"
+              <Field
+                label="Note for the technician"
+                htmlFor="assign-note"
+                hint="Optional. Up to 500 characters. Appears in the audit trail and the technician's queue."
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleAssign}
-                disabled={assignMutation.isPending || !selectedTechId}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
-              >
-                {assignMutation.isPending ? "Assigning..." : "Assign"}
-              </button>
+                <Textarea
+                  id="assign-note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  placeholder="Anything they should know before picking it up."
+                />
+              </Field>
+
+              {staleError ? (
+                <Card
+                  padding="sm"
+                  variant="surface"
+                  className="border-warning/40 bg-warning/5"
+                >
+                  <p className="flex items-start gap-2 text-sm text-warning-strong">
+                    <RefreshCw
+                      className="mt-0.5 h-4 w-4 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      Version mismatch — another admin updated this
+                      complaint while you were working.
+                      <button
+                        type="button"
+                        onClick={handleRefresh}
+                        className="ml-2 font-semibold underline hover:no-underline"
+                      >
+                        Refresh
+                      </button>
+                    </span>
+                  </p>
+                </Card>
+              ) : null}
             </div>
-          </div>
+          </Card>
         </div>
-      </div>
+
+        {/* ---------- Footer ---------- */}
+        <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface px-6 py-4">
+          <p className="text-xs text-muted-strong">
+            Assignment is audited under the technician's name with a fresh{" "}
+            <span className="numeric">__v</span> version.
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="md" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              loading={assignMutation.isPending}
+              disabled={!selectedTechId}
+              leadingIcon={<UserPlus className="h-4 w-4" />}
+              onClick={handleAssign}
+            >
+              {assignMutation.isPending
+                ? "Assigning"
+                : selectedTechId
+                  ? "Assign technician"
+                  : "Pick a technician"}
+            </Button>
+          </div>
+        </footer>
+      </Card>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export interface FieldProps {
   error?: ReactNode | undefined;
   required?: boolean | undefined;
   children: ReactNode;
-  className?: string | undefined;
+  className?: ReactNode | string | undefined;
 }
 
 export function Field({
@@ -46,7 +46,7 @@ export function Field({
   className = "",
 }: FieldProps) {
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div className={`flex flex-col gap-1.5 ${className as string}`}>
       {label ? (
         <Label htmlFor={htmlFor} required={required}>
           {label}
@@ -54,12 +54,18 @@ export function Field({
       ) : null}
       {children}
       {error ? (
-        <p id={htmlFor ? `${htmlFor}-error` : undefined} className="flex items-center gap-1 text-xs font-medium text-danger">
+        <p
+          id={htmlFor ? `${htmlFor}-error` : undefined}
+          className="flex items-center gap-1 text-xs font-medium text-danger"
+        >
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-danger" />
           {error}
         </p>
       ) : hint ? (
-        <p id={htmlFor ? `${htmlFor}-hint` : undefined} className="text-xs text-muted-strong">
+        <p
+          id={htmlFor ? `${htmlFor}-hint` : undefined}
+          className="text-xs text-muted-strong"
+        >
           {hint}
         </p>
       ) : null}
@@ -68,7 +74,10 @@ export function Field({
 }
 
 /* ---------- Label ---------- */
-export const Label = forwardRef<HTMLLabelElement, LabelHTMLAttributes<HTMLLabelElement> & { required?: boolean | undefined }>(
+export const Label = forwardRef<
+  HTMLLabelElement,
+  LabelHTMLAttributes<HTMLLabelElement> & { required?: boolean | undefined }
+>(
   ({ className = "", required, children, ...rest }, ref) => (
     <label
       ref={ref}
@@ -144,12 +153,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input";
 
 /* ---------- Textarea ---------- */
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean | undefined }>(
+export const Textarea = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean | undefined }
+>(
   ({ className = "", invalid, ...rest }, ref) => (
     <textarea
       ref={ref}
       aria-invalid={invalid || undefined}
-      className={[CONTROL, "min-h-[6rem] resize-y", invalid ? CONTROL_ERROR : "", className].join(" ")}
+      className={[
+        CONTROL,
+        "min-h-[6rem] resize-y",
+        invalid ? CONTROL_ERROR : "",
+        className,
+      ].join(" ")}
       {...rest}
     />
   ),
@@ -157,24 +174,65 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
 Textarea.displayName = "Textarea";
 
 /* ---------- Select ---------- */
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean | undefined }>(
-  ({ className = "", invalid, children, ...rest }, ref) => (
-    <select
-      ref={ref}
-      aria-invalid={invalid || undefined}
-      className={[CONTROL, "pr-9", invalid ? CONTROL_ERROR : "", className].join(" ")}
-      style={{
-        backgroundImage:
-          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'><path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/></svg>\")",
-        backgroundPosition: "right 0.65rem center",
-        backgroundSize: "1.25rem",
-        backgroundRepeat: "no-repeat",
-      }}
-      {...rest}
-    >
-      {children}
-    </select>
-  ),
+export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  invalid?: boolean | undefined;
+  leadingIcon?: ReactNode | undefined;
+}
+
+const CHEVRON_BG =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'><path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/></svg>\")";
+
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+  (
+    { className = "", invalid, children, leadingIcon, ...rest },
+    ref,
+  ) => {
+    if (leadingIcon) {
+      return (
+        <div
+          className={[
+            "relative flex items-center",
+            invalid ? CONTROL_ERROR : "",
+            className,
+          ].join(" ")}
+        >
+          <span className="pointer-events-none absolute left-3 flex h-4 w-4 items-center justify-center text-muted-strong">
+            {leadingIcon}
+          </span>
+          <select
+            ref={ref}
+            aria-invalid={invalid || undefined}
+            className={[CONTROL, "pl-9 pr-9", invalid ? CONTROL_ERROR : "", className].join(" ")}
+            style={{
+              backgroundImage: CHEVRON_BG,
+              backgroundPosition: "right 0.65rem center",
+              backgroundSize: "1.25rem",
+              backgroundRepeat: "no-repeat",
+            }}
+            {...rest}
+          >
+            {children}
+          </select>
+        </div>
+      );
+    }
+    return (
+      <select
+        ref={ref}
+        aria-invalid={invalid || undefined}
+        className={[CONTROL, "pr-9", invalid ? CONTROL_ERROR : "", className].join(" ")}
+        style={{
+          backgroundImage: CHEVRON_BG,
+          backgroundPosition: "right 0.65rem center",
+          backgroundSize: "1.25rem",
+          backgroundRepeat: "no-repeat",
+        }}
+        {...rest}
+      >
+        {children}
+      </select>
+    );
+  },
 );
 Select.displayName = "Select";
 

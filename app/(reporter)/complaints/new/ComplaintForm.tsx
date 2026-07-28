@@ -5,7 +5,29 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Camera, Send, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Camera,
+  Send,
+  ShieldCheck,
+  Tag,
+  MapPin,
+  AlignLeft,
+  Image as ImageIcon,
+  EyeOff,
+  AlertCircle,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import {
+  Field,
+  Label,
+  Input,
+  Textarea,
+  Select,
+  Checkbox,
+} from "@/components/ui/Field";
 
 const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX = 2000;
@@ -94,233 +116,300 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
     const livePhotoError = validatePhoto(photoFile);
     if (livePhotoError) {
       setPhotoError(livePhotoError);
+      toast.error(livePhotoError);
       return;
     }
     startTransition(async () => {
-      const form = new FormData();
-      form.set("categoryId", data.categoryId);
-      form.set("locationId", data.locationId);
-      form.set("description", data.description);
-      form.set("isAnonymous", data.isAnonymous ? "true" : "false");
-      if (photoFile) {
-        form.set("photo", photoFile);
-      }
-      let response: Response;
       try {
-        response = await fetch("/api/complaints", {
-          method: "POST",
-          body: form,
-        });
+        const form = new FormData();
+        form.set("categoryId", data.categoryId);
+        form.set("locationId", data.locationId);
+        form.set("description", data.description);
+        form.set("isAnonymous", data.isAnonymous ? "true" : "false");
+        if (photoFile) {
+          form.set("photo", photoFile);
+        }
+
+        let response: Response;
+        try {
+          response = await fetch("/api/complaints", {
+            method: "POST",
+            body: form,
+          });
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Network error. Please try again.";
+          setFormError(message);
+          toast.error(message);
+          return;
+        }
+
+        let payload: {
+          data?: { redirectTo?: string; trackerUrl?: string; id?: string };
+          error?: { code: string; message: string };
+        } | null = null;
+        try {
+          payload = (await response.json()) as {
+            data?: { redirectTo?: string; trackerUrl?: string; id?: string };
+            error?: { code: string; message: string };
+          };
+        } catch {
+          payload = null;
+        }
+
+        if (!response.ok || !payload?.data?.redirectTo) {
+          const message =
+            payload?.error?.message ??
+            `Submission failed (HTTP ${response.status}). Please try again.`;
+          setFormError(message);
+          toast.error(message);
+          return;
+        }
+
+        const targetUrl = payload.data.redirectTo;
+        const trackerUrl = payload.data.trackerUrl;
+
+        if (data.isAnonymous && trackerUrl) {
+          try {
+            window.sessionStorage.setItem(
+              "cms_lasu:last_tracker_url",
+              trackerUrl,
+            );
+          } catch {
+            // sessionStorage may be unavailable; ignore.
+          }
+        }
+
+        toast.success(
+          data.isAnonymous
+            ? "Anonymous report submitted. We saved your tracker URL in this browser."
+            : "Complaint submitted. Tracking it from your queue now.",
+          {
+            description: data.isAnonymous
+              ? "Bookmark or save the URL we'll redirect you to so you can check status without signing in."
+              : "You'll see it on your dashboard with a live SLA timer.",
+          },
+        );
+
+        // Brief hold so the toast is on-screen before the route swap.
+        setTimeout(() => {
+          router.push(targetUrl);
+          router.refresh();
+        }, 350);
       } catch (err) {
-        setFormError(
+        const message =
           err instanceof Error
             ? err.message
-            : "Network error. Please try again.",
-        );
-        return;
+            : "Submission failed unexpectedly. Please try again.";
+        setFormError(message);
+        toast.error(message);
       }
-      let payload: {
-        data?: { redirectTo?: string; trackerUrl?: string; id?: string };
-        error?: { code: string; message: string };
-      } | null = null;
-      try {
-        payload = (await response.json()) as { data?: { redirectTo?: string; trackerUrl?: string; id?: string }; error?: { code: string; message: string } };
-      } catch {
-        payload = null;
-      }
-      if (!response.ok || !payload?.data?.redirectTo) {
-        setFormError(
-          payload?.error?.message ??
-            `Submission failed (HTTP ${response.status}). Please try again.`,
-        );
-        return;
-      }
-      if (data.isAnonymous && payload.data.trackerUrl) {
-        try {
-          window.sessionStorage.setItem(
-            "cms_lasu:last_tracker_url",
-            payload.data.trackerUrl,
-          );
-        } catch {
-          // sessionStorage may be unavailable; ignore.
-        }
-      }
-      router.push(payload.data.redirectTo);
-      router.refresh();
     });
   });
 
   return (
     <form
       onSubmit={onSubmit}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6"
       noValidate
       encType="multipart/form-data"
     >
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="complaint-category"
-          className="text-sm font-medium text-foreground"
-        >
-          Category
-        </label>
-        <select
-          id="complaint-category"
-          aria-invalid={Boolean(errors.categoryId) || undefined}
-          aria-describedby={
-            errors.categoryId ? "complaint-category-error" : undefined
-          }
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
-          {...register("categoryId")}
-        >
-          <option value="">Choose a category…</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        {errors.categoryId ? (
-          <p
-            id="complaint-category-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.categoryId.message}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="complaint-location"
-          className="text-sm font-medium text-foreground"
-        >
-          Location
-        </label>
-        <select
-          id="complaint-location"
-          aria-invalid={Boolean(errors.locationId) || undefined}
-          aria-describedby={
-            errors.locationId ? "complaint-location-error" : undefined
-          }
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
-          {...register("locationId")}
-        >
-          <option value="">Choose a location…</option>
-          {locations.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-        {errors.locationId ? (
-          <p
-            id="complaint-location-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.locationId.message}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="complaint-description"
-          className="text-sm font-medium text-foreground"
-        >
-          Description
-        </label>
-        <textarea
-          id="complaint-description"
-          rows={5}
-          aria-invalid={Boolean(errors.description) || undefined}
-          aria-describedby={
-            errors.description ? "complaint-description-error" : undefined
-          }
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
-          {...register("description")}
+      <Card padding="lg" variant="surface">
+        <SectionHeader
+          eyebrow="Identification"
+          title="What's broken and where?"
         />
-        {errors.description ? (
-          <p
-            id="complaint-description-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.description.message}
-          </p>
-        ) : null}
-        <p className="text-xs text-muted-strong">
-          Between {DESCRIPTION_MIN} and {DESCRIPTION_MAX} characters.
-        </p>
-      </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="complaint-photo"
-          className="text-sm font-medium text-foreground"
-        >
-          Photo (optional)
-        </label>
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="complaint-photo"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-surface-raised px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface"
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <Field
+            label="Category"
+            htmlFor="complaint-category"
+            error={errors.categoryId?.message}
+            hint={
+              categories.length > 0
+                ? `${categories.length} categories available`
+                : "Loading categories…"
+            }
+            required
           >
-            <Camera className="h-4 w-4" aria-hidden="true" />
-            <span>{photoFile ? "Replace photo" : "Choose photo"}</span>
-          </label>
-          <input
-            id="complaint-photo"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={onPhotoChange}
-          />
-          {photoFile ? (
-            <span className="text-xs text-muted-strong">
-              {photoFile.name} ({Math.round(photoFile.size / 1024)} KB)
-            </span>
-          ) : (
-            <span className="text-xs text-muted-strong">JPG, PNG, or WebP up to {PHOTO_MAX_MB} MB.</span>
-          )}
+            <Select
+              id="complaint-category"
+              leadingIcon={<Tag className="h-4 w-4" />}
+              invalid={Boolean(errors.categoryId)}
+              {...register("categoryId")}
+            >
+              <option value="">Choose a category…</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field
+            label="Location"
+            htmlFor="complaint-location"
+            error={errors.locationId?.message}
+            hint={
+              locations.length > 0
+                ? `${locations.length} campus locations`
+                : "Loading locations…"
+            }
+            required
+          >
+            <Select
+              id="complaint-location"
+              leadingIcon={<MapPin className="h-4 w-4" />}
+              invalid={Boolean(errors.locationId)}
+              {...register("locationId")}
+            >
+              <option value="">Choose a location…</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
-        {photoError ? (
-          <p role="alert" className="text-xs font-medium text-danger">
-            {photoError}
-          </p>
-        ) : null}
-      </div>
+      </Card>
 
-      <label className="flex items-center gap-2 text-sm text-foreground">
-        <input
-          id="complaint-anonymous"
-          type="checkbox"
-          className="h-4 w-4 rounded border-border text-brand accent-brand focus:ring-brand/30"
-          {...register("isAnonymous")}
+      <Card padding="lg" variant="surface">
+        <SectionHeader
+          eyebrow="Description"
+          title="What happened?"
+          meta={
+            <span className="numeric text-xs text-muted-strong">
+              {DESCRIPTION_MIN}–{DESCRIPTION_MAX} characters
+            </span>
+          }
         />
-        <ShieldCheck className="h-4 w-4 text-muted-strong" aria-hidden="true" />
-        <span>Submit anonymously and receive a tracker URL</span>
-      </label>
+
+        <Field
+          label="Describe the fault"
+          htmlFor="complaint-description"
+          error={errors.description?.message}
+          hint="Be specific. Mention what you saw, when, and how often it happens."
+          required
+        >
+          <Textarea
+            id="complaint-description"
+            rows={6}
+            placeholder="Describe what you saw so a technician can act on it."
+            invalid={Boolean(errors.description)}
+            {...register("description")}
+          />
+        </Field>
+      </Card>
+
+      <Card padding="lg" variant="surface">
+        <SectionHeader
+          eyebrow="Photo"
+          title="Attach a photo (optional)"
+          meta={
+            <span className="text-xs text-muted-strong">
+              JPG, PNG, or WebP · up to {PHOTO_MAX_MB} MB
+            </span>
+          }
+        />
+
+        <Field
+          htmlFor="complaint-photo"
+          error={photoError ?? undefined}
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <label
+                htmlFor="complaint-photo"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border-strong bg-surface-raised px-4 py-2.5 text-sm font-semibold text-foreground-strong transition-colors hover:border-brand hover:text-brand focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2"
+              >
+                <Camera className="h-4 w-4" aria-hidden="true" />
+                <span>{photoFile ? "Replace photo" : "Choose photo"}</span>
+              </label>
+              <input
+                id="complaint-photo"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={onPhotoChange}
+              />
+              {photoFile ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success-strong">
+                  <ImageIcon className="h-3 w-3" aria-hidden="true" />
+                  {photoFile.name} · {Math.round(photoFile.size / 1024)} KB
+                </span>
+              ) : (
+                <span className="text-xs text-muted">
+                  Tip: a photo speeds up the technician's first visit.
+                </span>
+              )}
+            </div>
+          </div>
+        </Field>
+      </Card>
+
+      <Card padding="lg" variant="raised">
+        <SectionHeader
+          eyebrow="Privacy"
+          title="One more thing…"
+        />
+
+        <Field
+          htmlFor="complaint-anonymous"
+          error={errors.isAnonymous?.message}
+        >
+          <Checkbox
+            id="complaint-anonymous"
+            label={
+              <span className="inline-flex items-center gap-1.5 font-medium">
+                <EyeOff className="h-4 w-4 text-muted-strong" aria-hidden="true" />
+                Submit anonymously
+              </span>
+            }
+            description={
+              <>
+                We hide your name and email. You will get a private tracker
+                URL instead of a sign-in session.{" "}
+                <span className="inline-flex items-center gap-1 font-medium text-accent-strong">
+                  <Sparkles className="h-3 w-3" aria-hidden="true" /> Recommended
+                  for sensitive issues.
+                </span>
+              </>
+            }
+            {...register("isAnonymous")}
+          />
+        </Field>
+      </Card>
 
       {formError ? (
-        <div
-          role="alert"
-          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger"
+        <Card
+          padding="sm"
+          variant="surface"
+          className="border-danger/40 bg-danger/5"
         >
-          {formError}
-        </div>
+          <p role="alert" className="flex items-start gap-2 text-sm font-medium text-danger">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>{formError}</span>
+          </p>
+        </Card>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <Send className="h-4 w-4" aria-hidden="true" />
-        <span>{isPending ? "Submitting\u2026" : "Submit complaint"}</span>
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
+          <ShieldCheck className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+          Your submission is private and visible only to DICT.
+        </p>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          loading={isPending}
+          leadingIcon={<Send className="h-4 w-4" />}
+        >
+          {isPending ? "Submitting" : "Submit complaint"}
+        </Button>
+      </div>
     </form>
   );
 }

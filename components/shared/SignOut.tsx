@@ -1,17 +1,43 @@
+"use client";
+
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 import { signOutAction } from "@/lib/auth/actions";
 
 export function SignOut() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function handleSignOut() {
+    startTransition(async () => {
+      try {
+        await signOutAction();
+      } catch {
+        toast.error("Failed to sign out cleanly. Try again.");
+        return;
+      }
+      toast.success("Signed out. See you again.");
+      // signOutAction redirects to "/" anyway; this just gives the toast
+      // a moment to mount before the route swap.
+      setTimeout(() => {
+        router.push("/");
+        router.refresh();
+      }, 200);
+    });
+  }
+
   return (
-    <form action={signOutAction}>
-      <button
-        type="submit"
-        className="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-        aria-label="Sign out"
-      >
-        <LogOut className="h-4 w-4" aria-hidden="true" />
-        <span className="hidden lg:inline">Sign out</span>
-      </button>
-    </form>
+    <button
+      type="button"
+      onClick={handleSignOut}
+      disabled={isPending}
+      aria-label="Sign out"
+      className="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <LogOut className="h-4 w-4" aria-hidden="true" />
+      <span className="hidden lg:inline">Sign out</span>
+    </button>
   );
 }

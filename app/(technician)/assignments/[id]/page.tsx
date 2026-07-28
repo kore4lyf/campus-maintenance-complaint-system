@@ -4,9 +4,22 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
+import {
+  ArrowLeft,
+  AlertTriangle,
+  UserCircle,
+  Camera,
+  History,
+  Wrench,
+} from "lucide-react";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
-import { formatOverdueDuration } from "@/lib/sla/breach-detection";
+import { StatusPill } from "@/components/ui/StatusPill";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Badge } from "@/components/ui/Badge";
 import { TransitionForm } from "@/components/technician/TransitionForm";
+import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 
 interface StatusHistoryEntry {
   _id: string;
@@ -37,14 +50,6 @@ interface ComplaintDetail {
   __v: number;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  Submitted: "bg-muted/15 text-muted",
-  Acknowledged: "bg-accent/15 text-accent",
-  "In Progress": "bg-warning/15 text-warning",
-  Resolved: "bg-success/15 text-success",
-  Closed: "bg-muted/15 text-muted",
-};
-
 export default function TechnicianComplaintDetailPage({
   params,
 }: {
@@ -53,7 +58,7 @@ export default function TechnicianComplaintDetailPage({
   const router = useRouter();
   const { id } = React.use(params);
 
-  const { data: complaintData, isLoading } = useQuery<{ data: ComplaintDetail }>({
+  const { data: payload, isLoading } = useQuery<{ data: ComplaintDetail }>({
     queryKey: ["technician-complaint", id],
     queryFn: async () => {
       const response = await fetch(`/api/technician/queue/${id}`);
@@ -64,173 +69,257 @@ export default function TechnicianComplaintDetailPage({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-surface-raised" />
-        <div className="h-64 animate-pulse rounded-lg bg-surface-raised" />
+      <div className="space-y-6">
+        <Skeleton className="h-4 w-32" />
+        <Card padding="lg">
+          <Skeleton className="h-8 w-2/3" />
+          <div className="mt-6 space-y-2">
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-5/6" />
+            <Skeleton className="h-3 w-4/6" />
+          </div>
+        </Card>
       </div>
     );
   }
 
-  if (!complaintData?.data) {
+  if (!payload?.data) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-strong">Complaint not found or not assigned to you.</p>
-        <button
-          onClick={() => router.push("/technician/queue")}
-          className="mt-4 text-brand hover:underline"
+      <Card padding="lg" variant="surface" className="mx-auto max-w-md text-center">
+        <p className="text-sm text-muted-strong">
+          Complaint not found or not assigned to you.
+        </p>
+        <Button
+          variant="secondary"
+          size="md"
+          leadingIcon={<ArrowLeft className="h-4 w-4" />}
+          onClick={() => router.push("/technician/assignments")}
+          className="mx-auto mt-5"
         >
-          Back to queue
-        </button>
-      </div>
+          Back to assignments
+        </Button>
+      </Card>
     );
   }
 
-  const complaint = complaintData.data;
+  const complaint = payload.data;
 
   return (
     <div>
-      <button
-        onClick={() => router.push("/technician/queue")}
-        className="text-sm text-muted-strong hover:text-foreground mb-4"
+      <Button
+        variant="ghost"
+        size="sm"
+        leadingIcon={<ArrowLeft className="h-4 w-4" />}
+        onClick={() => router.push("/technician/assignments")}
+        className="mb-6 -ml-2"
       >
-        &larr; Back to queue
-      </button>
+        Back to assignments
+      </Button>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1 space-y-6">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[complaint.status] ?? "bg-muted/15 text-muted"}`}
-              >
-                {complaint.status}
-              </span>
-              <SeverityBadge
-                severity={complaint.priority as "Critical" | "High" | "Medium" | "Low"}
-              />
-            </div>
-
-            <h1 className="mt-3 text-xl font-semibold text-foreground">
-              {complaint.categoryName ?? "Complaint"}
-              {complaint.locationName ? (
-                <span className="text-muted-strong">
-                  {" "}
-                  &middot; {complaint.locationName}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* ---------- Detail column ---------- */}
+        <div className="space-y-6 lg:col-span-8">
+          <Card padding="lg" variant="surface">
+            <header className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <StatusPill status={complaint.status} />
+                <SeverityBadge
+                  severity={
+                    complaint.priority as "Critical" | "High" | "Medium" | "Low"
+                  }
+                />
+                <span className="ml-auto text-xs text-muted-strong">
+                  Filed{" "}
+                  {formatDistanceToNowStrict(new Date(complaint.createdAt), {
+                    addSuffix: true,
+                  })}
                 </span>
-              ) : null}
-            </h1>
-          </div>
+              </div>
 
-          {complaint.breachKind !== "none" ? (
-            <div className="rounded-lg bg-danger/10 p-3 text-sm text-danger">
-              {complaint.breachKind === "acknowledge_overdue"
-                ? "Acknowledgement overdue"
-                : "Resolution overdue"}{" "}
-              by {formatOverdueDuration(complaint.overdueMs)}
-            </div>
-          ) : null}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
+                  Assignment
+                </p>
+                <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground-strong">
+                  {complaint.categoryName ?? "Complaint"}
+                  {complaint.locationName ? (
+                    <span className="ml-1 font-medium text-muted-strong">
+                      · {complaint.locationName}
+                    </span>
+                  ) : null}
+                </h1>
+              </div>
+            </header>
 
-          <div className="rounded-lg bg-surface-raised p-4">
-            <h2 className="text-sm font-medium text-foreground mb-2">Description</h2>
-            <p className="text-sm text-muted-strong whitespace-pre-wrap">
+            {complaint.breachKind !== "none" ? (
+              <Card
+                padding="sm"
+                variant="surface"
+                className="mt-5 border-danger/40 bg-danger/5"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-danger text-white">
+                    <AlertTriangle
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-danger-strong">
+                      {complaint.breachKind === "acknowledge_overdue"
+                        ? "Acknowledgement is overdue"
+                        : "Resolution is overdue"}
+                    </p>
+                    <p className="numeric mt-0.5 text-xs text-danger">
+                      {formatOverdueDuration(complaint.overdueMs)} past the SLA
+                      deadline. Resolve or escalate.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+          </Card>
+
+          <Card padding="lg" variant="raised">
+            <SectionHeader eyebrow="Description" title="Reporter's note" />
+            <p className="whitespace-pre-wrap rounded-lg bg-surface px-4 py-3 text-sm leading-relaxed text-foreground-strong">
               {complaint.description}
             </p>
-          </div>
+          </Card>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-foreground">Reporter:</span>{" "}
-              <span className="text-muted-strong">{complaint.reporterName}</span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Created:</span>{" "}
-              <span className="text-muted-strong">
-                {formatDistanceToNowStrict(new Date(complaint.createdAt), {
-                  addSuffix: true,
-                })}
-              </span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Acknowledge by:</span>{" "}
-              <span className="text-muted-strong">
-                {formatDistanceToNowStrict(new Date(complaint.slaAcknowledgeBy), {
-                  addSuffix: true,
-                })}
-              </span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Resolve by:</span>{" "}
-              <span className="text-muted-strong">
-                {formatDistanceToNowStrict(new Date(complaint.slaResolveBy), {
-                  addSuffix: true,
-                })}
-              </span>
-            </div>
-          </div>
+          <Card padding="lg" variant="raised">
+            <SectionHeader eyebrow="Meta" title="Reporter and deadlines" />
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center gap-2">
+                <UserCircle
+                  className="h-4 w-4 text-muted-strong"
+                  aria-hidden="true"
+                />
+                <dt className="font-medium text-foreground-strong">Reporter</dt>
+                <dd className="text-muted-strong">{complaint.reporterName}</dd>
+              </div>
+              <div className="flex items-center gap-2">
+                <Camera className="h-4 w-4 text-muted-strong" aria-hidden="true" />
+                <dt className="font-medium text-foreground-strong">Photos</dt>
+                <dd className="numeric text-muted-strong">
+                  {complaint.photoUrls.length}
+                </dd>
+              </div>
+              <div className="numeric sm:col-span-2 flex items-center gap-2">
+                <History
+                  className="h-4 w-4 text-muted-strong"
+                  aria-hidden="true"
+                />
+                <dt className="font-medium text-foreground-strong">
+                  Acknowledge by
+                </dt>
+                <dd className="text-muted-strong">
+                  {formatDistanceToNowStrict(new Date(complaint.slaAcknowledgeBy), {
+                    addSuffix: true,
+                  })}
+                </dd>
+                <span className="mx-1 text-muted-strong">·</span>
+                <dt className="font-medium text-foreground-strong">
+                  Resolve by
+                </dt>
+                <dd className="text-muted-strong">
+                  {formatDistanceToNowStrict(new Date(complaint.slaResolveBy), {
+                    addSuffix: true,
+                  })}
+                </dd>
+              </div>
+            </dl>
+          </Card>
 
           {complaint.photoUrls.length > 0 ? (
-            <div>
-              <h2 className="text-sm font-medium text-foreground mb-2">Photos</h2>
-              <div className="flex gap-2 overflow-x-auto">
+            <Card padding="lg" variant="raised">
+              <SectionHeader
+                eyebrow="Photos"
+                title={`${complaint.photoUrls.length} attached`}
+              />
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5">
                 {complaint.photoUrls.map((url, i) => (
-                  <img
-                    key={i}
-                    src={url}
-                    alt={`Complaint photo ${i + 1}`}
-                    className="h-24 w-24 rounded-md object-cover"
-                  />
+                  <li
+                    key={url}
+                    className="aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary URL */}
+                    <img
+                      src={url}
+                      alt={`Photo ${i + 1}`}
+                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </Card>
           ) : null}
 
           {complaint.statusHistory.length > 0 ? (
-            <div>
-              <h2 className="text-sm font-medium text-foreground mb-2">Status History</h2>
-              <div className="space-y-2">
+            <Card padding="lg" variant="raised">
+              <SectionHeader
+                eyebrow="Timeline"
+                title="Status history"
+                meta={
+                  <span className="numeric text-xs text-muted-strong">
+                    {complaint.statusHistory.length} update
+                    {complaint.statusHistory.length !== 1 ? "s" : ""}
+                  </span>
+                }
+              />
+              <ol className="relative ml-3 space-y-5 border-l-2 border-border pl-6">
                 {complaint.statusHistory.map((entry) => (
-                  <div
-                    key={entry._id}
-                    className="rounded-lg bg-surface-raised p-3 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 font-medium ${STATUS_STYLES[entry.toStatus] ?? "bg-muted/15 text-muted"}`}
-                      >
-                        {entry.fromStatus} &rarr; {entry.toStatus}
+                  <li key={entry._id} className="relative">
+                    <span className="absolute -left-[1.875rem] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-surface ring-2 ring-border">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusPill status={entry.toStatus} />
+                      <span className="text-xs font-medium text-muted-strong">
+                        {entry.fromStatus} → {entry.toStatus}
                       </span>
-                      <span className="text-muted">
+                      <span className="numeric ml-auto text-xs text-muted-strong">
                         {formatDistanceToNowStrict(new Date(entry.changedAt), {
                           addSuffix: true,
                         })}
                       </span>
                     </div>
                     {entry.note ? (
-                      <p className="mt-1 text-muted-strong">{entry.note}</p>
+                      <p className="mt-2 rounded-md bg-surface px-3 py-2 text-sm text-foreground-strong">
+                        {entry.note}
+                      </p>
                     ) : null}
                     {entry.photoUrl ? (
-                      <img
-                        src={entry.photoUrl}
-                        alt="Status photo"
-                        className="mt-2 h-16 w-16 rounded object-cover"
-                      />
+                      <Badge tone="info" className="mt-2">
+                        Photo attached · see Proof tab
+                      </Badge>
                     ) : null}
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
-          ) : null}
+              </ol>
+            </Card>
+          ) : (
+            <Card padding="lg" variant="raised">
+              <SectionHeader eyebrow="Timeline" title="Status history" />
+              <p className="inline-flex items-center gap-2 text-sm text-muted-strong">
+                <Wrench className="h-4 w-4" aria-hidden="true" />
+                No updates yet. Acknowledge this complaint to start the
+                timeline.
+              </p>
+            </Card>
+          )}
         </div>
 
-        <div className="w-full lg:w-80 flex-shrink-0">
-          <div className="sticky top-24 rounded-lg border border-border bg-surface p-4">
+        {/* ---------- Action column ---------- */}
+        <div className="lg:col-span-4">
+          <div className="sticky top-24">
             <TransitionForm
               complaintId={complaint._id}
               currentStatus={complaint.status}
               allowedTransitions={complaint.allowedTransitions}
               expectedVersion={complaint.__v}
               onSuccess={() => {
-                // Query will refetch automatically
+                /* TanStack Query refetch handles refresh. */
               }}
             />
           </div>
