@@ -102,7 +102,7 @@ async function seedRole(
 
   try {
     await auth.api.signUpEmail({
-      body: { email: trio.email, password: trio.password, name: trio.name },
+      body: { email: trio.email!, password: trio.password!, name: trio.name! },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -111,15 +111,15 @@ async function seedRole(
     }
     // Already exists: ensure password is in sync and role is correct.
     await UserModel.findOneAndUpdate(
-      { email: trio.email },
-      { $set: { role, name: trio.name } },
+      { email: trio.email! },
+      { $set: { role, name: trio.name! } },
     );
     return "updated";
   }
 
   await UserModel.findOneAndUpdate(
-    { email: trio.email },
-    { $set: { role, name: trio.name } },
+    { email: trio.email! },
+    { $set: { role, name: trio.name! } },
   );
   return "created";
 }

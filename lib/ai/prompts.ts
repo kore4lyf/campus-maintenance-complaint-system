@@ -90,8 +90,8 @@ function assertPiIFree(prompt: string, report: Record<string, unknown>): void {
 
 function scrubPII(input: {
   prompt: string;
-  reportedReporterIds?: ReadonlyArray<string>;
-  reportedEmails?: ReadonlyArray<string>;
+  reportedReporterIds?: ReadonlyArray<string> | undefined;
+  reportedEmails?: ReadonlyArray<string> | undefined;
 }): string {
   const { prompt, reportedReporterIds, reportedEmails } = input;
   const report: Record<string, unknown> = {

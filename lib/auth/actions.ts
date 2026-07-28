@@ -53,7 +53,7 @@ export async function signInAction(formData: {
     if (!result?.user) {
       return { ok: false, error: "Invalid email or password" };
     }
-    const role = resolveRole(result.user.role);
+    const role = resolveRole((result.user as Record<string, unknown>).role as string);
     const explicitRedirect = formData.redirect?.trim();
     const redirectTo =
       explicitRedirect && explicitRedirect.startsWith("/")

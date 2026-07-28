@@ -65,7 +65,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return badRequest("invalid_input", "assignedToTechId is not a valid id", 422);
   }
 
-  const techUser = await UserModel.findById(assignedToTechId).lean();
+  const techUser = await UserModel.findOne({ _id: assignedToTechId }).lean();
   if (!techUser) {
     return badRequest("invalid_technician", "Technician not found", 404);
   }
@@ -80,7 +80,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   );
 
   if (!updated) {
-    const current = await ComplaintModel.findById(complaintId).lean();
+    const current = await ComplaintModel.findOne({ _id: complaintId }).lean();
     if (!current) {
       return badRequest("not_found", "Complaint not found", 404);
     }
@@ -105,7 +105,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     toStatus: updated.status,
     changedById: session.user.id,
     changedBySystem: false,
-    note: note ?? undefined,
+    note: note ?? null,
     changedAt: now,
   });
 

@@ -1,6 +1,12 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { SlidersHorizontal, X } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { Field, Select } from "@/components/ui/Field";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import type { BadgeProps } from "@/components/ui/Badge";
 
 const TIME_OPTIONS = [
   { value: "", label: "All time" },
@@ -10,9 +16,12 @@ const TIME_OPTIONS = [
   { value: "90d", label: "Last 90 days" },
 ] as const;
 
-const SEVERITY_OPTIONS = ["Critical", "High", "Medium", "Low"] as const;
-
-const STATUS_OPTIONS = ["Submitted", "Acknowledged", "In Progress", "Resolved", "Closed"] as const;
+const SEVERITY_OPTIONS = [
+  { value: "Critical", tone: "danger" as BadgeProps["tone"] },
+  { value: "High", tone: "warning" as BadgeProps["tone"] },
+  { value: "Medium", tone: "info" as BadgeProps["tone"] },
+  { value: "Low", tone: "success" as BadgeProps["tone"] },
+] as const;
 
 interface Location {
   _id: string;
@@ -23,6 +32,36 @@ interface ReportsFilterPanelProps {
   locations: Location[];
 }
 
+function ToggleChip({
+  label,
+  active,
+  tone,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  tone?: BadgeProps["tone"] | undefined;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded-full"
+    >
+      {active ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white shadow-sm ring-1 ring-inset ring-brand-strong">
+          {label}
+          <X className="h-3 w-3" aria-hidden="true" />
+        </span>
+      ) : (
+        <Badge tone={tone ?? "neutral"}>{label}</Badge>
+      )}
+    </button>
+  );
+}
+
 export function ReportsFilterPanel({ locations }: ReportsFilterPanelProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,6 +70,9 @@ export function ReportsFilterPanel({ locations }: ReportsFilterPanelProps) {
   const currentSeverity = searchParams.getAll("severity");
   const currentLocationId = searchParams.getAll("locationId");
   const currentStatus = searchParams.getAll("status");
+
+  const activeCount =
+    (currentTime ? 1 : 0) + currentSeverity.length + currentLocationId.length + currentStatus.length;
 
   function toggleArrayParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -55,83 +97,126 @@ export function ReportsFilterPanel({ locations }: ReportsFilterPanelProps) {
     router.push(`/admin/reports?${params.toString()}`);
   }
 
+  function clearAll() {
+    router.push("/admin/reports");
+  }
+
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-2">Time Window</h3>
-        <div className="flex flex-wrap gap-2">
-          {TIME_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setParam("time", option.value)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                currentTime === option.value
-                  ? "bg-brand-500 text-white"
-                  : "bg-surface-raised text-muted-strong hover:bg-surface-raised/80"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+    <Card padding="md" className="sticky top-24">
+      <header className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand">
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground-strong">
+              Filters
+            </h2>
+            <p className="numeric text-xs text-muted-strong">
+              {activeCount === 0 ? "No filters applied" : `${activeCount} active`}
+            </p>
+          </div>
         </div>
-      </div>
+        {activeCount > 0 ? (
+          <Button variant="ghost" size="sm" onClick={clearAll} trailingIcon={<X className="h-3 w-3" />}>
+            Clear
+          </Button>
+        ) : null}
+      </header>
 
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-2">Severity</h3>
-        <div className="flex flex-wrap gap-2">
-          {SEVERITY_OPTIONS.map((severity) => (
-            <button
-              key={severity}
-              onClick={() => toggleArrayParam("severity", severity)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                currentSeverity.includes(severity)
-                  ? "bg-brand-500 text-white"
-                  : "bg-surface-raised text-muted-strong hover:bg-surface-raised/80"
-              }`}
-            >
-              {severity}
-            </button>
-          ))}
+      <div className="space-y-5">
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-strong">
+            Time window
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {TIME_OPTIONS.map((option) => (
+              <ToggleChip
+                key={option.value || "all"}
+                label={option.label}
+                active={currentTime === option.value}
+                onClick={() => setParam("time", option.value)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-2">Location</h3>
-        <div className="flex flex-wrap gap-2">
-          {locations.map((loc) => (
-            <button
-              key={loc._id}
-              onClick={() => toggleArrayParam("locationId", loc._id)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                currentLocationId.includes(loc._id)
-                  ? "bg-brand-500 text-white"
-                  : "bg-surface-raised text-muted-strong hover:bg-surface-raised/80"
-              }`}
-            >
-              {loc.name}
-            </button>
-          ))}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-strong">
+            Severity
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {SEVERITY_OPTIONS.map((option) => (
+              <ToggleChip
+                key={option.value}
+                tone={option.tone}
+                label={option.value}
+                active={currentSeverity.includes(option.value)}
+                onClick={() => toggleArrayParam("severity", option.value)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-2">Status</h3>
-        <div className="flex flex-wrap gap-2">
-          {STATUS_OPTIONS.map((status) => (
-            <button
-              key={status}
-              onClick={() => toggleArrayParam("status", status)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                currentStatus.includes(status)
-                  ? "bg-brand-500 text-white"
-                  : "bg-surface-raised text-muted-strong hover:bg-surface-raised/80"
-              }`}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-strong">
+            Location
+          </h3>
+          <Field>
+            <Select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  toggleArrayParam("locationId", e.target.value);
+                  e.target.value = "";
+                }
+              }}
             >
-              {status}
-            </button>
-          ))}
+              <option value="">Add location filter…</option>
+              {locations
+                .filter((loc) => !currentLocationId.includes(loc._id))
+                .map((loc) => (
+                  <option key={loc._id} value={loc._id}>
+                    {loc.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+          {currentLocationId.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {currentLocationId.map((locId) => {
+                const loc = locations.find((l) => l._id === locId);
+                return (
+                  <ToggleChip
+                    key={locId}
+                    label={loc?.name ?? locId}
+                    active
+                    onClick={() => toggleArrayParam("locationId", locId)}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-strong">
+            Status
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {["Submitted", "Acknowledged", "In Progress", "Resolved", "Closed"].map(
+              (status) => (
+                <ToggleChip
+                  key={status}
+                  label={status}
+                  active={currentStatus.includes(status)}
+                  onClick={() => toggleArrayParam("status", status)}
+                />
+              ),
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

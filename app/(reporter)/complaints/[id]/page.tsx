@@ -50,12 +50,12 @@ interface RenderedComplaint {
 interface TimelineEntry {
   fromStatus: string;
   toStatus: string;
-  changedById?: string;
-  changedByName?: string;
-  changedByRole?: string;
-  changedBySystem?: boolean;
-  note?: string;
-  photoUrl?: string;
+  changedById: string | undefined;
+  changedByName: string | undefined;
+  changedByRole: string | undefined;
+  changedBySystem: boolean;
+  note: string | undefined;
+  photoUrl: string | undefined;
   changedAt: string;
 }
 
@@ -65,7 +65,8 @@ async function loadComplaint(
 ): Promise<{ complaint: RenderedComplaint; timeline: TimelineEntry[] }> {
   await connect();
 
-  const doc = await ComplaintModel.findById(id).lean();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const doc = await ComplaintModel.findOne({ _id: id }).lean();
   if (!doc) {
     throw new ApiError("not_found", "Complaint not found", 404);
   }
@@ -77,6 +78,7 @@ async function loadComplaint(
       throw new ApiError("forbidden", "You can only view your own complaints", 403);
     }
   } else if (ctx.role === "dicht_technician" && ctx.reporterId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const assignment = await AssignmentModel.findOne({
       complaintId: doc._id,
       assignedToTechId: ctx.reporterId,
@@ -87,8 +89,11 @@ async function loadComplaint(
   }
 
   const [category, location, history] = await Promise.all([
-    CategoryModel.findById(doc.categoryId).lean(),
-    LocationModel.findById(doc.locationId).lean(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    CategoryModel.findOne({ _id: doc.categoryId }).lean(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    LocationModel.findOne({ _id: doc.locationId }).lean(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     StatusHistoryModel.find({ complaintId: doc._id })
       .sort({ changedAt: -1 })
       .lean(),
@@ -97,16 +102,19 @@ async function loadComplaint(
   const actorIds = [
     ...new Set(
       history
-        .filter((h) => h.changedById && !h.changedBySystem)
-        .map((h) => String(h.changedById)),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((h: any) => h.changedById && !h.changedBySystem)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((h: any) => String(h.changedById)),
     ),
   ];
 
   const actors =
     actorIds.length > 0
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? await UserModel.find({ _id: { $in: actorIds } })
           .lean()
-          .then((docs) =>
+          .then((docs: any[]) =>
             Object.fromEntries(
               docs.map((d) => [
                 String(d._id),
@@ -132,7 +140,7 @@ async function loadComplaint(
   if (category) complaint.categoryName = category.name;
   if (location) complaint.locationName = location.name;
 
-  const timeline: TimelineEntry[] = history.map((entry) => {
+  const timeline: TimelineEntry[] = history.map((entry: any) => {
     const actor = entry.changedById ? actors[String(entry.changedById)] : null;
     return {
       fromStatus: entry.fromStatus,

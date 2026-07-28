@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { format, formatDistanceToNowStrict } from "date-fns";
+import { X } from "lucide-react";
+import { StatusPill } from "@/components/ui/StatusPill";
 
 interface TimelineEntry {
   fromStatus: string;
   toStatus: string;
-  changedById?: string;
-  changedByName?: string;
-  changedByRole?: string;
-  changedBySystem?: boolean;
-  note?: string;
-  photoUrl?: string;
+  changedById: string | undefined;
+  changedByName: string | undefined;
+  changedByRole: string | undefined;
+  changedBySystem: boolean;
+  note: string | undefined;
+  photoUrl: string | undefined;
   changedAt: string;
 }
 
@@ -19,17 +21,9 @@ interface ComplaintTimelineProps {
   entries: TimelineEntry[];
 }
 
-const STATUS_COLOURS: Record<string, string> = {
-  Submitted: "bg-muted/15 text-muted",
-  Acknowledged: "bg-accent/15 text-accent",
-  "In Progress": "bg-warning/15 text-warning",
-  Resolved: "bg-success/15 text-success",
-  Closed: "bg-muted/15 text-muted",
-};
-
 function actorLabel(entry: TimelineEntry): string {
   if (entry.changedBySystem) {
-    return `system (${entry.changedByRole ?? "system"})`;
+    return "system";
   }
   if (entry.changedByName) {
     const role = entry.changedByRole
@@ -43,51 +37,51 @@ function actorLabel(entry: TimelineEntry): string {
 export function ComplaintTimeline({ entries }: ComplaintTimelineProps) {
   if (entries.length === 0) {
     return (
-      <p className="text-sm text-muted">
-        No status history available yet.
+      <p className="rounded-lg border border-dashed border-border bg-surface-raised p-4 text-sm text-muted-strong">
+        No status history available yet. Updates from DICT technicians and
+        the assignment system will appear here.
       </p>
     );
   }
 
   return (
-    <ol className="relative ml-3 border-l-2 border-border pl-6">
+    <ol className="relative ml-3 space-y-6 border-l-2 border-border pl-6">
       {entries.map((entry, i) => (
-        <li key={i} className="relative mb-6 last:mb-0">
-          <div className="absolute -left-[1.625rem] top-1 flex h-3 w-3 items-center justify-center">
-            <span
-              className={`block h-2.5 w-2.5 rounded-full ${STATUS_COLOURS[entry.toStatus] ?? "bg-muted"}`}
-            />
-          </div>
+        <li key={i} className="relative">
+          <span className="absolute -left-[1.875rem] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-surface ring-2 ring-border">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+          </span>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOURS[entry.toStatus] ?? "bg-muted/15 text-muted"}`}
-            >
-              {entry.fromStatus} &rarr; {entry.toStatus}
-            </span>
-            <span className="text-xs text-muted">
-              {actorLabel(entry)}
-            </span>
-          </div>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill status={entry.toStatus} />
+              <span className="text-xs font-medium text-muted-strong">
+                {entry.fromStatus} → {entry.toStatus}
+              </span>
+            </div>
 
-          {entry.note ? (
-            <p className="mt-1 text-sm text-foreground">{entry.note}</p>
-          ) : null}
+            <p className="text-xs text-muted-strong">
+              {actorLabel(entry)} ·{" "}
+              <time className="numeric">
+                {formatDistanceToNowStrict(new Date(entry.changedAt), {
+                  addSuffix: true,
+                })}
+              </time>
+            </p>
 
-          {entry.photoUrl ? (
-            <div className="mt-2">
+            {entry.note ? (
+              <p className="rounded-md bg-surface-raised p-3 text-sm leading-relaxed text-foreground-strong">
+                {entry.note}
+              </p>
+            ) : null}
+
+            {entry.photoUrl ? (
               <ProofPhotoThumb
                 url={entry.photoUrl}
                 caption={`${entry.fromStatus} → ${entry.toStatus} · ${format(new Date(entry.changedAt), "PP p")}`}
               />
-            </div>
-          ) : null}
-
-          <time className="mt-1 block text-xs text-muted">
-            {formatDistanceToNowStrict(new Date(entry.changedAt), {
-              addSuffix: true,
-            })}
-          </time>
+            ) : null}
+          </div>
         </li>
       ))}
     </ol>
@@ -102,7 +96,7 @@ function ProofPhotoThumb({ url, caption }: { url: string; caption: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-block overflow-hidden rounded-md border border-border"
+        className="inline-flex items-center gap-2 overflow-hidden rounded-md border border-border bg-surface-raised text-left text-xs transition-[border-color,box-shadow] duration-200 hover:border-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary proof photo */}
         <img
@@ -110,11 +104,12 @@ function ProofPhotoThumb({ url, caption }: { url: string; caption: string }) {
           alt="Proof of fix photo"
           className="h-12 w-12 object-cover"
         />
+        <span className="pr-3 font-medium text-muted-strong">View proof</span>
       </button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-brand/85 p-4"
           onClick={() => setOpen(false)}
           onKeyDown={(e) => {
             if (e.key === "Escape") setOpen(false);
@@ -124,37 +119,24 @@ function ProofPhotoThumb({ url, caption }: { url: string; caption: string }) {
           aria-label="Proof of fix photo"
         >
           <div
-            className="relative max-w-2xl rounded-xl bg-surface-overlay shadow-lg"
+            className="relative max-w-2xl overflow-hidden rounded-xl bg-surface-overlay shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="absolute right-2 top-2 z-10 rounded-full bg-surface-raised p-1 text-muted-strong transition-colors hover:text-foreground"
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-surface-raised text-muted-strong transition-colors hover:bg-surface hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label="Close"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary proof photo */}
             <img
               src={url}
               alt="Proof of fix photo"
-              className="max-h-[70vh] w-full rounded-xl object-contain"
+              className="max-h-[70vh] w-full object-contain"
             />
-            <p className="px-4 py-3 text-center text-sm text-muted-strong">
+            <p className="border-t border-border bg-surface-raised px-4 py-3 text-center text-sm text-muted-strong">
               {caption}
             </p>
           </div>

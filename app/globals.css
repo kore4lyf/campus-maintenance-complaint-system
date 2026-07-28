@@ -8,45 +8,96 @@
 @import "@astryxdesign/core/tailwind-theme.css";
 @import "tailwindcss/utilities.css" layer(utilities);
 
+/*
+ * LASU CMS — brand identity is sampled directly from `public/cms-lasu-full.png`.
+ *   Brand navy   #0c2848  (deep navy; dominant fill of the icon glyph)
+ *   Brand accent #d4a014  (warm institutional gold; the yellow circle at the
+ *                          logo bottom)
+ *   Surface      #ffffff  (near-white page background)
+ * These three colours are non-negotiable. The production logo PNG is the
+ * source of truth, not a designer spec.
+ *
+ * Severity colours are deliberately distinct from the brand accent so a
+ * "High" badge never reads as the brand colour.
+ */
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
     Consolas, "Liberation Mono", monospace;
 
-  --color-brand: #16a34a;
-  --color-brand-strong: #15803d;
-  --color-accent: #0284c7;
-  --color-accent-strong: #0369a1;
+  /* ---------- Brand ---------- */
+  --color-brand: #0c2848;
+  --color-brand-strong: #001c3c;
+  --color-brand-soft: #1a3858;
+
+  /* ---------- Accent (the yellow) ---------- */
+  --color-accent: #d4a014;
+  --color-accent-strong: #a87f0a;
+  --color-accent-soft: #f4d76a;
+
+  /* ---------- Surface + foreground ---------- */
   --color-surface: #ffffff;
   --color-surface-raised: #f8fafc;
   --color-surface-overlay: #ffffff;
+  --color-foreground: #1e293b;
+  --color-foreground-strong: #0c2848;
+
+  /* ---------- Neutral text + borders ---------- */
   --color-muted: #64748b;
   --color-muted-strong: #475569;
-  --color-danger: #ef4444;
-  --color-danger-strong: #dc2626;
-  --color-warning: #f59e0b;
-  --color-warning-strong: #d97706;
-  --color-success: #10b981;
-  --color-success-strong: #059669;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* ---------- Severity ---------- */
+  --color-danger: #dc2626;
+  --color-danger-strong: #b91c1c;
+  --color-danger-soft: #fee2e2;
+  --color-warning: #ea7c1c;
+  --color-warning-strong: #c2410c;
+  --color-warning-soft: #ffedd5;
+  --color-info: #0284c7;
+  --color-info-strong: #0369a1;
+  --color-info-soft: #e0f2fe;
+  --color-success: #059669;
+  --color-success-strong: #047857;
+  --color-success-soft: #d1fae5;
 }
 
 .dark {
-  --color-brand: #4ade80;
-  --color-brand-strong: #22c55e;
-  --color-accent: #38bdf8;
-  --color-accent-strong: #0ea5e9;
-  --color-surface: #0f172a;
-  --color-surface-raised: #1e293b;
-  --color-surface-overlay: #1e293b;
+  /* Dark-mode brand is a lighter blue so it stays visible on dark surfaces
+     while still reading as "our navy" rather than a new colour. */
+  --color-brand: #3b82f6;
+  --color-brand-strong: #60a5fa;
+  --color-brand-soft: #93c5fd;
+
+  --color-accent: #d4a014;
+  --color-accent-strong: #facc15;
+  --color-accent-soft: #f4d76a;
+
+  --color-surface: #0c1424;
+  --color-surface-raised: #1a2438;
+  --color-surface-overlay: #1a2438;
+  --color-foreground: #f1f5f9;
+  --color-foreground-strong: #ffffff;
+
   --color-muted: #94a3b8;
   --color-muted-strong: #cbd5e1;
+  --color-border: #1e293b;
+  --color-border-strong: #334155;
+
   --color-danger: #f87171;
   --color-danger-strong: #fca5a5;
-  --color-warning: #fbbf24;
-  --color-warning-strong: #fcd34d;
+  --color-danger-soft: #450a0a;
+  --color-warning: #fb923c;
+  --color-warning-strong: #fdba74;
+  --color-warning-soft: #431407;
+  --color-info: #38bdf8;
+  --color-info-strong: #7dd3fc;
+  --color-info-soft: #082f49;
   --color-success: #34d399;
   --color-success-strong: #6ee7b7;
+  --color-success-soft: #022c22;
 }
 
 @layer base {
@@ -54,11 +105,30 @@
   body {
     max-width: 100vw;
     overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
   body {
     color: var(--color-foreground);
     background: var(--color-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tabular numerals for any element with this utility — keeps SLA timers
+     from jiggling as digits change. */
+  .numeric {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Smooth colour transitions on theme toggle, suppressed by reduced-motion
+     guard below. */
+  *,
+  *::before,
+  *::after {
+    transition: background-color 200ms ease, color 200ms ease,
+      border-color 200ms ease, box-shadow 200ms ease;
   }
 }
 
@@ -74,13 +144,47 @@
     white-space: nowrap;
     border: 0;
   }
+
+  /* Container query middleware utility — clamp prose width */
+  .prose-pretty {
+    max-width: 65ch;
+  }
+}
+
+/* Selection colour: brand gold on navy contrast surface */
+::selection {
+  background-color: var(--color-accent-soft);
+  color: var(--color-brand-strong);
+}
+
+/* Brand-tinted scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-brand-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

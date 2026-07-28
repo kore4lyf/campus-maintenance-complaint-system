@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Mail, Lock, UserPlus, AlertCircle, CheckCircle2 } from "lucide-react";
 import { signUpAction } from "@/lib/auth/actions";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Field, Input } from "@/components/ui/Field";
 
 const signUpSchema = z.object({
   email: z.string().email("Enter a valid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   name: z
     .string()
     .min(1, "Display name is required")
@@ -52,107 +54,87 @@ export function SignUpForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="sign-up-name"
-          className="text-sm font-medium text-foreground"
-        >
-          Display name
-        </label>
-        <input
+    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+      <Field
+        label="Display name"
+        htmlFor="sign-up-name"
+        error={errors.name?.message}
+        required
+      >
+        <Input
           id="sign-up-name"
           type="text"
           autoComplete="name"
-          aria-invalid={Boolean(errors.name) || undefined}
-          aria-describedby={errors.name ? "sign-up-name-error" : undefined}
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+          placeholder="Aisha Bello"
+          invalid={Boolean(errors.name)}
           {...register("name")}
         />
-        {errors.name ? (
-          <p
-            id="sign-up-name-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.name.message}
-          </p>
-        ) : null}
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="sign-up-email"
-          className="text-sm font-medium text-foreground"
-        >
-          Email
-        </label>
-        <input
+      <Field
+        label="Email"
+        htmlFor="sign-up-email"
+        error={errors.email?.message}
+        hint="Use your LASU email if you have one."
+        required
+      >
+        <Input
           id="sign-up-email"
           type="email"
           autoComplete="email"
-          aria-invalid={Boolean(errors.email) || undefined}
-          aria-describedby={errors.email ? "sign-up-email-error" : undefined}
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+          placeholder="you@student.lasu.edu.ng"
+          leadingIcon={<Mail className="h-4 w-4" aria-hidden="true" />}
+          invalid={Boolean(errors.email)}
           {...register("email")}
         />
-        {errors.email ? (
-          <p
-            id="sign-up-email-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.email.message}
-          </p>
-        ) : null}
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="sign-up-password"
-          className="text-sm font-medium text-foreground"
-        >
-          Password
-        </label>
-        <input
+      <Field
+        label="Password"
+        htmlFor="sign-up-password"
+        error={errors.password?.message}
+        hint="Minimum 8 characters. Use a memorable phrase."
+        required
+      >
+        <Input
           id="sign-up-password"
           type="password"
           autoComplete="new-password"
-          aria-invalid={Boolean(errors.password) || undefined}
-          aria-describedby={
-            errors.password ? "sign-up-password-error" : undefined
-          }
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+          placeholder="At least 8 characters"
+          leadingIcon={<Lock className="h-4 w-4" aria-hidden="true" />}
+          invalid={Boolean(errors.password)}
           {...register("password")}
         />
-        {errors.password ? (
-          <p
-            id="sign-up-password-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.password.message}
-          </p>
-        ) : null}
-        <p className="text-xs text-muted-strong">Minimum 8 characters.</p>
-      </div>
+      </Field>
 
       {formError ? (
-        <div
-          role="alert"
-          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger"
+        <Card
+          padding="sm"
+          variant="surface"
+          className="border-danger/40 bg-danger/5 text-danger"
         >
-          {formError}
-        </div>
+          <p role="alert" className="flex items-start gap-2 text-sm font-medium">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>{formError}</span>
+          </p>
+        </Card>
       ) : null}
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
+        variant="primary"
+        size="lg"
+        loading={isPending}
+        leadingIcon={<UserPlus className="h-4 w-4" />}
       >
-        {isPending ? "Creating account\u2026" : "Create account"}
-      </button>
+        {isPending ? "Creating account" : "Create account"}
+      </Button>
+
+      <p className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-strong">
+        <CheckCircle2 className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+        Reporter accounts are auto-approved. DICT/Director accounts are seeded
+        by administrators.
+      </p>
     </form>
   );
 }

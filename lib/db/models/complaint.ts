@@ -171,5 +171,6 @@ schema.pre("findOneAndUpdate", function (this: any) { // eslint-disable-line @ty
 export { complaintSchema, ApiError, VALID_TRANSITIONS, ADMIN_OVERRIDES };
 export type AiSuggestionDocument = InferSchemaType<typeof aiSuggestionSchema>;
 export type ComplaintDocument = InferSchemaType<typeof complaintSchema>;
-export const ComplaintModel =
-  mongoose.models.Complaint || mongoose.model("Complaint", complaintSchema);
+export const ComplaintModel: mongoose.Model<ComplaintDocument> =
+  (mongoose.models.Complaint as mongoose.Model<ComplaintDocument>) ??
+  mongoose.model<ComplaintDocument>("Complaint", complaintSchema);

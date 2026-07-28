@@ -25,4 +25,6 @@ const notificationSchema = new Schema(
 
 export { notificationSchema };
 export type NotificationDocument = InferSchemaType<typeof notificationSchema>;
-export const NotificationModel = mongoose.models.Notification || mongoose.model("Notification", notificationSchema);
+export const NotificationModel: mongoose.Model<NotificationDocument> =
+  (mongoose.models.Notification as mongoose.Model<NotificationDocument>) ??
+  mongoose.model<NotificationDocument>("Notification", notificationSchema);

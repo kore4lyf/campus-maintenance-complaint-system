@@ -16,7 +16,7 @@ function isValidObjectId(value: string): boolean {
 }
 
 function reporterView(doc: Record<string, unknown>): Record<string, unknown> {
-  const publicDoc = toPublicComplaint(doc) as Record<string, unknown>;
+  const publicDoc = toPublicComplaint(doc) as unknown as Record<string, unknown>;
   const {
     aiSuggestion: _aiSuggestion,
     escalated: _escalated,
@@ -28,14 +28,14 @@ function reporterView(doc: Record<string, unknown>): Record<string, unknown> {
 }
 
 function technicianView(doc: Record<string, unknown>): Record<string, unknown> {
-  const publicDoc = toPublicComplaint(doc) as Record<string, unknown>;
+  const publicDoc = toPublicComplaint(doc) as unknown as Record<string, unknown>;
   const { aiSuggestion: _aiSuggestion, ...rest } = publicDoc;
   void _aiSuggestion;
   return rest;
 }
 
 function adminView(doc: Record<string, unknown>): Record<string, unknown> {
-  return toPublicComplaint(doc) as Record<string, unknown>;
+  return toPublicComplaint(doc) as unknown as Record<string, unknown>;
 }
 
 function mapperFor(role: SessionRoleOrNull) {
@@ -107,7 +107,7 @@ export async function GET(
 
   let complaint: Record<string, unknown> | null = null;
   try {
-    const doc = await ComplaintModel.findById(id).lean();
+    const doc = await ComplaintModel.findOne({ _id: id }).lean();
     complaint = doc ? (doc as unknown as Record<string, unknown>) : null;
   } catch (err) {
     if (err instanceof ApiError) {

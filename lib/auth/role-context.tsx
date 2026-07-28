@@ -53,7 +53,7 @@ export function RoleProvider({
           id: sessionUser.id ?? "",
           email: sessionUser.email ?? "",
           name: sessionUser.name || sessionUser.email || "",
-          role: resolveRole(sessionUser.role),
+          role: resolveRole(sessionUser.role) ?? "reporter",
         }
       : null;
 

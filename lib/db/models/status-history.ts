@@ -20,4 +20,6 @@ const statusHistorySchema = new Schema(
 
 export { statusHistorySchema };
 export type StatusHistoryDocument = InferSchemaType<typeof statusHistorySchema>;
-export const StatusHistoryModel = mongoose.models.StatusHistory || mongoose.model("StatusHistory", statusHistorySchema);
+export const StatusHistoryModel: mongoose.Model<StatusHistoryDocument> =
+  (mongoose.models.StatusHistory as mongoose.Model<StatusHistoryDocument>) ??
+  mongoose.model<StatusHistoryDocument>("StatusHistory", statusHistorySchema);

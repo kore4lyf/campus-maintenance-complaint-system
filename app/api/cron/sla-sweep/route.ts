@@ -41,11 +41,15 @@ async function runSweep(): Promise<SweepResult> {
 
   logger.info("SLA sweep started", { runId, startedAt: startedAt.toISOString() });
 
-  const nonClosedComplaints = await ComplaintModel.find({
-    status: { $ne: "Closed" },
-  }).lean();
+  const nonClosedComplaints = await ComplaintModel
+    .find({
+      status: { $ne: "Closed" },
+    })
+    .lean();
 
-  const admins = await UserModel.find({ role: "dicht_admin" }).lean();
+  const admins = await UserModel
+    .find({ role: "dicht_admin" })
+    .lean();
   const adminIds = admins.map((a) => String(a._id));
 
   let escalatedCount = 0;
@@ -154,7 +158,10 @@ async function runSweep(): Promise<SweepResult> {
     durationMs,
   };
 
-  logger.info("SLA sweep completed", result);
+  logger.info(
+    "SLA sweep completed",
+    result as unknown as Record<string, unknown>,
+  );
 
   return result;
 }

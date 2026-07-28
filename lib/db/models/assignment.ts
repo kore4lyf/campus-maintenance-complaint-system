@@ -24,4 +24,6 @@ const assignmentSchema = new Schema(
 
 export { assignmentSchema };
 export type AssignmentDocument = InferSchemaType<typeof assignmentSchema>;
-export const AssignmentModel = mongoose.models.Assignment || mongoose.model("Assignment", assignmentSchema);
+export const AssignmentModel: mongoose.Model<AssignmentDocument> =
+  (mongoose.models.Assignment as mongoose.Model<AssignmentDocument>) ??
+  mongoose.model<AssignmentDocument>("Assignment", assignmentSchema);

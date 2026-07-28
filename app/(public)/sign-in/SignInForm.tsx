@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Mail, Lock, LogIn, AlertCircle, ShieldCheck } from "lucide-react";
 import { signInAction } from "@/lib/auth/actions";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { Card } from "@/components/ui/Card";
 
 const signInSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -34,7 +38,7 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
       const result = await signInAction({
         email: data.email,
         password: data.password,
-        redirect: redirectParam || undefined,
+        ...(redirectParam ? { redirect: redirectParam } : {}),
       });
       if (result.ok) {
         router.push(result.redirectTo);
@@ -46,79 +50,68 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="sign-in-email"
-          className="text-sm font-medium text-foreground"
-        >
-          Email
-        </label>
-        <input
+    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+      <Field
+        label="Email"
+        htmlFor="sign-in-email"
+        error={errors.email?.message}
+        required
+      >
+        <Input
           id="sign-in-email"
           type="email"
           autoComplete="email"
-          aria-invalid={Boolean(errors.email) || undefined}
-          aria-describedby={errors.email ? "sign-in-email-error" : undefined}
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+          placeholder="you@student.lasu.edu.ng"
+          leadingIcon={<Mail className="h-4 w-4" aria-hidden="true" />}
+          invalid={Boolean(errors.email)}
           {...register("email")}
         />
-        {errors.email ? (
-          <p
-            id="sign-in-email-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.email.message}
-          </p>
-        ) : null}
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="sign-in-password"
-          className="text-sm font-medium text-foreground"
-        >
-          Password
-        </label>
-        <input
+      <Field
+        label="Password"
+        htmlFor="sign-in-password"
+        error={errors.password?.message}
+        required
+      >
+        <Input
           id="sign-in-password"
           type="password"
           autoComplete="current-password"
-          aria-invalid={Boolean(errors.password) || undefined}
-          aria-describedby={
-            errors.password ? "sign-in-password-error" : undefined
-          }
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+          placeholder="Minimum 8 characters"
+          leadingIcon={<Lock className="h-4 w-4" aria-hidden="true" />}
+          invalid={Boolean(errors.password)}
           {...register("password")}
         />
-        {errors.password ? (
-          <p
-            id="sign-in-password-error"
-            role="alert"
-            className="text-xs font-medium text-danger"
-          >
-            {errors.password.message}
-          </p>
-        ) : null}
-      </div>
+      </Field>
 
       {formError ? (
-        <div
-          role="alert"
-          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger"
+        <Card
+          padding="sm"
+          variant="surface"
+          className="border-danger/40 bg-danger/5 text-danger"
         >
-          {formError}
-        </div>
+          <p role="alert" className="flex items-start gap-2 text-sm font-medium">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>{formError}</span>
+          </p>
+        </Card>
       ) : null}
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
+        variant="primary"
+        size="lg"
+        loading={isPending}
+        leadingIcon={<LogIn className="h-4 w-4" />}
       >
-        {isPending ? "Signing in\u2026" : "Sign in"}
-      </button>
+        {isPending ? "Signing in" : "Sign in"}
+      </Button>
+
+      <p className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-strong">
+        <ShieldCheck className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+        Your session is encrypted. We never store passwords in plain text.
+      </p>
     </form>
   );
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connect } from "@/lib/db/connection";
 import { ComplaintModel } from "@/lib/db/models/complaint";
 import { CategoryModel } from "@/lib/db/models/category";
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (locationId.length > 0) {
-    matchStage.locationId = { $in: locationId.map((id: string) => new (await import("mongoose")).default.Types.ObjectId(id)) };
+    matchStage.locationId = { $in: locationId.map((id: string) => new mongoose.Types.ObjectId(id)) };
   }
 
   if (status.length > 0) {
@@ -125,23 +126,23 @@ export async function POST(request: NextRequest) {
   const avgResMs = result?.avgResolution?.[0]?.avgMs ?? null;
   const backlogCount = result?.backlog?.[0]?.count ?? 0;
 
-  const categoryIds = byCategoryRaw.map((r: { _id: unknown }) => r._id);
-  const locationIds = byLocationRaw.map((r: { _id: unknown }) => r._id);
+  const categoryIds = byCategoryRaw.map((r: { _id: string }) => r._id);
+  const locationIds = byLocationRaw.map((r: { _id: string }) => r._id);
 
   const [categories, locations] = await Promise.all([
     categoryIds.length > 0 ? CategoryModel.find({ _id: { $in: categoryIds } }).lean() : [],
     locationIds.length > 0 ? LocationModel.find({ _id: { $in: locationIds } }).lean() : [],
   ]);
 
-  const categoryMap = new Map(categories.map((c: { _id: unknown; systemType: string }) => [String(c._id), c.systemType]));
-  const locationMap = new Map(locations.map((l: { _id: unknown; name: string }) => [String(l._id), l.name]));
+  const categoryMap = new Map(categories.map((c) => [String(c._id), c.systemType]));
+  const locationMap = new Map(locations.map((l) => [String(l._id), l.name]));
 
-  const byCategory = byCategoryRaw.map((r: { _id: unknown; count: number }) => ({
+  const byCategory = byCategoryRaw.map((r: { _id: string; count: number }) => ({
     name: categoryMap.get(String(r._id)) ?? "Unknown",
     count: r.count,
   }));
 
-  const byLocation = byLocationRaw.map((r: { _id: unknown; count: number }) => ({
+  const byLocation = byLocationRaw.map((r: { _id: string; count: number }) => ({
     name: locationMap.get(String(r._id)) ?? "Unknown",
     count: r.count,
   }));
@@ -173,8 +174,9 @@ export async function POST(request: NextRequest) {
     );
 
     const filename = `cms-lasu-report-${formatDateForFilename(now)}.pdf`;
+    const body = new Uint8Array(buffer);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(body, {
       status: 200,
       headers: {
         "content-type": "application/pdf",

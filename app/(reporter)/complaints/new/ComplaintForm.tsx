@@ -28,7 +28,7 @@ const complaintSchema = z.object({
       DESCRIPTION_MAX,
       `Description must be at most ${DESCRIPTION_MAX} characters`,
     ),
-  isAnonymous: z.boolean().optional().default(false),
+  isAnonymous: z.boolean(),
 });
 
 type ComplaintInput = z.infer<typeof complaintSchema>;
@@ -84,7 +84,7 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
 
   const onPhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const list = event.target.files;
-    const file = list && list.length > 0 ? list[0] : null;
+    const file = list?.[0] ?? null;
     setPhotoFile(file);
     setPhotoError(validatePhoto(file));
   };
@@ -122,9 +122,9 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
       let payload: {
         data?: { redirectTo?: string; trackerUrl?: string; id?: string };
         error?: { code: string; message: string };
-      } = null;
+      } | null = null;
       try {
-        payload = (await response.json()) as typeof payload;
+        payload = (await response.json()) as { data?: { redirectTo?: string; trackerUrl?: string; id?: string }; error?: { code: string; message: string } };
       } catch {
         payload = null;
       }

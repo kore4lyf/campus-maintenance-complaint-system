@@ -6,7 +6,7 @@ This file is part of the Idea-to-Product six-file context convention. Read with
 `architecture.md`, `code-standards.md`, `ai-workflow-rules.md`,
 `progress-tracker.md` and `AGENT.md`.
 
-> **Defaults worth confirming before Unit 01.** The Colors and Typography defaults here are reasonable general choices. If LASU IT supplies an official brand palette or specific font, override before implementation starts. See `progress-tracker.md → Open Questions`.
+> **Brand palette is now locked.** The brand colours below are sampled directly from `public/cms-lasu-full.png` (the production logo). The hexes are committed and inbound changes must update both `app/globals.css` and this file. See `docs/design.md` for the full token reference and `progress-tracker.md` for the session note that locked them.
 
 ## Theme
 
@@ -28,37 +28,62 @@ This file is part of the Idea-to-Product six-file context convention. Read with
 
 ## Colors
 
-Default Tailwind palette as base. Astryx theme overrides applied in
-`tailwind.config.ts`.
+**The brand palette is locked** from `public/cms-lasu-full.png` — sampled values, not designer speculation.
+
+- **Brand navy** `#0c2848` (subtle: deep-darker variants `#001c3c` and `#1a3858`).
+- **Brand accent gold** `#d4a014` (subtle: deeper `#a87f0a`, lighter `#f4d76a`).
+  Reserved for the brand mark, primary CTA hover state, focus rings, success-emphasis,
+  and one kicker label per page. Never as a large background fill.
+- **Severity colours** are deliberately distinct from the accent so a "High" badge
+  never reads as the brand colour. High uses `#ea7c1c` (orange-shifted), not amber.
+
+Token values live in CSS custom properties in `app/globals.css` registered through
+Tailwind 4's `@theme inline`. Astryx theme overrides are layered on top.
 
 ### Semantic tokens
 
 | Token | Light value | Dark value | Use |
 |---|---|---|---|
-| `brand` | `green-600/700` (LASU institutional green) | `green-400/500` | primary brand identity, primary buttons, active links |
-| `accent` | `sky-600/700` | `sky-400/500` | secondary actions, SLA countdown highlights |
-| `surface` | `white` | `slate-900` | page background, card background |
-| `muted` | `slate-500/600` | `slate-400/500` | secondary text, disabled states |
-| `danger` | `red-500/600` | `red-400/500` | Critical-severity badges, SLA-breach indicators, errors |
-| `warning` | `amber-500/600` | `amber-400/500` | High-severity badges |
-| `success` | `emerald-500/600` | `emerald-400/500` | Low-severity badges, "resolved" confirmations |
+| `brand` | `#0c2848` (navy) | `#3b82f6` | primary brand identity, primary buttons, brand mark, active links |
+| `brand-strong` | `#001c3c` | `#60a5fa` | hover/pressed brand |
+| `accent` | `#d4a014` (gold) | `#d4a014` | reserved accent (brand mark, focus rings, success emphasis) |
+| `accent-strong` | `#a87f0a` | `#facc15` | hover/pressed accent |
+| `foreground` | `#1e293b` | `#f1f5f9` | body text |
+| `foreground-strong` | `#0c2848` | `#ffffff` | emphasised text (titles) |
+| `surface` | `#ffffff` | `#0c1424` (navy-tinted dark) | page background |
+| `surface-raised` | `#f8fafc` | `#1a2438` | card / panel background |
+| `muted` | `#64748b` | `#94a3b8` | secondary text |
+| `muted-strong` | `#475569` | `#cbd5e1` | disabled / tertiary |
+| `border` | `#e2e8f0` | `#1e293b` | default border |
+| `border-strong` | `#cbd5e1` | `#334155` | emphasised border |
 
 ### Severity → color mapping
 
-| Severity | Color | Use |
-|---|---|---|
-| Critical | `danger` (red) | worst-case; in queue and reporter views |
-| High | `warning` (amber) | significant disruption |
-| Medium | `accent` (sky) | comfort/amenity issues |
-| Low | `muted` (slate) | non-urgent cosmetics |
+| Severity | Color | Hex (light) | Use |
+|---|---|---|---|
+| Critical | `danger` (red) | `#dc2626` | worst-case; in queue and reporter views |
+| High | `warning` (orange-shifted) | `#ea7c1c` | significant disruption — kept orange to avoid brand-colour confusion |
+| Medium | `info` (sky) | `#0284c7` | comfort/amenity issues |
+| Low | `success` (emerald) | `#059669` | non-urgent cosmetics, resolved |
 
 ### Accessibility
 
 - **All severity colours paired with text labels** ("Critical", "High", etc.).
 - **Never color-only signaling**. Icons accompany severity badges; SLA-breach
   icons accompany red colour.
-- Colour contrast at least AA against `surface` background (Tailwind defaults
-  meet this; verify with a contrast checker if any custom palette is added).
+- Colour contrast at least AA against `surface` background — the navy-on-white
+  brand text exceeds AAA (≈13.5); the gold accent is suitable as text on navy
+  surfaces (≈6.8) but not as body text on white.
+
+### Brand discipline (read this before designing)
+
+1. **Reserve the gold.** 3–5 places per screen at most. Apply to: brand mark, primary
+   CTA hover, focus ring, success-on-resolved dot, one kicker label.
+2. **The yellow does not flood.** Avoid backgrounds, panels, large surfaces.
+3. **Severity stays separate.** Brand gold and severity amber have hue overlap;
+   amber-as-orange `#ea7c1c` clears the air for "High".
+4. **White's a default, not a colour.** Pure white is the surface; off-white tones
+   (`--color-surface-raised` etc.) live in the same scale.
 
 ## Typography
 

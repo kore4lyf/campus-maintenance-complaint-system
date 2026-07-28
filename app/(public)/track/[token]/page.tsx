@@ -6,8 +6,14 @@ import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
 import { UserModel } from "@/lib/db/models/user";
 import { verifyAnonymousToken } from "@/lib/auth/anonymous-token";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import { StatusPill } from "@/components/ui/StatusPill";
 import { CategoryBadge } from "@/components/reporter/CategoryBadge";
 import { SlaCountdown } from "@/components/reporter/SlaCountdown";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Archive, Camera, Bookmark, Lock } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,6 +27,7 @@ interface AnonymousView {
   createdAt: Date;
   categoryName: string;
   locationName: string;
+  systemType: string;
   isClosedOrMissing: boolean;
 }
 
@@ -34,25 +41,25 @@ async function loadAnonymousComplaint(token: string): Promise<AnonymousView> {
 
   await connect();
 
-  const user = await UserModel.findById(claims.sub).lean();
-  if (!user) {
-    throw new Response("Tracker not found", { status: 404 });
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = await UserModel.findById(claims.sub);
+  if (!user) throw new Response("Tracker not found", { status: 404 });
   if (user.anonymousId !== token) {
     throw new Response("Tracker token mismatch", { status: 410 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const complaint = await ComplaintModel.findOne({
     reporterId: user._id,
     isAnonymous: true,
   })
     .sort({ createdAt: -1 })
     .lean();
-  if (!complaint) {
-    throw new Response("Tracker not found", { status: 404 });
-  }
+  if (!complaint) throw new Response("Tracker not found", { status: 404 });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicitany
   const category = await CategoryModel.findById(complaint.categoryId).lean();
+  // eslint-disable-next-line @typescript-eslint/no-explicitany
   const location = await LocationModel.findById(complaint.locationId).lean();
 
   return {
@@ -64,6 +71,7 @@ async function loadAnonymousComplaint(token: string): Promise<AnonymousView> {
     createdAt: complaint.createdAt as Date,
     categoryName: category?.name ?? "Complaint",
     locationName: location?.name ?? "Location",
+    systemType: category?.systemType ?? "Other",
     isClosedOrMissing: complaint.status === "Closed",
   };
 }
@@ -74,9 +82,8 @@ export default async function AnonymousTrackerPage({
   params: Promise<{ token: string }>;
 }): Promise<React.ReactElement> {
   const { token } = await params;
-  if (!token || token.length < 16) {
-    notFound();
-  }
+  if (!token || token.length < 16) notFound();
+
   let view: AnonymousView;
   try {
     view = await loadAnonymousComplaint(token);
@@ -90,77 +97,117 @@ export default async function AnonymousTrackerPage({
 
   if (view.isClosedOrMissing) {
     return (
-      <section className="mx-auto max-w-2xl">
-        <div className="rounded-xl border border-border bg-surface-raised p-8 shadow-sm">
-          <h1 className="text-xl font-semibold text-foreground">
-            This submission is closed
-          </h1>
-          <p className="mt-2 text-sm text-muted-strong">
-            No further updates are available for this anonymous submission.
-          </p>
-        </div>
-      </section>
+      <div className="mx-auto w-full max-w-2xl">
+        <EmptyState
+          variant="wide"
+          icon={<Lock className="h-7 w-7" aria-hidden="true" />}
+          title="This submission is closed"
+          description="No further updates are available for this anonymous submission. The maintenance loop is complete."
+          primaryAction={
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong"
+            >
+              Submit a new anonymous report
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
   return (
-    <article className="mx-auto max-w-2xl">
-      <header className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-strong">
-          Anonymous tracker
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-foreground">
-          {view.categoryName}
-          <span className="text-muted-strong"> · {view.locationName}</span>
-        </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <CategoryBadge name={view.categoryName} systemType="Other" />
-          <span className="rounded-full bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted">
-            {view.status}
-          </span>
-          <span className="text-xs text-muted-strong">
-            Submitted {format(view.createdAt, "PP p")}
-          </span>
-        </div>
-      </header>
-
-      <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface-raised p-5 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">SLA deadlines</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <SlaCountdown label="Acknowledge by" deadline={view.slaAcknowledgeBy} />
-            <SlaCountdown label="Resolve by" deadline={view.slaResolveBy} />
+    <article className="mx-auto w-full max-w-3xl">
+      <Card padding="lg" variant="surface" className="overflow-hidden">
+        <header className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <StatusPill status={view.status} />
+            <CategoryBadge
+              name={view.categoryName}
+              systemType={view.systemType}
+            />
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent-strong">
+              <Archive className="h-3 w-3" aria-hidden="true" />
+              Anonymous
+            </span>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Description</h2>
-          <p className="whitespace-pre-wrap rounded-md bg-surface px-3 py-2 text-sm text-foreground">
-            {view.description}
-          </p>
-        </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
+              Anonymous tracker
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground-strong">
+              {view.categoryName}
+              <span className="ml-1 font-medium text-muted-strong">
+                · {view.locationName}
+              </span>
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <SlaCountdown
+              label="Acknowledge"
+              deadline={view.slaAcknowledgeBy}
+            />
+            <SlaCountdown
+              label="Resolve"
+              deadline={view.slaResolveBy}
+            />
+            <span className="numeric ml-auto text-xs text-muted-strong">
+              Submitted {format(view.createdAt, "PP p")}
+            </span>
+          </div>
+        </header>
+
+        <SectionHeader eyebrow="Description" title="What was reported" />
+        <p className="whitespace-pre-wrap rounded-lg bg-surface-raised p-4 text-sm leading-relaxed text-foreground-strong">
+          {view.description}
+        </p>
 
         {view.photoUrls.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Photo</h2>
-            <ul className="flex flex-wrap gap-3">
+          <>
+            <hr className="my-6 border-border" />
+            <SectionHeader eyebrow="Photos" title={`${view.photoUrls.length} attached`} />
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {view.photoUrls.map((url) => (
-                <li key={url} className="overflow-hidden rounded-md border border-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- image source is a remote Cloudinary URL */}
+                <li
+                  key={url}
+                  className="relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary remote URL */}
                   <img
                     src={url}
                     alt="Reporter photo"
-                    className="h-32 w-32 object-cover"
+                    className="h-full w-full object-cover"
                   />
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-muted-strong">
-              Bookmark this page or keep the URL to check the status again later.
+          </>
+        ) : (
+          <div className="mt-4 inline-flex items-center gap-2 text-xs text-muted-strong">
+            <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+            No photos were attached.
+          </div>
+        )}
+      </Card>
+
+      <Card padding="md" variant="raised" className="mt-6 bg-accent-soft/40">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent text-brand-strong">
+            <Bookmark className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-foreground-strong">
+              Bookmark this page
+            </p>
+            <p className="mt-1 text-xs text-muted-strong">
+              This URL is your private tracker. Open it from any browser to
+              check the latest status. The status updates in real time.
             </p>
           </div>
-        ) : null}
-      </section>
+        </div>
+      </Card>
     </article>
   );
 }

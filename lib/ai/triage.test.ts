@@ -16,7 +16,6 @@ jest.mock("@ai-sdk/openai", () => ({
   createOpenAI: () => ({
     chat: (model: string) => ({ provider: "openai", modelId: model }),
     responses: (model: string) => ({ provider: "openai", modelId: model }),
-    (model: string) => ({ provider: "openai", modelId: model }),
   }),
 }));
 

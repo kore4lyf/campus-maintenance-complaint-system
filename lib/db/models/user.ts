@@ -20,4 +20,6 @@ const userSchema = new Schema(
 
 export { userSchema };
 export type UserDocument = InferSchemaType<typeof userSchema>;
-export const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
+export const UserModel: mongoose.Model<UserDocument> =
+  (mongoose.models.User as mongoose.Model<UserDocument>) ??
+  mongoose.model<UserDocument>("User", userSchema);

@@ -42,14 +42,15 @@ declare global {
 
 export async function getAuth(): Promise<BetterAuthInstance> {
   if (globalThis.__betterAuth) {
-    return globalThis.__betterAuth;
+  return globalThis.__betterAuth!;
   }
   const secret = ensureSecret();
   const db = await getDbClient();
 
+  // @ts-expect-error -- better-auth types incompatible with exactOptionalPropertyTypes
   globalThis.__betterAuth = betterAuth({
     secret,
-    baseURL: process.env.BETTER_AUTH_URL,
+    ...(process.env.BETTER_AUTH_URL ? { baseURL: process.env.BETTER_AUTH_URL } : {}),
     appName: "LASU CMS",
     database: mongodbAdapter(db),
     emailAndPassword: {
@@ -80,7 +81,8 @@ export async function getAuth(): Promise<BetterAuthInstance> {
     },
     plugins: [nextCookies()],
   });
-  return globalThis.__betterAuth;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return globalThis.__betterAuth!;
 }
 
 export async function getSession() {

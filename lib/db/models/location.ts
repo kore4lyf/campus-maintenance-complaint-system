@@ -14,4 +14,6 @@ const locationSchema = new Schema(
 
 export { locationSchema };
 export type LocationDocument = InferSchemaType<typeof locationSchema>;
-export const LocationModel = mongoose.models.Location || mongoose.model("Location", locationSchema);
+export const LocationModel: mongoose.Model<LocationDocument> =
+  (mongoose.models.Location as mongoose.Model<LocationDocument>) ??
+  mongoose.model<LocationDocument>("Location", locationSchema);

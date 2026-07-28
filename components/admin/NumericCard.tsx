@@ -1,20 +1,30 @@
 "use client";
 
+import { Card } from "@/components/ui/Card";
+
 interface NumericCardProps {
   label: string;
   value: number | string | null;
-  subtitle?: string;
-  emptyMessage?: string;
+  subtitle?: string | undefined;
+  emptyMessage?: string | undefined;
 }
 
 export function NumericCard({ label, value, subtitle, emptyMessage = "N/A" }: NumericCardProps) {
   const displayValue = value === null || value === undefined ? emptyMessage : value;
 
   return (
-    <div className="rounded-lg border border-border bg-surface-raised p-4">
-      <p className="text-xs font-medium text-muted-strong">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-foreground">{displayValue}</p>
-      {subtitle && <p className="mt-1 text-xs text-muted-strong">{subtitle}</p>}
-    </div>
+    <Card padding="md" className="overflow-hidden">
+      <div className="flex items-end justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-strong">
+          {label}
+        </p>
+        {subtitle ? (
+          <span className="text-xs font-medium text-muted">{subtitle}</span>
+        ) : null}
+      </div>
+      <p className="numeric mt-3 text-4xl font-semibold tracking-tight text-foreground-strong">
+        {displayValue}
+      </p>
+    </Card>
   );
 }

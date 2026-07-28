@@ -24,16 +24,17 @@ async function loadFormData(): Promise<{
   locations: LocationOption[];
 }> {
   await connect();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [categoryDocs, locationDocs] = await Promise.all([
     CategoryModel.find({}).sort({ systemType: 1 }).lean(),
     LocationModel.find({}).sort({ area: 1, name: 1 }).lean(),
   ]);
-  const categories: CategoryOption[] = categoryDocs.map((c) => ({
+  const categories: CategoryOption[] = categoryDocs.map((c: any) => ({
     id: String(c._id),
     name: c.name,
     systemType: c.systemType,
   }));
-  const locations: LocationOption[] = locationDocs.map((l) => ({
+  const locations: LocationOption[] = locationDocs.map((l: any) => ({
     id: String(l._id),
     name: l.name,
     area: l.area,

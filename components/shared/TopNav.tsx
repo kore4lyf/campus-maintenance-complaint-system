@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCurrentUser, useCurrentRole } from "@/lib/auth/role-context";
 import { ThemeToggle } from "./ThemeToggle";
 import { SignOut } from "./SignOut";
@@ -10,69 +11,89 @@ export function TopNav() {
   const role = useCurrentRole();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-1.5">
-          <span className="text-lg font-bold text-brand">LASU</span>
-          <span className="text-lg font-medium text-foreground">CMS</span>
+    <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <Link
+          href="/"
+          className="group flex items-center gap-3 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+          aria-label="LASU CMS"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand shadow-sm transition-shadow group-hover:shadow-md">
+            <Image
+              src="/cms-lasu-icon.png"
+              alt=""
+              width={28}
+              height={28}
+              className="h-7 w-7"
+              priority
+            />
+          </span>
+          <span className="flex items-baseline gap-1.5">
+            <span className="text-base font-semibold tracking-tight text-brand">
+              LASU
+            </span>
+            <span className="text-base font-medium text-foreground-strong">
+              CMS
+            </span>
+          </span>
         </Link>
 
         <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
           {role === "reporter" && (
             <>
-              <Link
-                href="/complaints/new"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground"
-              >
-                Submit
-              </Link>
-              <Link
-                href="/complaints/mine"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground"
-              >
-                My Complaints
-              </Link>
+              <NavLink href="/complaints/new">Submit</NavLink>
+              <NavLink href="/complaints/mine">My complaints</NavLink>
             </>
           )}
           {role === "dicht_admin" && (
             <>
-              <Link
-                href="/admin/queue"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground"
-              >
-                Queue
-              </Link>
-              <Link
-                href="/admin/reports"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground"
-              >
-                Reports
-              </Link>
+              <NavLink href="/admin/queue">Queue</NavLink>
+              <NavLink href="/admin/reports">Reports</NavLink>
             </>
           )}
           {role === "dicht_technician" && (
-            <Link
-              href="/technician/queue"
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground"
-            >
-              Queue
-            </Link>
+            <NavLink href="/technician/queue">Queue</NavLink>
           )}
         </nav>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {user ? (
-            <span
-              className="hidden max-w-[12rem] truncate px-2 text-sm font-medium text-muted-strong sm:inline"
-              title={user.name || user.email}
-            >
-              {user.name || user.email}
-            </span>
+            <div className="flex items-center gap-2.5 rounded-full border border-border bg-surface-raised/60 py-1 pl-1 pr-2.5">
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white"
+                aria-hidden="true"
+              >
+                {user.name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "U"}
+              </span>
+              <span
+                className="hidden max-w-[10rem] truncate text-sm font-medium text-foreground-strong sm:inline"
+                title={user.name || user.email}
+              >
+                {user.name || user.email}
+              </span>
+            </div>
           ) : null}
           <ThemeToggle />
           {user ? <SignOut /> : null}
         </div>
       </div>
     </header>
+  );
+}
+
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+    >
+      {children}
+    </Link>
   );
 }

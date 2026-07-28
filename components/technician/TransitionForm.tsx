@@ -83,7 +83,7 @@ export function TransitionForm({
       });
       onSuccess();
     },
-    onError: (error: { error?: { code?: string } }) => {
+    onError: (error: { error?: { code?: string; message?: string } }) => {
       if (error?.error?.code === "stale_write") {
         setStaleError(true);
         toast.error("Version mismatch. Please refresh and try again.");
@@ -142,7 +142,7 @@ export function TransitionForm({
             onClick={() => setSelectedTransition(transition)}
             className={`w-full rounded-lg border p-3 text-left text-sm transition-colors ${
               selectedTransition === transition
-                ? "border-brand-500 bg-brand-500/10"
+                ? "border-brand bg-brand/10"
                 : "border-border bg-surface-raised hover:bg-surface-raised/80"
             }`}
           >
@@ -210,7 +210,7 @@ export function TransitionForm({
           <button
             onClick={() => handleTransition(selectedTransition)}
             disabled={transitionMutation.isPending}
-            className="w-full rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+            className="w-full rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
           >
             {transitionMutation.isPending
               ? "Updating..."

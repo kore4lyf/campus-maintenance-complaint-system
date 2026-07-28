@@ -2,6 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
+import { History, ArrowRight } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 interface RecentAction {
   complaintId: string;
@@ -10,9 +14,7 @@ interface RecentAction {
 }
 
 export function RecentActionsFeed() {
-  const { data, isLoading } = useQuery<{
-    data: RecentAction[];
-  }>({
+  const { data, isLoading } = useQuery<{ data: RecentAction[] }>({
     queryKey: ["recent-actions"],
     queryFn: async () => {
       const response = await fetch("/api/admin/queue/recent-actions?limit=10");
@@ -24,53 +26,59 @@ export function RecentActionsFeed() {
 
   const actions = data?.data ?? [];
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-foreground">Recent Actions</h3>
-        <div className="space-y-2">
+  return (
+    <Card padding="md" className="sticky top-24">
+      <header className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
+            Recent
+          </p>
+          <h3 className="mt-1 text-base font-semibold text-foreground-strong">
+            Assignment activity
+          </h3>
+        </div>
+        <History className="h-4 w-4 text-muted-strong" aria-hidden="true" />
+      </header>
+
+      {isLoading ? (
+        <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded bg-surface-raised" />
+            <div key={i} className="space-y-2">
+              <SkeletonLines count={2} />
+            </div>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (actions.length === 0) {
-    return (
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-foreground">Recent Actions</h3>
-        <p className="text-xs text-muted-strong">
-          No assignments in the last 24 hours.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-medium text-foreground">Recent Actions</h3>
-      <div className="space-y-2">
-        {actions.map((action, index) => (
-          <div
-            key={`${action.complaintId}-${index}`}
-            className="rounded-lg bg-surface-raised p-3 text-xs"
-          >
-            <p className="text-muted-strong">
-              Assigned to{" "}
-              <span className="font-medium text-foreground">
-                {action.assignedToName}
+      ) : actions.length === 0 ? (
+        <EmptyState
+          variant="compact"
+          title="No assignment activity"
+          description="The last 24 hours have no recent assignments."
+        />
+      ) : (
+        <ol className="space-y-3">
+          {actions.map((action, index) => (
+            <li
+              key={`${action.complaintId}-${index}`}
+              className="group flex items-start gap-3 rounded-lg border border-transparent px-2.5 py-2 transition-colors hover:border-border hover:bg-surface-raised"
+            >
+              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </span>
-            </p>
-            <p className="mt-1 text-muted">
-              {formatDistanceToNowStrict(new Date(action.changedAt), {
-                addSuffix: true,
-              })}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-foreground-strong">
+                  Assigned to{" "}
+                  <span className="font-semibold">{action.assignedToName}</span>
+                </p>
+                <p className="numeric mt-0.5 text-xs text-muted-strong">
+                  {formatDistanceToNowStrict(new Date(action.changedAt), {
+                    addSuffix: true,
+                  })}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Card>
   );
 }

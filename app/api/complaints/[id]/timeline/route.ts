@@ -42,7 +42,7 @@ export async function GET(
     );
   }
 
-  const complaint = await ComplaintModel.findById(id).lean();
+  const complaint = await ComplaintModel.findOne({ _id: id }).lean();
   if (!complaint) {
     return NextResponse.json(
       { error: { code: "not_found", message: "Complaint not found" } },
@@ -74,7 +74,8 @@ export async function GET(
     }
   }
 
-  const history = await StatusHistoryModel.find({ complaintId: id })
+  const history = await StatusHistoryModel
+    .find({ complaintId: id })
     .sort({ changedAt: -1 })
     .lean();
 
@@ -88,15 +89,17 @@ export async function GET(
 
   const actors =
     actorIds.length > 0
-      ? await UserModel.find({ _id: { $in: actorIds } })
+      ? await UserModel
+          .find({ _id: { $in: actorIds } })
           .lean()
-          .then((docs) =>
-            Object.fromEntries(
-              docs.map((d) => [
-                String(d._id),
-                { name: d.name, role: d.role },
-              ]),
-            ),
+          .then(
+            (docs) =>
+              Object.fromEntries(
+                docs.map((d) => [
+                  String(d._id),
+                  { name: d.name, role: d.role },
+                ]),
+              ),
           )
       : {};
 
@@ -114,7 +117,7 @@ export async function GET(
         : actor?.role ?? undefined,
       changedBySystem: entry.changedBySystem ?? false,
       note: entry.note ?? undefined,
-      photoUrl: entry.photoUrl ?? undefined,
+      photoUrl: entry.photoUrl ?? null,
       changedAt: entry.changedAt
         ? new Date(entry.changedAt).toISOString()
         : new Date().toISOString(),

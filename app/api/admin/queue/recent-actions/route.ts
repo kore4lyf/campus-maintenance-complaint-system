@@ -32,10 +32,11 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const recentAssignments = await AssignmentModel.find({
-    assignedById: session.user.id,
-    assignedAt: { $gte: twentyFourHoursAgo },
-  })
+  const recentAssignments = await AssignmentModel
+    .find({
+      assignedById: session.user.id,
+      assignedAt: { $gte: twentyFourHoursAgo },
+    })
     .sort({ assignedAt: -1 })
     .limit(limit)
     .lean();
@@ -53,7 +54,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     userIds.add(String(a.assignedById));
   }
 
-  const users = await UserModel.find({ _id: { $in: [...userIds] } })
+  const users = await UserModel
+    .find({ _id: { $in: [...userIds] } })
     .lean()
     .then((docs) =>
       Object.fromEntries(docs.map((d) => [String(d._id), d.name])),

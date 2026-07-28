@@ -6,7 +6,7 @@ export default function Error({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
+  error: Error & { digest?: string | undefined };
   reset: () => void;
 }) {
   return (

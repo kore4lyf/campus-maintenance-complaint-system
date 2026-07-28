@@ -34,9 +34,10 @@ export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
   const cursor = url.searchParams.get("cursor");
 
-  const techAssignments = await AssignmentModel.find({
-    assignedToTechId: session.user.id,
-  })
+  const techAssignments = await AssignmentModel
+    .find({
+      assignedToTechId: session.user.id,
+    })
     .sort({ assignedAt: -1 })
     .lean();
 
@@ -67,12 +68,23 @@ export async function GET(request: Request): Promise<NextResponse> {
   const locationIds = [...new Set(data.map((d) => String(d.locationId)))];
 
   const [categories, locations] = await Promise.all([
-    CategoryModel.find({ _id: { $in: categoryIds } })
+    CategoryModel
+      .find({ _id: { $in: categoryIds } })
       .lean()
-      .then((docs) =>
-        Object.fromEntries(docs.map((d) => [String(d._id), d])),
+      .then(
+        (docs) =>
+          Object.fromEntries(
+            docs.map((d) => [
+              String(d._id),
+              {
+                systemType: d.systemType,
+                defaultSeverity: d.defaultSeverity,
+              },
+            ]),
+          ),
       ),
-    LocationModel.find({ _id: { $in: locationIds } })
+    LocationModel
+      .find({ _id: { $in: locationIds } })
       .lean()
       .then((docs) =>
         Object.fromEntries(docs.map((d) => [String(d._id), d.name])),

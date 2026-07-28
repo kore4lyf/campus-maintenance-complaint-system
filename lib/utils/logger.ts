@@ -46,12 +46,12 @@ function formatEntry(entry: LogEntry): string {
   return JSON.stringify(redacted);
 }
 
-function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+function log(level: LogLevel, message: string, data?: Record<string, unknown> | object): void {
   const entry: LogEntry = {
     level,
     message,
     timestamp: new Date().toISOString(),
-    ...(data ? redactObject(data) : {}),
+    ...(data ? redactObject(data as Record<string, unknown>) : {}),
   };
 
   const formatted = formatEntry(entry);
@@ -66,10 +66,10 @@ function log(level: LogLevel, message: string, data?: Record<string, unknown>): 
 }
 
 export const logger = {
-  info: (message: string, data?: Record<string, unknown>) =>
+  info: (message: string, data?: Record<string, unknown> | object) =>
     log("info", message, data),
-  warn: (message: string, data?: Record<string, unknown>) =>
+  warn: (message: string, data?: Record<string, unknown> | object) =>
     log("warn", message, data),
-  error: (message: string, data?: Record<string, unknown>) =>
+  error: (message: string, data?: Record<string, unknown> | object) =>
     log("error", message, data),
 };

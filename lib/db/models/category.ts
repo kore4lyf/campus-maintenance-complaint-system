@@ -22,4 +22,6 @@ const categorySchema = new Schema(
 
 export { categorySchema };
 export type CategoryDocument = InferSchemaType<typeof categorySchema>;
-export const CategoryModel = mongoose.models.Category || mongoose.model("Category", categorySchema);
+export const CategoryModel: mongoose.Model<CategoryDocument> =
+  (mongoose.models.Category as mongoose.Model<CategoryDocument>) ??
+  mongoose.model<CategoryDocument>("Category", categorySchema);

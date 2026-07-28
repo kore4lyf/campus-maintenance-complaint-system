@@ -6,7 +6,7 @@ export default function TechnicianError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
+  error: Error & { digest?: string | undefined };
   reset: () => void;
 }) {
   return (

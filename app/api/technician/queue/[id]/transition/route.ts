@@ -121,7 +121,7 @@ export async function POST(
 
   const { expectedVersion, toStatus, note } = validated.data;
 
-  const complaint = await ComplaintModel.findById(complaintId).lean();
+  const complaint = await ComplaintModel.findOne({ _id: complaintId }).lean();
   if (!complaint) {
     return badRequest("not_found", "Complaint not found", 404);
   }
@@ -198,7 +198,7 @@ export async function POST(
   );
 
   if (!updated) {
-    const current = await ComplaintModel.findById(complaintId).lean();
+    const current = await ComplaintModel.findOne({ _id: complaintId }).lean();
     if (!current) {
       return badRequest("not_found", "Complaint not found", 404);
     }
@@ -214,8 +214,8 @@ export async function POST(
     toStatus,
     changedById: session.user.id,
     changedBySystem: false,
-    note: note ?? undefined,
-    photoUrl: photoUrls[0] ?? undefined,
+    note: note ?? null,
+    photoUrl: photoUrls[0] ?? null,
     changedAt: now,
   });
 

@@ -2,12 +2,12 @@
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#6366f1"];
+const COLORS: string[] = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#6366f1"];
 
 interface BarChartCardProps {
   title: string;
   data: { name: string; count: number }[];
-  emptyMessage?: string;
+  emptyMessage?: string | undefined;
 }
 
 export function BarChartCard({ title, data, emptyMessage = "No data for this period" }: BarChartCardProps) {
@@ -54,7 +54,7 @@ export function BarChartCard({ title, data, emptyMessage = "No data for this per
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]}>
               {data.map((_, index) => (
-                <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                <Cell key={index} fill={COLORS[index % COLORS.length]!} />
               ))}
             </Bar>
           </BarChart>

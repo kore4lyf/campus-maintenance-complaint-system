@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connect } from "@/lib/db/connection";
 import { ComplaintModel } from "@/lib/db/models/complaint";
 import { CategoryModel } from "@/lib/db/models/category";
@@ -83,14 +84,16 @@ export async function GET(request: NextRequest) {
   }
 
   if (locationId.length > 0) {
-    matchStage.locationId = { $in: locationId.map((id) => new (await import("mongoose")).default.Types.ObjectId(id)) };
+    matchStage.locationId = { $in: locationId.map((id) => new mongoose.Types.ObjectId(id)) };
   }
 
   if (status.length > 0) {
     matchStage.status = { $in: status };
   }
 
-  const complaints = await ComplaintModel.find(matchStage).lean();
+  const complaints = await ComplaintModel
+    .find(matchStage)
+    .lean();
 
   const categoryIds = [...new Set(complaints.map((c) => String(c.categoryId)))];
   const locationIds = [...new Set(complaints.map((c) => String(c.locationId)))];
@@ -100,8 +103,18 @@ export async function GET(request: NextRequest) {
     locationIds.length > 0 ? LocationModel.find({ _id: { $in: locationIds } }).lean() : [],
   ]);
 
-  const categoryMap = new Map(categories.map((c: { _id: unknown; systemType: string }) => [String(c._id), c.systemType]));
-  const locationMap = new Map(locations.map((l: { _id: unknown; name: string }) => [String(l._id), l.name]));
+  const categoryMap = new Map<string, string>(
+    categories.map((c) => [
+      String(c._id),
+      c.systemType,
+    ]),
+  );
+  const locationMap = new Map<string, string>(
+    locations.map((l) => [
+      String(l._id),
+      l.name,
+    ]),
+  );
 
   const now = new Date();
   const rows = complaints.map((c) => {

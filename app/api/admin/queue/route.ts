@@ -93,8 +93,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   const [categories, locations, assignments] = await Promise.all([
     CategoryModel.find({ _id: { $in: categoryIds } })
       .lean()
-      .then((docs) =>
-        Object.fromEntries(docs.map((d) => [String(d._id), d])),
+      .then(
+        (docs) =>
+          Object.fromEntries(
+            docs.map((d) => [
+              String(d._id),
+              { systemType: d.systemType, defaultSeverity: d.defaultSeverity },
+            ]),
+          ),
       ),
     LocationModel.find({ _id: { $in: locationIds } })
       .lean()
@@ -118,7 +124,8 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   const techIds = [...new Set(assignments.map((a) => String(a.assignedToTechId)))];
-  const techUsers = await UserModel.find({ _id: { $in: techIds } })
+  const techUsers = await UserModel
+    .find({ _id: { $in: techIds } })
     .lean()
     .then((docs) =>
       Object.fromEntries(docs.map((d) => [String(d._id), d.name])),

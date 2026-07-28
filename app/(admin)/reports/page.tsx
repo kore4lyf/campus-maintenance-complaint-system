@@ -29,6 +29,7 @@ interface ReportsResponse {
 interface Location {
   _id: string;
   name: string;
+  area: string;
 }
 
 function formatDuration(ms: number | null): string {
@@ -37,6 +38,19 @@ function formatDuration(ms: number | null): string {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.round(minutes / 60);
   return `${hours} hr`;
+}
+
+function ReportsFilterPanelClient() {
+  const { data: locationData } = useQuery<{ data: Location[] }>({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await fetch("/api/locations");
+      if (!response.ok) return { data: [] };
+      return response.json();
+    },
+  });
+
+  return <ReportsFilterPanel locations={locationData?.data ?? []} />;
 }
 
 function ReportsContent() {
@@ -64,16 +78,6 @@ function ReportsContent() {
     refetchOnWindowFocus: true,
   });
 
-  const { data: locationData } = useQuery<{ data: Location[] }>({
-    queryKey: ["locations"],
-    queryFn: async () => {
-      const response = await fetch("/api/locations");
-      if (!response.ok) return { data: [] };
-      return response.json();
-    },
-  });
-
-  const locations = locationData?.data ?? [];
   const data = reportsData?.data;
 
   if (reportsLoading) {
@@ -167,11 +171,7 @@ export default function ReportsPage() {
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">
           <div className="sticky top-24">
-            <Suspense
-              fallback={<div className="h-64 animate-pulse rounded-lg bg-surface-raised" />}
-            >
-              <ReportsFilterPanelWrapper />
-            </Suspense>
+            <ReportsFilterPanelClient />
           </div>
         </div>
         <div className="lg:col-span-3">
@@ -190,10 +190,4 @@ export default function ReportsPage() {
       </div>
     </div>
   );
-}
-
-async function ReportsFilterPanelWrapper() {
-  const response = await fetch("/api/locations");
-  const data = response.ok ? await response.json() : { data: [] };
-  return <ReportsFilterPanel locations={data.data ?? []} />;
 }

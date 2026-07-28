@@ -4,7 +4,7 @@ export default function GlobalError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
+  error: Error & { digest?: string | undefined };
   reset: () => void;
 }) {
   return (

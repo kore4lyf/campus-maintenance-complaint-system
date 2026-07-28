@@ -60,7 +60,7 @@ export async function GET(
     return badRequest("not_found", "Complaint not assigned to you", 404);
   }
 
-  const complaint = await ComplaintModel.findById(complaintId).lean();
+  const complaint = await ComplaintModel.findOne({ _id: complaintId }).lean();
   if (!complaint) {
     return badRequest("not_found", "Complaint not found", 404);
   }
@@ -75,8 +75,8 @@ export async function GET(
     now,
   });
 
-  const category = await CategoryModel.findById(complaint.categoryId).lean();
-  const location = await LocationModel.findById(complaint.locationId).lean();
+  const category = await CategoryModel.findOne({ _id: complaint.categoryId }).lean();
+  const location = await LocationModel.findOne({ _id: complaint.locationId }).lean();
 
   let reporterName = "Anonymous";
   if (!complaint.isAnonymous && complaint.reporterId) {
@@ -86,7 +86,8 @@ export async function GET(
     reporterName = reporter?.name ?? "Unknown";
   }
 
-  const statusHistory = await StatusHistoryModel.find({ complaintId })
+  const statusHistory = await StatusHistoryModel
+    .find({ complaintId })
     .sort({ changedAt: -1 })
     .lean();
 

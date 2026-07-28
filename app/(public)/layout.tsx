@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function PublicLayout({
   children,
@@ -7,15 +8,34 @@ export default function PublicLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-surface">
-      <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-1.5">
-            <span className="text-lg font-bold text-brand">LASU</span>
-            <span className="text-lg font-medium text-foreground">CMS</span>
+      <header className="border-b border-border bg-surface/80 backdrop-blur-sm">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-3 transition hover:opacity-90"
+            aria-label="LASU CMS home"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand">
+              <Image
+                src="/cms-lasu-icon.png"
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7"
+              />
+            </span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-base font-semibold tracking-tight text-brand">
+                LASU
+              </span>
+              <span className="text-base font-medium text-foreground-strong">
+                CMS
+              </span>
+            </span>
           </Link>
           <Link
             href="/"
-            className="text-sm font-medium text-muted-strong transition-colors hover:text-foreground"
+            className="text-sm font-medium text-muted-strong transition-colors hover:text-foreground-strong"
           >
             Home
           </Link>

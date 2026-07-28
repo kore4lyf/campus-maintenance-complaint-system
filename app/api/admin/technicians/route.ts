@@ -25,7 +25,8 @@ export async function GET(): Promise<NextResponse> {
     return badRequest("forbidden", "Admin access required", 403);
   }
 
-  const technicians = await UserModel.find({ role: "dicht_technician" })
+  const technicians = await UserModel
+    .find({ role: "dicht_technician" })
     .select("name email")
     .lean();
 

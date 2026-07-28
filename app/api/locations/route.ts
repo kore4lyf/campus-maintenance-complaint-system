@@ -8,7 +8,10 @@ export const runtime = "nodejs";
 export async function GET(): Promise<NextResponse> {
   await connect();
 
-  const locations = await LocationModel.find().sort({ name: 1 }).lean();
+  const locations = await LocationModel
+    .find()
+    .sort({ name: 1 })
+    .lean();
 
   const data = locations.map((loc) => ({
     _id: String(loc._id),

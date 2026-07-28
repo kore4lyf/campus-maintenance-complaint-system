@@ -90,7 +90,7 @@ async function callOpenAi(args: {
 }> {
   const openai = createOpenAI({
     apiKey: args.apiKey,
-    baseURL: args.baseURL,
+    ...(args.baseURL ? { baseURL: args.baseURL } : {}),
   });
 
   const controller = new AbortController();
@@ -114,9 +114,9 @@ async function callOpenAi(args: {
 
     const latencyMs = Date.now() - startedAt;
     const promptTokens =
-      result.usage?.inputTokens ?? result.usage?.promptTokens ?? 0;
+      result.usage?.inputTokens ?? 0;
     const completionTokens =
-      result.usage?.outputTokens ?? result.usage?.completionTokens ?? 0;
+      result.usage?.outputTokens ?? 0;
 
     const parsed = result.output;
     if (!parsed) {

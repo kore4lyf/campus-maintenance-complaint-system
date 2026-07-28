@@ -1,24 +1,32 @@
-import { FileText } from "lucide-react";
+import Link from "next/link";
+import { PlusCircle, ArrowRight, Sparkles } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
 
 export function ReporterDashboardEmpty() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="rounded-full bg-surface-raised p-4">
-        <FileText className="h-10 w-10 text-muted" />
-      </div>
-      <h2 className="mt-4 text-lg font-semibold text-foreground">
-        No complaints yet
-      </h2>
-      <p className="mt-2 max-w-sm text-sm text-muted-strong">
-        You haven&apos;t submitted any complaints yet. Submit your first
-        maintenance complaint to get started.
-      </p>
-      <a
-        href="/complaints/new"
-        className="mt-6 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-strong"
-      >
-        Submit a complaint
-      </a>
-    </div>
+    <EmptyState
+      icon={<PlusCircle className="h-9 w-9" aria-hidden="true" />}
+      title="No complaints yet"
+      description="Submit your first maintenance complaint and it will appear here with live status updates, an SLA timer, and proof-of-fix photos."
+      primaryAction={
+        <Link href="/complaints/new">
+          <Button
+            size="lg"
+            variant="primary"
+            leadingIcon={<PlusCircle className="h-4 w-4" />}
+            trailingIcon={<ArrowRight className="h-4 w-4" />}
+          >
+            Submit a complaint
+          </Button>
+        </Link>
+      }
+      secondaryAction={
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
+          <Sparkles className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+          Anonymous submission is supported for sensitive issues.
+        </span>
+      }
+    />
   );
 }

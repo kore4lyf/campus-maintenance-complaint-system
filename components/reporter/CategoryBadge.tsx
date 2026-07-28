@@ -1,31 +1,28 @@
 import { Tag } from "lucide-react";
+import { Badge, type BadgeProps } from "@/components/ui/Badge";
 
 interface CategoryBadgeProps {
   name: string;
   systemType: string;
-  className?: string;
+  className?: string | undefined;
 }
 
-const TYPE_COLOR: Record<string, string> = {
-  Electrical: "bg-warning/15 text-warning",
-  Plumbing: "bg-accent/15 text-accent",
-  Carpentry: "bg-warning/10 text-warning",
-  HVAC: "bg-danger/15 text-danger",
-  ICT: "bg-accent/15 text-accent",
-  Cleaning: "bg-success/15 text-success",
-  Security: "bg-danger/15 text-danger",
-  Other: "bg-muted/15 text-muted",
+const TONE_BY_SYSTEM: Record<string, BadgeProps["tone"]> = {
+  Electrical: "warning",
+  Plumbing: "info",
+  Carpentry: "warning",
+  HVAC: "danger",
+  ICT: "info",
+  Cleaning: "success",
+  Security: "danger",
+  Other: "neutral",
 };
 
 export function CategoryBadge({ name, systemType, className }: CategoryBadgeProps) {
-  const color = TYPE_COLOR[systemType] ?? "bg-muted/15 text-muted";
+  const tone = TONE_BY_SYSTEM[systemType] ?? "neutral";
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${color} ${className ?? ""}`}
-      aria-label={`Category ${name} (${systemType})`}
-    >
-      <Tag className="h-3 w-3" aria-hidden="true" />
-      <span>{name}</span>
-    </span>
+    <Badge tone={tone} leadingIcon={<Tag className="h-3 w-3" />} className={className}>
+      {name}
+    </Badge>
   );
 }

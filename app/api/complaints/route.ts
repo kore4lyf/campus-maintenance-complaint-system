@@ -162,11 +162,11 @@ async function validateCategoryAndLocation(
   if (!isValidObjectId(locationId)) {
     throw new ApiError("invalid_location", "locationId is not a valid id", 422);
   }
-  const category = await CategoryModel.findById(categoryId).lean();
+  const category = await CategoryModel.findOne({ _id: categoryId }).lean();
   if (!category) {
     throw new ApiError("invalid_category", "Category not found", 422);
   }
-  const location = await LocationModel.findById(locationId).lean();
+  const location = await LocationModel.findOne({ _id: locationId }).lean();
   if (!location) {
     throw new ApiError("invalid_location", "Location not found", 422);
   }
@@ -416,7 +416,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 }
 
 function reporterListView(doc: Record<string, unknown>): Record<string, unknown> {
-  const publicDoc = toPublicComplaint(doc) as Record<string, unknown>;
+  const publicDoc = toPublicComplaint(doc) as unknown as Record<string, unknown>;
   const {
     aiSuggestion: _aiSuggestion,
     escalated: _escalated,

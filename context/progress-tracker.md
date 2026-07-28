@@ -197,6 +197,12 @@ started. Consult this list before re-litigating any decision.
      `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`) + Tailwind 4 +
      Astryx (Meta) design system + ESLint 9. Per `package.json` preview from
      the existing `create-next-app` scaffold.
+11. **Brand identity source of truth**: `public/cms-lasu-full.png`. The hex
+    values locked in `app/globals.css` (`#0c2848` navy, `#d4a014` gold) were
+    sampled directly from the logo bitmap via `sharp`. Any inbound palette
+    change must update `app/globals.css`, `docs/design.md`, and
+    `context/ui-context.md` together — those three are the system of record.
+    Designer specs are commentary; the logo PNG is the spec.
 
 ## Session Notes
 
@@ -764,3 +770,139 @@ started. Consult this list before re-litigating any decision.
 > start the first unit against these files.
 
 This skill does not touch `docs/scope/` or `docs/specs/` or code.
+
+- **2026-07-27 (10/10 UI rebuild)** — Following user demand for
+  Apple/Nike/Google-grade quality, the project got a typed design system
+  rebuilt from tokens outwards.
+  - Eight new typed primitives under `components/ui/`:
+    `Button`, `Card` (with `SectionHeader`), `Badge`,
+    `StatusPill`, `EmptyState` (three variants),
+    `Skeleton`, `Field` (with `Input`, `Textarea`, `Select`,
+    `Checkbox`). Every existing component is being refactored to use
+    these instead of hand-rolled divs.
+  - **Card variant discipline**: previously every card on the screen
+    used `rounded-lg border border-border bg-surface-raised p-4 shadow-sm`
+    — the same recipe 14+ times. Now each surface picks one of four
+    intents: `surface` (primary), `raised` (grouped section), `overlay`
+    (modal), `hero` (marketing).
+  - **Status pill system**: `StatusPill` for each of the 5 complaint
+    states. Currently "Acknowledged" was using the brand accent (gold),
+    which violated the discipline that gold is reserved. Moved to `info`
+    tone (sky) so the gold stays brand-only.
+  - **Severity**: bumped "High" to `warning` (orange `#ea7c1c`) once
+    again to keep distance from brand gold.
+  - **Sign-in / sign-up / anonymous tracker rewrite**: forms refactored
+    to use `Field`, `Input`, `Button`, focus rings, inline error and
+    hint labels. Tracker page got a kicker + h1 + status pill cluster
+    layout and a bookmark-tip card.
+  - **Filter pill**: rewrote `FilterPanel` and `ReportsFilterPanel` with
+    a typed `ToggleChip` that maps inactive state to per-severity tone
+    and active state to brand-fill with an icon-cross close cue.
+  - **Layouts**: `TopNav` got the user avatar-with-initial pill, brand
+    wordmark lockup, and focus rings. `MobileBottomNav` got active-state
+    pill + indicator bar + icon-in-rounded-square per Apple-tab pattern.
+    `ThemeToggle` resolved to actually animate via class crossfade.
+    `SignOut` now shows the label on wider screens.
+  - **Empty states**: per-role composites (ReporterDashboardEmpty,
+    AdminQueueEmpty, TechnicianQueueEmpty) all moved to `EmptyState`
+    with primary and secondary actions, render as inline link wrappers
+    around `Button`. `AdminQueueEmpty` and `TechnicianQueueEmpty` got
+    `compact` variant when filters are active.
+  - **Cards**: ComplaintCard and QueueRow refactored to use `Card`
+    primitive with photo-side panel, footer action affordance
+    ("View detail →"), and breach-border left accent (queue).
+  - **Detail view**: `ComplaintDetailClient` + `ComplaintTimeline`
+    refactored to use `Card` + `SectionHeader` + `StatusPill`. Photo
+    grid in detail got grid-aspect-square treatment.
+  - **Banner / ribbon**: queue breach ribbon upgraded from pale red text
+    strip to a `Card surface` with brand-coloured icon block.
+  - **Reports chrome**: `NumericCard`, `BreachCountCard`,
+    `RecentActionsFeed` got bigger heading, tabular-nums treatment,
+    typed card primitives, `EmptyState` for the no-actions state.
+  - **Globals**: Selection colour, brand-tinted scrollbar,
+    prefers-reduced-motion, `numeric` utility for tabular figures,
+    smooth scroll. Light-touch typography baseline.
+  - **docs/design.md** rewritten: now includes the project primitives
+    inventory, the card variant discipline (with the old vs new table),
+    and a rule that `git grep` should fail on the old card recipe
+    (i.e. nobody copies it again).
+  - **Regressions fixed**: pre-existing `bg-brand-500/600/700` /
+    `border-brand-500` / `text-brand-500` references in
+    `FilterPanel`, `AssignDialog`, `ReportsFilterPanel`,
+    `TransitionForm`, and the technician assignments link
+    (`appe-(technician)/assignments/[id]/page.tsx`) replaced with
+    project tokens. New tokens declared under `@theme inline` don't
+    define a 50–950 scale, so those classes no longer resolved —
+    that's the regression.
+  - **Still ahead for the 10/10 pass** (next pushes will close these):
+    1. `components/admin/AssignDialog.tsx` (255L)
+       — full rewrite using `Button`/`Card`/`Field` primitives.
+    2. `components/technician/TransitionForm.tsx` (224L)
+       — same treatment, with `Field`, `Select`, `Checkbox`, `Button`.
+    3. `components/admin/BarChartCard.tsx` (66L)
+       — Recharts colour tokens to project palette (no INLINE_HEX).
+    4. `components/admin/ExportButtons.tsx` (106L)
+       — re-segment as Card + Button + LoadingSpinner.
+    5. `app/(reporter)/complaints/new/ComplaintForm.tsx` (326L)
+       — largest remaining form. New: `Field`, `Input`, `Select`,
+       `Textarea`, `Card` for sections, `EmptyState` for success.
+    6. `app/(admin)/reports/page.tsx` (199L) — chart dashboard polish.
+    7. `app/(technician)/queue/page.tsx`,
+       `app/(technician)/queue/[id]/page.tsx`,
+       `app/(technician)/assignments/page.tsx`,
+       `app/(technician)/assignments/[id]/page.tsx` — technician polish.
+    8. `components/RealtimeStatusBadge.tsx` — replace raw
+       `bg-green-500`/`bg-amber-500` with `bg-success` / new "paused"
+       token pair.
+    9. `components/admin/PdfReport.tsx` (147L) — Recharts colours to
+       project palette.
+    10. `components/reporter/ProofPhotoDialog.tsx` — lightbox polish.
+  - **Test Execution Policy honoured**: no `npm test`, `npm run lint`,
+    `npx tsc --noEmit`, `npm run build`, `npm run test:e2e` was run
+    during this rebuild. End-of-cycle gate sweep is owed.
+
+- **2026-07-26 (Brand identity relock — user-driven UI critique)** —
+  Following user feedback that the existing UI "looked poor" against the
+  actual LASU CMS logo (white background, navy icon, yellow circle accent),
+  the brand palette was rebound from `green-600` / `sky-600` (the placeholder
+  LASU institutional-green) to **navy `#0c2848` + gold `#d4a014`** sampled
+  directly from `public/cms-lasu-full.png` via a `sharp`-driven palette
+  extractor.
+  - `app/globals.css` `@theme inline` block rewritten with the sampled
+    palette plus `--color-foreground`, `--color-foreground-strong`,
+    `--color-border`, `--color-border-strong` (tokens the codebase already
+    referenced but the previous palette didn't define). Added `.numeric`
+    utility for SLA tabular numerals and a 200 ms theme-transition utility
+    (gated by reduced-motion).
+  - Severity "High" shifted from amber-500 to orange-600 `#ea7c1c` to keep
+    clear visual distance from the brand gold (otherwise High severity and
+    brand accent read as the same colour).
+  - `app/page.tsx` — restored as the public landing page (`/`  was hosted by
+    the reporter `(reporter)/page.tsx`). Hero with brand-tinted icon block,
+    dual-audience value section, full-width navy CTA band, footer.
+  - `components/shared/TopNav.tsx` and `app/(public)/layout.tsx` — replaced
+    the text-only "LASU CMS" placeholder with `<Image src="/cms-lasu-icon.png">`
+    inside a `bg-brand` rounded square plus brand wordmark.
+  - `app/(reporter)/complaints/mine/page.tsx` and
+    `app/(admin)/queue/page.tsx` — page-level headers upgraded to a uniform
+    kicker + h1 + restrained subtitle treatment consistent with the landing.
+  - `docs/design.md` — rewritten as the single source of truth. Includes a
+    brand identity section with hex tables, six-step type ladder, severity
+    mapping, layout patterns per page role, and brand discipline rules
+    (3–5 places per screen for the gold accent; never as background fill).
+  - `context/ui-context.md` — Colors section updated; "Brand palette is now
+    locked" disclaimer replaces the previous "defaults worth confirming"
+    disclaimer, plus a "Brand discipline (read this before designing)" list of
+    brand-accent restraint rules.
+  - `tmp-logo-sample.js` written at project root to extract the palette from
+    `public/cms-lasu-full.png` using the project's installed `sharp`
+    dependency; deleted after consumption.
+  - **Architecture Decision 11 logged above**: brand identity is the
+    production logo PNG; designer spec is commentary, not source of truth.
+    In-bound palette changes must update `app/globals.css`, `docs/design.md`,
+    and `context/ui-context.md` together.
+  - All other component / page composites (sign-in, sign-up, complaint detail,
+    timeline, technician queue, reports dashboard, assignment dialog, etc.)
+    inherit the new brand automatically via the resolved `text-brand`,
+    `bg-surface-raised`, `border-border` etc. classes; no individual rewrites
+    required in this pass.

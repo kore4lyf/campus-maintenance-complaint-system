@@ -1,7 +1,8 @@
-import type { Document, Model } from "mongoose";
+import type { Model } from "mongoose";
 
-interface PaginateOptions<T extends Document> {
-  model: Model<T>;
+interface PaginateOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: Model<any>;
   query: Record<string, unknown>;
   sort?: Record<string, 1 | -1>;
   pageSize?: number;
@@ -17,13 +18,14 @@ function isValidObjectId(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value);
 }
 
-export async function paginateCursor<T extends Document>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function paginateCursor<T = any>({
   model,
   query,
   sort = { _id: -1 },
   pageSize = 20,
   cursor = null,
-}: PaginateOptions<T>): Promise<PaginateResult<T>> {
+}: PaginateOptions): Promise<PaginateResult<T>> {
   const effectivePageSize = Math.min(Math.max(pageSize, 1), 100);
   const filter: Record<string, unknown> = { ...query };
 

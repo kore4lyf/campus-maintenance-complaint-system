@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -50,11 +51,12 @@ export default function TechnicianComplaintDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const { id } = React.use(params);
 
   const { data: complaintData, isLoading } = useQuery<{ data: ComplaintDetail }>({
-    queryKey: ["technician-complaint", params.id],
+    queryKey: ["technician-complaint", id],
     queryFn: async () => {
-      const response = await fetch(`/api/technician/queue/${params.id}`);
+      const response = await fetch(`/api/technician/queue/${id}`);
       if (!response.ok) throw new Error("Failed to fetch complaint");
       return response.json();
     },
@@ -75,7 +77,7 @@ export default function TechnicianComplaintDetailPage({
         <p className="text-muted-strong">Complaint not found or not assigned to you.</p>
         <button
           onClick={() => router.push("/technician/queue")}
-          className="mt-4 text-brand-500 hover:underline"
+          className="mt-4 text-brand hover:underline"
         >
           Back to queue
         </button>

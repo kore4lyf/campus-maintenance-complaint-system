@@ -1,10 +1,13 @@
 import { Clock } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
+import { Badge } from "@/components/ui/Badge";
+import type { BadgeProps } from "@/components/ui/Badge";
 
 interface SlaCountdownProps {
   label: string;
   deadline: Date | string;
-  className?: string;
+  emphasize?: boolean | undefined;
+  className?: string | undefined;
 }
 
 function safeDeadline(input: Date | string): Date | null {
@@ -13,33 +16,35 @@ function safeDeadline(input: Date | string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function SlaCountdown({ label, deadline, className }: SlaCountdownProps) {
+export function SlaCountdown({
+  label,
+  deadline,
+  emphasize,
+  className,
+}: SlaCountdownProps) {
   const date = safeDeadline(deadline);
   if (!date) {
     return (
-      <span
-        className={`inline-flex items-center gap-1 rounded-md bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted ${className ?? ""}`}
-      >
-        <Clock className="h-3 w-3" aria-hidden="true" />
-        <span>{label}: unknown</span>
-      </span>
+      <Badge tone="neutral" leadingIcon={<Clock className="h-3 w-3" />} className={className}>
+        {label}: unknown
+      </Badge>
     );
   }
   const now = new Date();
   const isFuture = date.getTime() > now.getTime();
-  const tone = isFuture ? "bg-accent/15 text-accent" : "bg-danger/15 text-danger";
+  const tone: BadgeProps["tone"] = emphasize
+    ? "danger"
+    : isFuture
+      ? "info"
+      : "neutral";
   const human = isFuture
     ? `in ${formatDistanceToNowStrict(date)}`
     : `${formatDistanceToNowStrict(date)} ago`;
   return (
-    <span
-      className={`tabular-nums inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${tone} ${className ?? ""}`}
-      aria-label={`${label} deadline ${human}`}
-    >
-      <Clock className="h-3 w-3" aria-hidden="true" />
+    <Badge tone={tone} leadingIcon={<Clock className="h-3 w-3" />} className={className}>
       <span>
-        {label}: {human}
+        {label}: <span className="numeric font-semibold">{human}</span>
       </span>
-    </span>
+    </Badge>
   );
 }
