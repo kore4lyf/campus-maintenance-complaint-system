@@ -12,6 +12,8 @@ Building (Foundation complete; UI foundation in flight; auth landed, gated verif
 
 ## Current Goal
 
+In flight: Feature 0013 (in-app UI lift — section rhythm + shared `<PageShell>` + two CSS utility classes). Spec drafted at `docs/specs/0013-in-app-ui-lift.md`.
+
 Next features to build: admin queue management (Feature 08), technician queue + SLA engine (Feature 09/10). Remaining test sweep debt is in API route tests for untested routes (admin queue, assign, reports, export, technicians, locations, cron). Pre-existing lint/typecheck issues in `lib/db/typed-query.ts`, `app/(reporter)/complaints/[id]/page.tsx`, `app/ably-provider.tsx`, and `components/RealtimeStatusBadge.tsx` remain to be addressed in a dedicated cleanup pass.
 
 ## Completed
@@ -1001,3 +1003,117 @@ This skill does not touch `docs/scope/` or `docs/specs/` or code.
   **Final result**: 24 e2e specs, all green. Combined with the prior Jest
   sweep, the repo now reports 58 Jest suites (316 tests) and 24 Playwright
   specs all passing. Committed as `1a4eee6`.
+
+- **2026-07-28 (Spec 0013 — In-app UI lift, Proposed)** — User flagged that the
+  in-app screens (reporter, admin, technician, public/auth) sit flat white
+  top-to-bottom with no section rhythm, while the Home page at `app/page.tsx`
+  has full-bleed navy CTA bands, raised off-white section bands, and a hero
+  block at `pt-16 pb-24 sm:pt-24 sm:pb-32` scale. Verified by source-grep on
+  every in-app page and primitive on this date: backgrounds, sizes, and
+  kicker rhythm are as documented in `docs/specs/0013-in-app-ui-lift.md`.
+  Build will:
+    - Add `<PageShell>` (one shared component) with hero-band slot, body
+      slot, and opt-in `<PageShellCtaBand>` for the navy band.
+    - Add two utility classes (`.section-raised`, `.cta-band-brand`) inside
+      the existing `@layer utilities { ... }` block of `app/globals.css`,
+      composing only existing semantic tokens; no `tailwind.config.ts`
+      edit, no `@theme inline` edit, no `context/ui-context.md` edit.
+    - Apply the shell to every in-app page listed in §C of the spec.
+      No `lib/**` or `app/api/**` changes; no schema or auth changes;
+      no logic edits on touched pages (the wrapper is the only diff).
+  Spec 0013 status: Proposed (this note logs the proposal; a follow-up
+  note will be added per the Feature build cadence once build lands and
+  tests pass).
+
+- **2026-07-28 (Feature 0013 — In-app UI lift, build landed)** — Spec draft
+  landed at `docs/specs/0013-in-app-ui-lift.md` (Proposed → In Progress in
+  spec). Build produced the following surgical diff (12 modifications, 4 new
+  files, no protected file beyond the documented ones touched, no schema or
+  auth changes):
+    - `components/shared/PageShell.tsx` (new) — `<PageShell>` with
+      `displayVariant: "hero" | "flat" | "none"`, plus `<HeroBand>`,
+      `<HeroBody>`, and opt-in `<PageShellCtaBand>`. Pure render component,
+      accepts ReactNode everywhere, no data fetching.
+    - `components/shared/PageShell.test.tsx` (new) — 7 scope tests under
+      AGENTS.md test sizing. Smoke-renders all three variants, asserts the
+      `.section-raised` and `.cta-band-brand` utility classes appear in the
+      rendered DOM (proves Tailwind 4 picked them up), asserts kicker/title/
+      subtitle composition, asserts the action slot renders on the right.
+    - `app/globals.css` — single edit to the existing `@layer utilities
+      { ... }` block: added `.section-raised` and `.cta-band-brand`
+      cross-referenced inline to spec 0013. No `@theme inline` edit,
+      no `tailwind.config.ts` edit.
+    - `app/(reporter)/complaints/mine/page.tsx` — wrapped in
+      `PageShell`+`HeroBand`+`HeroBody`+`PageShellCtaBand` (the only page
+      that opts into the closing navy band per AC-4).
+    - `app/(reporter)/complaints/new/page.tsx` — wrapped;
+      kicker + title + subtitle + small badge lift into the HeroBand.
+    - `app/(reporter)/complaints/[id]/page.tsx` — wrapped with
+      `displayVariant="flat"` so the page-specific status header lives
+      inside the shell without an extra hero band stacked above it.
+    - `app/(admin)/queue/page.tsx` — wrapped; kicker "DICT Console".
+    - `app/(admin)/reports/page.tsx` — wrapped; kicker "DICT Console".
+    - `app/(technician)/assignments/page.tsx` — wrapped; kicker
+      "Technician Console".
+    - `app/(technician)/assignments/[id]/page.tsx` — wrapped with
+      `displayVariant="flat"`.
+    - `app/(public)/sign-in/page.tsx` — wrapped; the Sign-in Card lives
+      inside HeroBody.
+    - `app/(public)/sign-up/page.tsx` — wrapped; the Sign-up Card lives
+      inside HeroBody.
+    - `app/(public)/track/[token]/page.tsx` — wrapped with
+      `displayVariant="flat"` for both the closed-submission and the
+      live-tracker returns. The "Bookmark this page" gold token Card is
+      preserved unchanged.
+  Untouched on purpose (recorded in spec §Out of scope for traceability):
+    - `app/page.tsx` (Home) — already meets the bar.
+    - role-group redirect stubs at `app/(reporter)/page.tsx`,
+      `app/(admin)/admin/page.tsx`, `app/(technician)/technician/page.tsx`.
+    - everything under `lib/**` (schemas, auth DAL, AI, Ably, storage).
+    - everything under `app/api/**` (route handlers).
+    - `context/ui-context.md` (no edits; brand rules already locked).
+    - `tailwind.config.ts` (Tailwind 4 source of truth is `globals.css`).
+  **Test gate**: ran `npx jest components/shared/PageShell` — 7/7 green.
+  **Typecheck**: `npx tsc --noEmit` — the six pre-existing errors
+  catalogued in the prior cycle reappear unchanged (`ComplaintForm.test.tsx`,
+  `lib/auth/actions.ts`, `lib/auth/anonymous-token.test.ts`,
+  `lib/auth/dal.test.ts`, `lib/db/helpers/duplicate-detection.test.ts`,
+  `lib/db/helpers/transition.test.ts`). No new errors introduced.
+  Spec 0013 status: Proposed (build landed; ready for `/check verify` per
+  the AGENTS.md gate order — verify before flipping to Accepted).
+
+- **2026-07-28 (Dark-mode removal — full app)** — Project owner requested all
+  dark-mode rendering be removed. The `next-themes` `<html class="dark">`
+  mechanism produced inconsistent rendering across responsive views, and the
+  light-mode token contract is now the single source of truth. Files touched:
+    - `package.json` — `next-themes` dependency removed (protected file,
+      documented reason: full feature removal, no consumers remain).
+    - `app/globals.css` — `.dark { ... }` override block deleted; replaced
+      with a comment noting the removal. The Spec 0013 utility comment in
+      `@layer utilities` updated to drop the dark-mode inheritance line.
+    - `app/providers.tsx` — `ThemeProvider` import + JSX wrapper removed;
+      Astryx's separate `<Theme>` wrapper above remains because it carries
+      Astryx's neutral theme tokens, not our app dark-mode.
+    - `app/layout.tsx` — `suppressHydrationWarning` removed (only needed
+      for the `next-themes` script).
+    - `components/shared/ThemeToggle.tsx` deleted.
+    - `components/shared/ThemeToggle.test.tsx` deleted.
+    - `components/shared/TopNav.tsx` — `<ThemeToggle />` import + JSX removed.
+    - `components/shared/TopNav.test.tsx` — `jest.mock("next-themes")` removed.
+    - `components/shared/PageShell.tsx` — AC-6 dark-mode reference in the
+      docstring dropped; "light mode is the single source of truth" added
+      to the constraints note.
+    - `docs/specs/0013-in-app-ui-lift.md` — AC-6 replaced with a
+      "Follow-up: dark-mode removed (2026-07-28)" section listing every
+      change above.
+    - `tests/e2e/theme-persistence.spec.ts` deleted (3 tests).
+    - `tests/e2e/keyboard-navigation.spec.ts` — two theme-toggle tests
+      replaced with three header-traversal tests that do not assume a
+      toggle exists. Helper `clickThemeToggle` removed.
+  **Test gate**: `npx jest components/shared/` — 4 suites, 21 tests, all
+  green (PageShell 7 + TopNav + SignOut + MobileBottomNav).
+  **Typecheck**: `npx tsc --noEmit` — same 6 pre-existing errors as before,
+  none introduced by this change.
+  Spec 0013 status: Proposed → In Progress (build landed; awaiting
+  `/check verify` to flip to Accepted; the dark-mode removal is now folded
+  into the spec as a follow-up section, not a separate spec).

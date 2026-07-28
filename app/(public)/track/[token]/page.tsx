@@ -12,6 +12,7 @@ import { CategoryBadge } from "@/components/reporter/CategoryBadge";
 import { SlaCountdown } from "@/components/reporter/SlaCountdown";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Archive, Camera, Bookmark, Lock } from "lucide-react";
+import { PageShell } from "@/components/shared/PageShell";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -97,26 +98,29 @@ export default async function AnonymousTrackerPage({
 
   if (view.isClosedOrMissing) {
     return (
-      <div className="mx-auto w-full max-w-2xl">
-        <EmptyState
-          variant="wide"
-          icon={<Lock className="h-7 w-7" aria-hidden="true" />}
-          title="This submission is closed"
-          description="No further updates are available for this anonymous submission. The maintenance loop is complete."
-          primaryAction={
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong"
-            >
-              Submit a new anonymous report
-            </Link>
-          }
-        />
-      </div>
+      <PageShell displayVariant="flat">
+        <div className="mx-auto w-full max-w-2xl">
+          <EmptyState
+            variant="wide"
+            icon={<Lock className="h-7 w-7" aria-hidden="true" />}
+            title="This submission is closed"
+            description="No further updates are available for this anonymous submission. The maintenance loop is complete."
+            primaryAction={
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong"
+              >
+                Submit a new anonymous report
+              </Link>
+            }
+          />
+        </div>
+      </PageShell>
     );
   }
 
   return (
+    <PageShell displayVariant="flat">
     <article className="mx-auto w-full max-w-3xl">
       <Card padding="lg" variant="surface" className="overflow-hidden">
         <header className="flex flex-col gap-4">
@@ -209,5 +213,6 @@ export default async function AnonymousTrackerPage({
         </div>
       </Card>
     </article>
+    </PageShell>
   );
 }

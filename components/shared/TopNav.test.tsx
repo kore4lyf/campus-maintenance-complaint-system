@@ -41,14 +41,6 @@ import { render, screen } from "@testing-library/react";
 import { RoleProvider } from "@/lib/auth/role-context";
 import { TopNav } from "./TopNav";
 
-jest.mock("next-themes", () => ({
-  useTheme: () => ({
-    theme: "light",
-    setTheme: jest.fn(),
-    resolvedTheme: "light",
-  }),
-}));
-
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: jest.fn(),

@@ -4,6 +4,7 @@ import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
 import { requireSession } from "@/lib/auth/dal";
 import { ComplaintForm } from "./ComplaintForm";
+import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,22 +55,12 @@ export default async function NewComplaintPage(): Promise<React.ReactElement> {
   const { categories, locations } = await loadFormData();
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-          New report
-        </p>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground-strong sm:text-4xl">
-              What needs fixing?
-            </h1>
-            <p className="mt-2 max-w-2xl text-base text-muted-strong">
-              Describe the maintenance issue, pick a category and location,
-              attach a photo if it helps, and choose whether to file
-              anonymously.
-            </p>
-          </div>
+    <PageShell>
+      <HeroBand
+        kicker="New report"
+        title="What needs fixing?"
+        subtitle="Describe the maintenance issue, pick a category and location, attach a photo if it helps, and choose whether to file anonymously."
+        actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
             <PlusCircle className="h-3 w-3 text-accent-strong" aria-hidden="true" />
             <span className="numeric">
@@ -77,31 +68,34 @@ export default async function NewComplaintPage(): Promise<React.ReactElement> {
             </span>
             <span>categories &amp; locations</span>
           </span>
+        }
+      />
+      <HeroBody>
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-6 inline-flex items-start gap-2 rounded-md bg-accent-soft/40 px-4 py-3 text-xs text-muted-strong">
+            <Sparkles
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-accent-strong"
+              aria-hidden="true"
+            />
+            <span>
+              Categories marked with an asterisk use AI-assisted severity
+              inference. A technician reviews your report within the SLA window
+              after submission.
+            </span>
+          </div>
+
+          <ComplaintForm categories={categories} locations={locations} />
+
+          <p className="mt-8 inline-flex items-center gap-1.5 text-xs text-muted-strong">
+            <ShieldCheck
+              className="h-3 w-3 text-accent-strong"
+              aria-hidden="true"
+            />
+            DICT receives this report within seconds. Your drafts and prior
+            complaints live at <span className="font-mono">/complaints/mine</span>.
+          </p>
         </div>
-      </header>
-
-      <div className="mb-6 inline-flex items-start gap-2 rounded-md bg-accent-soft/40 px-4 py-3 text-xs text-muted-strong">
-        <Sparkles
-          className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-accent-strong"
-          aria-hidden="true"
-        />
-        <span>
-          Categories marked with an asterisk use AI-assisted severity
-          inference. A technician reviews your report within the SLA window
-          after submission.
-        </span>
-      </div>
-
-      <ComplaintForm categories={categories} locations={locations} />
-
-      <p className="mt-8 inline-flex items-center gap-1.5 text-xs text-muted-strong">
-        <ShieldCheck
-          className="h-3 w-3 text-accent-strong"
-          aria-hidden="true"
-        />
-        DICT receives this report within seconds. Your drafts and prior
-        complaints live at <span className="font-mono">/complaints/mine</span>.
-      </p>
-    </div>
+      </HeroBody>
+    </PageShell>
   );
 }

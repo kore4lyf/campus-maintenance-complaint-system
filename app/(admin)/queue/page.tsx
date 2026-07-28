@@ -11,6 +11,7 @@ import { AdminQueueEmpty } from "@/components/admin/AdminQueueEmpty";
 import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import { useSearchParams } from "next/navigation";
+import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
 
 interface Complaint {
   _id: string;
@@ -160,34 +161,25 @@ function QueueContent() {
 
 export default function AdminQueuePage() {
   return (
-    <div>
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-          DICT Console
-        </p>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground-strong sm:text-4xl">
-              Queue
-            </h1>
-            <p className="mt-2 max-w-2xl text-base text-muted-strong">
-              Manage and assign incoming complaints. Click a row to view
-              details and assign to a technician.
-            </p>
-          </div>
-        </div>
-      </header>
-      <Suspense
-        fallback={
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-lg bg-surface-raised" />
-            ))}
-          </div>
-        }
-      >
-        <QueueContent />
-      </Suspense>
-    </div>
+    <PageShell>
+      <HeroBand
+        kicker="DICT Console"
+        title="Queue"
+        subtitle="Manage and assign incoming complaints. Click a row to view details and assign to a technician."
+      />
+      <HeroBody>
+        <Suspense
+          fallback={
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-24 animate-pulse rounded-lg bg-surface-raised" />
+              ))}
+            </div>
+          }
+        >
+          <QueueContent />
+        </Suspense>
+      </HeroBody>
+    </PageShell>
   );
 }

@@ -10,6 +10,7 @@ import { Card, SectionHeader } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
+import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
 
 interface Complaint {
   _id: string;
@@ -50,28 +51,23 @@ export default function TechnicianQueuePage() {
   const complaints = queueData?.data ?? [];
 
   return (
-    <div>
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-          Technician Console
-        </p>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground-strong sm:text-4xl">
-              My assignments
-            </h1>
-            <p className="numeric mt-2 max-w-2xl text-base text-muted-strong">
-              {isLoading
-                ? "Loading…"
-                : `${complaints.length} assigned to you · sorted by SLA urgency`}
-            </p>
-          </div>
+    <PageShell>
+      <HeroBand
+        kicker="Technician Console"
+        title="My assignments"
+        subtitle={
+          isLoading
+            ? "Loading…"
+            : `${complaints.length} assigned to you · sorted by SLA urgency`
+        }
+        actions={
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
             <Wrench className="h-3 w-3" aria-hidden="true" />
             Refreshes every 30 s
           </div>
-        </div>
-      </header>
+        }
+      />
+      <HeroBody>
 
       {isLoading ? (
         <Card padding="lg" variant="surface">
@@ -181,6 +177,7 @@ export default function TechnicianQueuePage() {
           })}
         </div>
       )}
-    </div>
+      </HeroBody>
+    </PageShell>
   );
 }

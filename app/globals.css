@@ -83,41 +83,11 @@
   --shadow-none: 0 0 #0000;
 }
 
-.dark {
-  /* Dark-mode brand is a lighter blue so it stays visible on dark surfaces
-     while still reading as "our navy" rather than a new colour. */
-  --color-brand: #3b82f6;
-  --color-brand-strong: #60a5fa;
-  --color-brand-soft: #93c5fd;
-
-  --color-accent: #d4a014;
-  --color-accent-strong: #facc15;
-  --color-accent-soft: #f4d76a;
-
-  --color-surface: #0c1424;
-  --color-surface-raised: #1a2438;
-  --color-surface-overlay: #1a2438;
-  --color-foreground: #f1f5f9;
-  --color-foreground-strong: #ffffff;
-
-  --color-muted: #94a3b8;
-  --color-muted-strong: #cbd5e1;
-  --color-border: #1e293b;
-  --color-border-strong: #334155;
-
-  --color-danger: #f87171;
-  --color-danger-strong: #fca5a5;
-  --color-danger-soft: #450a0a;
-  --color-warning: #fb923c;
-  --color-warning-strong: #fdba74;
-  --color-warning-soft: #431407;
-  --color-info: #38bdf8;
-  --color-info-strong: #7dd3fc;
-  --color-info-soft: #082f49;
-  --color-success: #34d399;
-  --color-success-strong: #6ee7b7;
-  --color-success-soft: #022c22;
-}
+/* Dark mode removed (2026-07-28): the .dark token overlay was deleted so
+   the app ships one light-mode design only. The hack that introduced it
+   (next-themes with attribute="class" writing a "dark" class on <html>)
+   was the root of rendering inconsistencies across responsive views. Light
+   mode is now the single source of truth. */
 
 @layer base {
   html,
@@ -167,6 +137,30 @@
   /* Container query middleware utility — clamp prose width */
   .prose-pretty {
     max-width: 65ch;
+  }
+
+  /* ---------- Spec 0013 (In-app UI lift, 2026-07-28) ----------
+     Two utilities added to enforce a section-rhythm contract across
+     every in-app screen. They compose only existing semantic tokens,
+     so no @theme inline edits are required.
+
+     .section-raised → raised off-white band above the body. Mirrors
+                       the Home page's `DualAudienceSection` band. Use
+                       for hero-band containers on list/index pages.
+     .cta-band-brand → full-bleed navy closer. Mirrors the Home page's
+                       closing `bg-brand text-white` band. Use for the
+                       opt-in PageShellCtaBand closer (most pages do
+                       not need this).
+  */
+  .section-raised {
+    background-color: var(--color-surface-raised);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .cta-band-brand {
+    background-color: var(--color-brand);
+    color: #ffffff;
   }
 }
 

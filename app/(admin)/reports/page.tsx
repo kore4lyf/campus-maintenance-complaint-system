@@ -12,6 +12,7 @@ import { Card,
   SectionHeader,
 } from "@/components/ui/Card";
 import { SkeletonLines } from "@/components/ui/Skeleton";
+import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
 
 interface ChartPoint {
   name: string;
@@ -210,60 +211,51 @@ function ReportsContent() {
 
 export default function ReportsPage() {
   return (
-    <div>
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-          DICT Console
-        </p>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground-strong sm:text-4xl">
-              Reports
-            </h1>
-            <p className="mt-2 max-w-2xl text-base text-muted-strong">
-              Campus maintenance analytics. Filter by time, severity, location,
-              or status; export the filtered set as CSV or PDF for an external
-              audience.
-            </p>
-          </div>
+    <PageShell>
+      <HeroBand
+        kicker="DICT Console"
+        title="Reports"
+        subtitle="Campus maintenance analytics. Filter by time, severity, location, or status; export the filtered set as CSV or PDF for an external audience."
+        actions={
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
             <span className="h-1.5 w-1.5 rounded-full bg-success" />
             Refreshes every 60 s
           </div>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-1">
-          <div className="sticky top-24">
-            <ReportsFilterPanelClient />
+        }
+      />
+      <HeroBody>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <ReportsFilterPanelClient />
+            </div>
+          </div>
+          <div className="lg:col-span-3">
+            <Suspense
+              fallback={
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {[1, 2, 3].map((i) => (
+                      <Card key={i} padding="lg">
+                        <SkeletonLines count={3} />
+                      </Card>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    {[1, 2].map((i) => (
+                      <Card key={i} padding="lg">
+                        <SkeletonLines count={5} />
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              }
+            >
+              <ReportsContent />
+            </Suspense>
           </div>
         </div>
-        <div className="lg:col-span-3">
-          <Suspense
-            fallback={
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i} padding="lg">
-                      <SkeletonLines count={3} />
-                    </Card>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  {[1, 2].map((i) => (
-                    <Card key={i} padding="lg">
-                      <SkeletonLines count={5} />
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            }
-          >
-            <ReportsContent />
-          </Suspense>
-        </div>
-      </div>
-    </div>
+      </HeroBody>
+    </PageShell>
   );
 }

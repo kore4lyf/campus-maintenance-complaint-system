@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
 import { TransitionForm } from "@/components/technician/TransitionForm";
+import { PageShell } from "@/components/shared/PageShell";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 
 interface StatusHistoryEntry {
@@ -105,7 +106,7 @@ export default function TechnicianComplaintDetailPage({
   const complaint = payload.data;
 
   return (
-    <div>
+    <PageShell displayVariant="flat">
       <Button
         variant="ghost"
         size="sm"
@@ -325,6 +326,6 @@ export default function TechnicianComplaintDetailPage({
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

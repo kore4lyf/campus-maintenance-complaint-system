@@ -9,6 +9,7 @@ import { UserModel } from "@/lib/db/models/user";
 import { getServerSession, type Role } from "@/lib/auth/dal";
 import { ApiError } from "@/lib/utils/errors";
 import { ComplaintDetailClient } from "@/components/reporter/ComplaintDetailClient";
+import { PageShell } from "@/components/shared/PageShell";
 import type { Severity } from "@/lib/ai/schemas";
 
 export const dynamic = "force-dynamic";
@@ -188,10 +189,12 @@ export default async function ComplaintDetailPage({
   }
 
   return (
-    <ComplaintDetailClient
-      complaintId={id}
-      initialComplaint={result.complaint}
-      initialTimeline={result.timeline}
-    />
+    <PageShell displayVariant="flat">
+      <ComplaintDetailClient
+        complaintId={id}
+        initialComplaint={result.complaint}
+        initialTimeline={result.timeline}
+      />
+    </PageShell>
   );
 }

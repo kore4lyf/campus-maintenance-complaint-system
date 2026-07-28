@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCurrentUser, useCurrentRole } from "@/lib/auth/role-context";
-import { ThemeToggle } from "./ThemeToggle";
 import { SignOut } from "./SignOut";
 
 export function TopNav() {
@@ -73,7 +72,6 @@ export function TopNav() {
               </span>
             </div>
           ) : null}
-          <ThemeToggle />
           {user ? <SignOut /> : null}
         </div>
       </div>
