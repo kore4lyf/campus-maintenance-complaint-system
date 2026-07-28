@@ -1,478 +1,442 @@
 # Requirements — Campus Maintenance Complaint Management System (LASU)
 
-This document consolidates the functional and non-functional requirements for
-the Campus Maintenance Complaint Management System (LASU). It is the system of
-record for what the application must do (FRs) and how it must do it (NFRs).
-Feature-level specs in `docs/specs/` elaborate on each FR with acceptance
-criteria; this file stays stable as the table of contents.
+This file is the system of record for what the application must do (FRs) and
+how it must do it (NFRs). It mirrors Section 3.3.6.4 (Functional Requirements)
+and 3.3.6.5 (Non-Functional Requirements) of the academic doc, restated with
+implementation pointers and traceability to feature spec files under
+`docs/specs/`.
 
-## Conformance
+## How to read this
 
-- Every FR has a feature spec under `docs/specs/000N-*.md` with acceptance
-  criteria and verified tests.
-- Every NFR is referenced from the spec that owns it (e.g. NFR-1 Performance
-  is anchored in 0005/0007/0009).
-- Status keywords: **Implemented** (FR built and verified), **Partial**
-  (FR partly built; gap named in spec), **Deferred** (FR named in scope but
-  scope moved to a later release).
+- **FR-N.M**: Functional Requirements — what the system must do.
+- **NFR-N.M**: Non-Functional Requirements — how well it must do it.
+- **Each item is testable**: a test, manual, or load plan verifies pass or
+  fail.
+- **Spec column** points to the implementation contract; **Status** says
+  whether it is built and which commit proves it.
 
-## Actors
+### Conformance
 
-| ID | Actor               | Description                                                                                  |
-|----|---------------------|----------------------------------------------------------------------------------------------|
-| A1 | Reporter            | LASU student or staff who files a maintenance complaint. Has one of: own identity or anonymous. |
-| A2 | DICT Administrator  | Reviews the queue, assigns complaints to technicians, owns reporting/escalation.             |
-| A3 | DICT Technician     | Acknowledges, works updates, resolves assigned complaints.                                    |
-| A4 | DICT Director       | Receives resolution-breach escalations; sets SLA policy; views roll-up reports.              |
-| A5 | System (Background) | Cron `sla-sweep`, AI tctriage worker, image pipeline worker.                                 |
+- Every requirement has at least one assertion in the relevant spec
+  (`docs/specs/000N-*.md`) and a corresponding test (unit, integration,
+  or e2e).
+- Pre-existing gaps that the build surfaced are tracked in
+  `context/progress-tracker.md`.
 
-## Functional Requirements
+## Functional Requirements (Section 3.3.6.4)
 
-### Authentication & Identity
+The functional requirements below specify what the system must do. They
+are the source of truth for the developer handover and for the verification
+checklist — each module there must trace back to one or more FRs. The FRs are
+deliberately written in testable form (each can be verified to pass or fail).
 
-- **FR-1 Sign up.** A new user (A1) can register with email + password (≥ 8
-  chars) + name; the account is created with role `reporter` by default. Email
-  is stored lowercased; duplicate emails rejected.
-  - Spec: `docs/specs/0004-authentication/`. Status: Implemented.
-- **FR-2 Sign in.** A registered user (A1/A2/A3) can sign in with email +
-  password; a session cookie (HTTP-only, `SameSite=Lax`, 7-day expiry) is set.
-  - Spec: 0004. Status: Implemented.
-- **FR-3 Sign out.** A signed-in user can end their session; the session
-  cookie is cleared; the next request is treated as unauthenticated.
-  - Spec: 0004. Status: Implemented.
-- **FR-4 Session continuity.** A signed-in user can navigate across protected
-  pages without re-signing-in until expiry. The server-side session lookup
-  resolves role and identity on every request.
-  - Spec: 0004. Status: Implemented.
-- **FR-5 RBAC enforcement.** Three roles — `reporter`, `dicht_admin`,
-  `dicht_technician` — are enforced at every protected entry point (page,
-  route handler). Cross-role access is denied with an appropriate redirect or
-  403.
-  - Spec: 0004. Status: Implemented.
+### FR-1 — Complaint Submission
 
-### Reporter — Submission
+The submission entrance form on the web portal.
 
-- **FR-6 Submit complaint.** A reporter (A1) can submit a complaint with
-  required fields: `categoryId` (from `categories`), `locationId` (from
-  `locations`), `description` (10–2000 chars); optional: photo (≤ 10 MB,
-  JPG/PNG/WebP), anonymous toggle.
-  - Spec: `docs/specs/0005-complaint-submission.md`. Status: Implemented.
-- **FR-7 Anonymous submission.** A reporter may toggle anonymous mode. When
-  on: `reporterId` is omitted from the persisted record; the AI prompt sent
-  to the model is stripped of `building`, `floor`, `room`, and any reporter
-  context (per NFR Privacy).
-  - Spec: 0005. Status: Implemented.
-- **FR-8 Photo upload validation.** A non-image MIME is rejected; over-size;
-  payload is rejected with a clear inline error.
-  - Spec: 0012. Status: Implemented.
-- **FR-9 Backlog on submit error.** If the submit to `/api/complaints`
-  fails for a network reason, the user sees a recoverable error and a
-  retry is one tap away.
-  - Spec: 0005. Status: Implemented.
+- **FR-1.1** A reporter can submit a complaint via the web portal at
+  `/complaints/new`.
+- **FR-1.2** The submission form accepts: category (dropdown from the
+  `categories` collection), location (dropdown from the `locations`
+  collection), description (free text, 10–2000 characters), optional photo
+  upload (≤ 10 MB, MIME types restricted to JPG/PNG/WebP), and an anonymous
+  toggle.
+- **FR-1.3** All form fields are validated **server-side**; the
+  client-side validation is for UX only and is **not trusted** for
+  security.
+- **FR-1.4** On successful submission, the reporter receives an
+  acknowledgement page with a unique complaint ID and an ETA computed from
+  the SLA table.
 
-### Reporter — Read
+Spec: `docs/specs/0005-complaint-submission.md`. Status: **Implemented**.
 
-- **FR-10 My complaints dashboard.** A reporter (A1) sees `/complaints/mine`
-  listing their own (non-anonymous) complaints with current status, severity,
-  category, SLA deadlines, and last update timestamp, with live push
-  refreshing it on changes (FR-25).
-  - Spec: `docs/specs/0006-reporter-dashboard.md`. Status: Implemented.
-- **FR-11 Complaint detail view.** A reporter (A1) sees `/complaints/:id`
-  with the status timeline (entries from `statusHistory`) and any
-  proof-of-fix photo uploaded by the technician. Priority, AI suggestion, and
-  internal escalation count are hidden from reporters (per NFR Privacy).
-  - Spec: 0006. Status: Implemented.
-- **FR-12 Anonymous tracker URL.** Anonymous submissions return a
-  server-generated opaque tracker URL stored in the user's
-  `anonymousToken`; re-visiting that URL shows the same status view without
-  sign-in.
-  - Spec: 0005 + 0006. Status: Implemented.
+### FR-2 — AI Triage
 
-### Triage & Duplicate Handling
+Every new complaint must be triaged before persistence, with a rules-based
+fallback so the reporter is never blocked by an AI outage.
 
-- **FR-13 AI-assisted triage.** For each new non-duplicate complaint, the
-  server calls the Vercel AI SDK `generateObject` with an OpenAI
-  `gpt-4o-mini` deployment; receives a structured
-  `{ categoryName, severity, rationale }` validated by a Zod schema. The
-  outcome is persisted on `complaints.aiSuggestion` with model, prompt-
-  and completion-token counts, computed `costUsd`, latency, run timestamp,
-  and a `fallback` flag.
-  - Spec: 0005. Status: Implemented.
-- **FR-14 Default-severity fallback.** If the AI call fails or exceeds
-  `OPENAI_TIMEOUT_MS` (default 8000 ms), the system falls back to
-  `categories[].defaultSeverity` and sets `aiSuggestion.fallback = true`.
-  Submission is never blocked by an AI outage.
-  - Spec: 0005. Status: Implemented.
-- **FR-15 Duplicate detection.** Before AI triage, a check looks for an
-  existing complaint with the same `categoryId` + `locationId` created in
-  the last 30 minutes; if found, the new submission is clustered to that
-  complaint (`parentComplaintId` set) and AI triage is skipped to save cost.
-  - Spec: 0005. Status: Implemented.
-- **FR-16 Severity to SLA mapping.** Once severity is final (AI or fallback),
-  the SLA table maps severity → `{ slaAcknowledgeHrs, slaResolveHrs }`, and
-  `slaAcknowledgeBy` / `slaResolveBy` deadlines are computed from the
-  complaint's `createdAt`.
-  - Spec: `docs/specs/0009-sla-engine-and-escalation.md`. Status: Implemented.
+- **FR-2.1** Every new complaint, on successful submission, MUST be
+  processed by the AI triage endpoint before persistence.
+- **FR-2.2** The AI triage endpoint MUST return a structured object
+  conforming to the Zod schema in Section 3.2.5
+  (`{ categoryName, severity, rationale }`).
+- **FR-2.3** If the AI call fails **and** `AI_TRIAGE_FALLBACK_TO_RULES=
+  true`, the system MUST persist the complaint using the rules-based map
+  on the reporter's selected category, with `aiSuggestion.fallback = true`.
+  **The reporter's submission MUST NOT be blocked by an AI outage.**
+- **FR-2.4** If the AI call fails **and** the fallback flag is false, the
+  system MUST return a 5xx error with a clear message; no partial persist.
+- **FR-2.5** The AI call MUST honour `OPENAI_TIMEOUT_MS` (default 8000 ms).
+  Calls beyond this MUST be aborted and treated as failure.
 
-### DICT Admin — Queue & Assignment
+Spec: `docs/specs/0005-complaint-submission.md`. Status:
+**Implemented** (FR-2.1, FR-2.2, FR-2.3, FR-2.5);
+**Partial** (FR-2.4: error response is shaped per route, fallback flag
+default is `true` so this branch is rarely reached).
 
-- **FR-17 Admin queue view.** An admin (A2) sees `/admin/queue` listing
-  complaints filterable by severity, age, location, and assignment status,
-  sorted by SLA urgency.
-  - Spec: `docs/specs/0007-admin-queue-and-assignment.md`. Status: Implemented.
-- **FR-18 Assign complaint.** An admin (A2) can assign a complaint to a
-  user with role `dicht_technician` from a dropdown of eligible technicians.
-  An `assignments` document is created with `{ complaintId, technicianId,
-  assignedAt, assignedByAdminId }`.
-  - Spec: 0007. Status: Implemented.
-- **FR-19 Reassigment audit.** Admins may reassign. Previous assignments are
-  retained; a new `assignments` row is appended and `statusHistory` notes
-  the change with `changedByAdminId` and reason.
-  - Spec: 0007. Status: Implemented.
-- **FR-20 Admin landing page.** `/admin` redirects to `/admin/queue` for
-  signed-in admins; signed-out users are redirected to `/sign-in`.
-  - Spec: 0007. Status: Implemented.
+### FR-3 — Priority and SLA Derivation
 
-### DICT Technician — Workflow
+Severity is not invented per submission — it is sourced from the AI or
+the category's rule, then mapped to SLA deadlines.
 
-- **FR-21 Technician queue.** A technician (A3) sees `/technician/queue`
-  showing their assigned complaints (including reassigned ones) sorted by SLA
-  urgency, with current status.
-  - Spec: `docs/specs/0008-technician-queue-and-status-updates.md`.
-    Status: Implemented.
-- **FR-22 Acknowledge.** A technician can transition `Submitted →
-  Acknowledged` while `now < slaAcknowledgeBy` (else FR-29 escalation
-  triggers). This starts the resolution timer.
-  - Spec: 0008. Status: Implemented.
-- **FR-23 Status update to In Progress.** A technician can move
-  `Acknowledged → In Progress`, with optional notes and in-progress photos.
-  - Spec: 0008. Status: Implemented.
-- **FR-24 Resolve with proof-of-fix photo.** A technician can move
-  `In Progress → Resolved`. A proof-of-fix photo is mandatory;
-  `complaints.proofPhotoUrl` is set and locked; `statusHistory` records the
-  transition.
-  - Spec: 0008. Status: Implemented.
+- **FR-3.1** Every complaint has a non-null `priority` field with value
+  in `{ critical, high, medium, low }`.
+- **FR-3.2** Priority is taken from the AI's `severity` output when AI
+  succeeds; otherwise from `categories[].defaultSeverity`.
+- **FR-3.3** `slaAcknowledgeBy` and `slaResolveBy` are derived from the
+  final severity using the SLA table in Section 3.2.1.
 
-### SLA Engine & Escalation
+Spec: `docs/specs/0009-sla-engine-and-escalation.md` (table);
+generated in `app/api/complaints/route.ts`. Status: **Implemented**.
 
-- **FR-25 SLA sweep.** A cron endpoint `/api/cron/sla-sweep` runs every 5
-  minutes (Vercel cron). It scans active complaints for breach.
-  - Spec: `docs/specs/0009-sla-engine-and-escalation.md`. Status: Implemented.
-- **FR-26 Acknowledge-breach escalation.** When
-  `now > slaAcknowledgeBy && status === 'Submitted'`: notify all admins
-  via Ably (FR-31) and set `complaints.escalated = true`.
-  - Spec: 0009. Status: Implemented.
-- **FR-27 Resolve-breach escalation.** When
-  `now > slaResolveBy && status !== 'Resolved'`: notify the DICT Director
-  in-app. Acknowledge breaches chained to resolve breaches use the Director
-  channel.
-  - Spec: 0009. Status: Implemented.
-- **FR-28 SLA breach visibility.** Admins see an SLA-breach overlay on the
-  queue view; technicians see their personal SLA warning after a breach on
-  AC-2 of their complaints page.
-  - Spec: 0009. Status: Implemented.
+### FR-4 — Authentication and RBAC
 
-### Real-Time Push (Ably)
+BetterAuth session with three role classes and granular per-route RBAC.
 
-- **FR-29 Assignment push to technician.** When FR-18 executes, an Ably
-  message is published on the technician's private channel.
-  - Spec: `docs/specs/0010-real-time-notifications.md`. Status: Implemented.
-- **FR-30 Status-update fan-out.** When a technician changes a complaint's
-  status, Ably publishes on a per-complaint channel. The reporter's
-  `/complaints/mine` dashboard refreshes without a page reload.
-  - Spec: 0010. Status: Implemented.
-- **FR-31 Escalation push.** FR-26 and FR-27 publish to admin / director
-  channels and surface in the admin/technician UI.
-  - Spec: 0010. Status: Implemented.
-- **FR-32 Live status on dashboard.** Status updates on the reporter
-  dashboard are pushed within 2 seconds of the underlying change.
-  - Spec: 0010. Status: Implemented.
+- **FR-4.1** Three role classes: Reporter, DICT Admin, DICT Technician.
+- **FR-4.2** BetterAuth session, stored in HTTP-only cookie, 7-day
+  expiry.
+- **FR-4.3** bcrypt hashing via BetterAuth (cost factor ≥ 12).
+- **FR-4.4** Route-level RBAC enforced at the application tier:
+  `/api/admin/*` is admin-only; `/api/technician/*` is technician-only;
+  `/api/complaints` accepts all three; anonymous reporter uses a special
+  signed token.
+- **FR-4.5** Anonymous mode strips `reporterId` from the persisted
+  document; the system does not surface the anonymous complaint to any
+  logged-in user.
 
-### Reporting & Export
+Spec: `docs/specs/0004-authentication/`. Status: **Implemented**
+(FR-4.1, FR-4.2, FR-4.4 path-level, FR-4.5). FR-4.3 cost factor ≥ 12
+follows BetterAuth's controlled defaults — verified by config review.
 
-- **FR-33 Admin reporting dashboard.** `/admin/reports` shows volumes by
-  category / location / severity, average resolution time, SLA-breach count,
-  and backlog. Filters: time window, severity, location, status.
-  - Spec: `docs/specs/0011-reporting-dashboard.md`. Status: Implemented.
-- **FR-34 PDF export.** A click on the dashboard's *Export PDF* button
-  produces a paginated PDF (via `@react-pdf/renderer`) of the same view
-  with the same filters applied.
-  - Spec: 0011. Status: Implemented.
-- **FR-35 CSV export.** A *Export CSV* button produces a downloadable CSV
-  with the same filter set, suitable for offline analysis.
-  - Spec: 0011. Status: Implemented.
+### FR-5 — Assignment
 
-### Image Pipeline
+Admin queue view and reassignment rules.
 
-- **FR-36 Server-side ingestion.** A photo upload from any complaint form
-  is received as `multipart/form-data`, validated for MIME and size, then
-  compressed via `sharp`, then uploaded to Cloudinary. The returned URL is
-  persisted in `complaints.photoUrls[]`.
-  - Spec: `docs/specs/0012-image-pipeline.md`. Status: Implemented.
-- **FR-37 EXIF strip.** All identifying EXIF data is stripped before upload.
-  - Spec: 0012. Status: Implemented.
-- **FR-38 HTTPS-only storage.** Stored photo URLs must use `https://`; `http://`
-  URLs are rejected at write time.
-  - Spec: 0012. Status: Implemented.
+- **FR-5.1** Admin queue view at `/admin/queue` filterable by severity,
+  age, location.
+- **FR-5.2** Admin assigns one technician at a time; reassignment
+  allowed.
+- **FR-5.3** Once a complaint is `In Progress`, reassignment requires
+  explicit admin override (audit-logged).
 
-### Audit & Status History
+Spec: `docs/specs/0007-admin-queue-and-assignment.md`. Status:
+**Implemented**.
 
-- **FR-39 Audit trail of status transitions. ** Every transition triggers
-  a `statusHistory` entry with `{ fromStatus, toStatus, changedBy, at,
-  notes, proofPhotoUrl? }`. The detail view (FR-11) renders the timeline.
-  - Spec: 0005/0008. Status: Implemented.
-- **FR-40 Notifications archive.** Every notification triggered
-  (assignment/breach/escalation) creates a row in `notifications`. The UI
-  surfaces the unread badge and inbox.
-  - Spec: 0010. Status: Implemented.
+### FR-6 — Status Lifecycle
 
-### Operational & Support
+Five-state machine with audit trail and forward-only enforcement.
 
-- **FR-41 Brand palette lock.** `#0c2848` navy + `#d4a014` gold are the
-  brand colours sourced from the LASU CMS logo. Bound at
-  `app/globals.css` (per `docs/design.md`).
-  - Spec: 0003. Status: Implemented.
-- **FR-42 Theme system.** DARK / LIGHT / system theme toggle in the header.
-  Choice persisted in `localStorage` under key `theme`; no flash on reload;
-  theme survives a page reload without re-paint.
-  - Spec: 0003. Status: Implemented.
-- **FR-43 Keyboard navigation.** Primary interactive elements are reachable
-  with Tab order: brand → nav links → theme toggle → stateful buttons.
-  Each has an `aria-label` or visible label.
-  - Spec: 0003. Status: Implemented.
+- **FR-6.1** State machine:
+  `Submitted → Acknowledged → In Progress → Resolved → Closed`.
+- **FR-6.2** Every transition appends a `statusHistory` document carrying
+  actor, prev-status, new-status, optional note and optional photo URL.
+- **FR-6.3** Transitions are enforced server-side per RBAC: reporter
+  cannot transition; technician cannot assign; only admin can reassign.
+- **FR-6.4** A complaint with `status = Resolved` MUST have a
+  `proofPhotoUrl` recorded in its most recent `statusHistory` entry.
 
-## Non-Functional Requirements
+Spec: `lib/db/models/complaint.ts` (state machine helper +
+cross-field validators) +
+`app/api/complaints/[id]/route.ts` (RBAC-gated transitions). Status:
+**Implemented**.
 
-### Performance
+### FR-7 — SLA Engine and Escalation
 
-- **NFR-1.1 Submission p95.** `POST /api/complaints` (with AI triage) p95
-  must be under **4 s** at typical load (10 concurrent users).
-  - Spec: 0005.
-- **NFR-1.2 Detail fetch p95.** `GET /api/complaints/:id` p95 must be
-  under **200 ms**.
-  - Spec: 0006.
-- **NFR-1.3 Admin queue p95.** `GET /api/admin/queue` p95 must be under
-  **500 ms**.
-  - Spec: 0007.
-- **NFR-1.4 SLA sweep budget.** `/api/cron/sla-sweep` must complete within
-  **60 s** for typical active volume (< 5,000 active complaints).
-  - Spec: 0009.
-- **NFR-1.5 Error rate.** Error rate must stay **< 1 %** at peak load.
-  - Spec: all API routes.
+Vercel-cron SLA sweeper escalates unmet deadlines up the DICT
+hierarchy with persisted notification records.
 
-### Reliability & Resilience
+- **FR-7.1** SLA sweep runs every 5 minutes via Vercel cron endpoint
+  `/api/cron/sla-sweep`.
+- **FR-7.2** Breaches of `slaAcknowledgeBy` (with status `Submitted`) set
+  `escalated = true` AND push a notification to the DICT admin.
+- **FR-7.3** Breaches of `slaResolveBy` (with status not `Resolved`) push
+  a notification to the DICT director.
+- **FR-7.4** Every escalation event is recorded in `notifications` with
+  `type: 'escalation'`, recipient user ID, complaint ID, message.
 
-- **NFR-2.1 AI fallback.** If the AI call fails or exceeds
-  `OPENAI_TIMEOUT_MS` (default **8000 ms**), the system falls back to rules
-  and continues submission; the user never sees an HTTP error caused by
-  AI.
-  - Spec: 0005.
-- **NFR-2.2 Cron isolation.** A failure in `/api/cron/sla-sweep` does not
-  block any other API route.
-  - Spec: 0009.
-- **NFR-2.3 Real-time degradation.** If Ably is unavailable, the system
-  must continue to serve requests; real-time updates degrade gracefully
-  (no broken UI).
-  - Spec: 0010.
-- **NFR-2.4 Mongoose reconnection.** A transient MongoDB blip triggers a
-  reconnection (with exponential backoff) rather than a 500.
-  - Spec: 0002.
-- **NFR-2.5 Image pipeline retry.** A Cloudinary 409 is retried with a
-  deterministic 1 s back-off (max 3 attempts).
-  - Spec: 0012.
+Spec: `docs/specs/0009-sla-engine-and-escalation.md`. Status:
+**Implemented**.
 
-### Security
+### FR-8 — Reporter Visibility
 
-- **NFR-3.1 Password hashing.** Passwords stored only as better-auth's
-  bcrypt-backed hash; never logged.
-  - Spec: 0004.
-- **NFR-3.2 Session cookie.** Authorisation cookie is HTTP-only,
-  `SameSite=lax`, `Secure` in production. Custom cookie prefix `better-auth`.
-  - Spec: 0004.
-- **NFR-3.3 Server-side authorization.** Every protected entry point
-  (page/route) executes an authoritative role check on the server, not
-  only in middleware.
-  - Spec: 0004.
-- **NFR-3.4 PII stripping.** Anonymous submissions strip
-  `building`/`floor`/`room`/reporter context from the AI prompt.
-  - Spec: 0005.
-- **NFR-3.5 Internal data hidden from reporters.** `priority`,
-  `aiSuggestion`, `escalated` are stripped from `reporterView`.
-  - Spec: 0006.
-- **NFR-3.6 Rate limiting.** Submit and sign-in endpoints use `@upstash/
-  ratelimit` per IP and per user.
-  - Spec: 0004/0005.
+Reporter sees only own complaints; anonymous complaints stay anonymous.
 
-### Privacy & Compliance
+- **FR-8.1** Reporter views own complaints at `/complaints/mine`.
+- **FR-8.2** Complaint detail page shows: ID, current status, severity,
+  SLA deadline, status timeline, proof-of-fix photo (if resolved).
+- **FR-8.3** Anonymous reporter: the system does not surface anonymous
+  complaints back to a logged-in user; only a saved ID grants access.
 
-- **NFR-4.1 Anonymous mode.** Anonymous submissions never persist
-  `reporterId`, never include reporter name/email in any joinable field.
-  - Spec: 0005/0006.
-- **NFR-4.2 Single LASU deployment.** No multi-tenant config exposed;
-  configuration is environment-specific (`.env` only).
-  - Spec: 0001.
-- **NFR-4.3 EXIF strip** (see also FR-37): all identifying EXIF stripped
-  before Cloudinary upload.
-  - Spec: 0012.
+Spec: `docs/specs/0006-reporter-dashboard.md`. Status:
+**Implemented**.
 
-### Cost
+### FR-9 — Duplicate Detection
 
-- **NFR-5.1 AI triage budget.** AI triage cost ≤ **$5 / month** for up to
-  **50,000 submissions/month** via `gpt-4o-mini`.
-  - Spec: 0005.
-- **NFR-5.2 Fallback trigger.** If monthly cost threshold is exceeded,
-  system flips to fallback-only mode per NFR-2.1.
-  - Spec: 0005.
-- **NFR-5.3 Cost recorded per submission.** Each `aiSuggestion` row stores
-  `costUsd` so monthly rollups are queryable.
-  - Spec: 0005.
+Cluster overlapping submissions to reduce AI cost during peak fault
+periods.
 
-### Availability & Capacity
+- **FR-9.1** Before AI triage, query `complaints` for documents with the
+  same `categoryId` AND `locationId` AND `createdAt > (now - 30 min)`.
+- **FR-9.2** If found, persist the new complaint with
+  `parentComplaintId` set to the existing one; skip AI triage for the
+  duplicate.
+- **FR-9.3** This step runs **before** AI triage to prevent
+  unnecessary AI cost during peak fault periods.
 
-- **NFR-6.1 Active complaint capacity.** Designed to handle **< 5,000
-  active complaints** concurrently without degradation.
-  - Spec: 0009.
-- **NFR-6.2 Concurrency model.** `POST /api/complaints` is designed for
-  **10 concurrent users** without p95 regression.
-  - Spec: 0005.
-- **NFR-6.3 Ably free tier.** Ably usage stays within the free tier for
-  pilot volume (≤ 200 peak concurrent connections).
-  - Spec: 0010.
+Spec: `docs/specs/0005-complaint-submission.md`. Status:
+**Implemented**.
 
-### Accessibility (WCAG 2.1 AA)
+### FR-10 — Reporting
 
-- **NFR-7.1 Keyboard reachability.** All primary interactive elements are
-  reachable with Tab in document order.
-  - Spec: 0003.
-- **NFR-7.2 Accessible names.** Buttons, links, and form controls have
-  accessible names (`aria-label` or visible text).
-  - Spec: 0003.
-- **NFR-7.3 State announced.** State-changing controls (theme toggle, sign
-  out) update `aria-label` to match new state.
-  - Spec: 0003.
-- **NFR-7.4 Contrast.** Text/background Contrast ≥ 4.5:1 in default theme.
-  - Spec: 0003.
+Admin reporting dashboard with read-only aggregations.
 
-### Responsiveness
+- **FR-10.1** Admin reporting dashboard at `/admin/reports`.
+- **FR-10.2** Aggregations: count by category / location / status /
+  severity; average resolution time; SLA-breach count; current backlog.
+- **FR-10.3** Filters: time window, severity, location, status.
+- **FR-10.4** The dashboard is read-only; no edits flow through it.
 
-- **NFR-8.1 Desktop + mobile browsers.** Fully usable on desktop browsers
-  (1280 × 720 and up) and mobile browsers (375 × 667 and up); no native
-  mobile app at launch.
-  - Spec: 0003 / 0005.
-- **NFR-8.2 No layout shift on theme switch.** Theme toggle on the
-  `<html>` does not reflow content.
-  - Spec: 0003.
+Spec: `docs/specs/0011-reporting-dashboard.md`. Status:
+**Implemented**.
 
-### Localisation
+## Non-Functional Requirements (Section 3.3.6.5)
 
-- **NFR-9.1 English only.** UI is English-only at launch. Yoruba / pidgin /
-  Hausa deferred.
-  - Spec: 0001.
+Non-functional requirements describe how well the system must satisfy
+the FRs and other qualitative properties. Each NFR is paired with a
+measurable target so that it can be validated in the load-testing
+strategy or in the post-build pilot evaluation.
 
-### Maintainability
+### NFR-1 — Performance
 
-- **NFR-10.1 Test coverage.** Every PR adds tests for the acceptance
-  criteria of the current feature only — no scope drift into adjacent
-  features. Target per feature: 3–8 new tests.
-- **NFR-10.2 Scope tests live with code.** Scope tests for a feature live
-  next to it (`lib/`, `app/`, or `tests/unit/`). Cross-feature
-  integration tests live in `tests/integration/`. E2E smoke in
-  `tests/e2e/`.
-- **NFR-10.3 Lint clean state.** PRs do not introduce new lint or
-  typecheck errors; existing pre-existing issues are tracked for a
-  dedicated cleanup pass.
-- **NFR-10.4 No secrets in repo.** BETTER_AUTH_SECRET, MONGODB_URI, and
-  OpenAI keys are env-only. `.env.example` documents required keys.
+Per-endpoint latency budgets with concrete budget breakdown for the
+submission endpoint.
 
-### Observability
+- **NFR-1.1** `POST /api/complaints` (with AI triage) responds in
+  under **4 seconds** at p95 under typical load (10 concurrent). The
+  budget covers: auth (~50 ms), validation (~30 ms), photo upload
+  (~500 ms local / ~2 s cloud), AI call (~1.5–3 s typical for
+  `gpt-4o-mini`), persist (~50 ms).
+- **NFR-1.2** `GET /api/complaints/:id` responds in under **200 ms**
+  at p95.
+- **NFR-1.3** `GET /api/admin/queue` responds in under **500 ms** at
+  p95 (filtered query).
+- **NFR-1.4** SLA sweep cron completes within **60 s** at typical
+  complaint volume (< 5,000 active).
 
-- **NFR-11.1 Status history.** Every transition produces a `statusHistory`
-  row (FR-39). Transitions are queryable for debugging.
-- **NFR-11.2 Notifications archive.** Notifications are persisted (FR-40)
-  and queryable, not just realtime-pushed.
-- **NFR-11.3 Escalation visibility.** Admins can see the current
-  `escalated` flag and breach timestamps on each row.
+Specs: 0005 (submission budget), 0006 (detail budget), 0007 (queue
+budget), 0009 (sweep budget). Status: **Plan-defined** — measured via
+k6 / JMeter per NFR-1.
 
-### Data Integrity
+### NFR-2 — Reliability
 
-- **NFR-12.1 Forward-only status transitions.** Status transitions go forward
-  through the lifecycle `Submitted → Acknowledged → In Progress → Resolved`;
-  admin override is allowed and audited.
-  - Spec: 0002.
-- **NFR-12.2 Cross-field integrity.** Mongoose enforces
-  `anonymous → reporterId null`, `slaAcknowledgeBy < slaResolveBy`,
-  `Resolved → proofPhotoUrl set`.
-  - Spec: 0002.
-- **NFR-12.3 Optimistic concurrency.** Status updates carry a version
-  token; stale writes are rejected.
-  - Spec: 0002.
-- **NFR-12.4 Atomic duplicate detection.** Duplicate-clustering and
-  related inserts execute in one Mongoose session; partial state is
-  rejected on error.
-  - Spec: 0005 / 0002.
+The system stays usable under partial failure.
 
-### Browser & Runtime Support
+- **NFR-2.1** All complaint writes are durable: confirmed MongoDB
+  write before HTTP 200 to reporter.
+- **NFR-2.2** AI triage failure does NOT block submission when
+  `AI_TRIAGE_FALLBACK_TO_RULES=true` — the system uses the rules-based
+  map as documented in FR-2.3.
+- **NFR-2.3** SLA sweep failure does not block other API routes;
+  failures are logged.
+- **NFR-2.4** Photo upload failure aborts the submission; a complaint
+  is never persisted without its accompanying photo if one was
+  promised.
 
-- **NFR-13.1 Modern evergreen browsers.** Latest 2 stable Chrome, Firefox,
-  Safari, Edge. Notifications and `crypto.subtle` assume a modern baseline.
-- **NFR-13.2 Server runtime.** Next.js 16 (App Router) on Node 20+ LTS.
-  - Spec: 0001.
-- **NFR-13.3 Database.** MongoDB Atlas (replica set) supporting multi-document
-  transactions.
-  - Spec: 0002.
+Specs: 0005 (NFR-2.1, NFR-2.2, NFR-2.4), 0009 (NFR-2.3). Status:
+**Implemented**.
 
-### Compatibility with Brand
+### NFR-3 — Security
 
-- **NFR-14.1 Brand palette source.** Hex values `#0c2848` and `#d4a014`
-  must be sampled from the LASU CMS logo PNG (`public/cms-lasu-full.png`)
-  before any palette change is committed.
-  - Spec: 0003.
-- **NFR-14.2 Logo source of truth.** The PNG logo is the design
-  authority. Designer specs are commentary.
-  - Spec: 0003.
+HTTPS-only, bcrypt-hashed sessions, RBAC enforced at every protected
+edge, PII-stripped AI prompts.
 
-## Out of Scope (acceptance-criteria exclusions)
+- **NFR-3.1** All API routes are HTTPS-only.
+- **NFR-3.2** Passwords are hashed by BetterAuth using bcrypt, cost
+  factor ≥ 12.
+- **NFR-3.3** BetterAuth session tokens are signed with HS256.
+- **NFR-3.4** Session tokens are stored in HTTP-only cookies with
+  `sameSite=Lax`.
+- **NFR-3.5** AI prompts **MUST NOT** include reporter PII
+  (name, email, ID). The `buildPrompt` helper in `src/lib/ai/prompts.ts`
+  strips these fields before the API call. *(Located in
+  `lib/ai/prompts.ts` in this implementation.)*
+- **NFR-3.6** Photo uploads are MIME-type and size validated
+  server-side.
+- **NFR-3.7** All admin-only and technician-only routes verify RBAC at
+  every request via middleware.
 
-The following are explicitly out-of-scope at launch. The system is not
-expected to satisfy these requirements and ship-blocking reviews must
-not block on them:
+Specs: 0001, 0004, 0005, 0012. Status: **Implemented** (NFR-3.2,
+NFR-3.4, NFR-3.5, NFR-3.6, NFR-3.7). NFR-3.1 is enforced at the
+deployment / Vercel configuration layer. NFR-3.3 follows BetterAuth's
+default HS256 token signing.
+
+### NFR-4 — Maintainability
+
+Single sources of truth and clear ownership boundaries.
+
+- **NFR-4.1** All Mongoose collections have explicit schema definitions
+  with field types and requiredness flags.
+- **NFR-4.2** API routes are organised under `/app/api/<resource>/
+  route.ts` per Next.js App Router conventions.
+- **NFR-4.3** AI prompt logic is centralised in `src/lib/ai/prompts.ts`
+  as the single source-of-truth. *(Located in `lib/ai/prompts.ts` in
+  this implementation.)*
+- **NFR-4.4** All env vars are documented in `.env.example` with
+  example values.
+
+Specs: 0001, 0002, 0005, 0012. Status: **Implemented**.
+
+### NFR-5 — Cost Ceiling
+
+Dollar-denominated AI triage ceiling with auto-fallback.
+
+- **NFR-5.1** AI triage cost per submission MUST be ≤ **$0.001** with
+  the default `gpt-4o-mini` model.
+- **NFR-5.2** AI triage cost per month MUST be ≤ **$5** for up to 50,000
+  submissions/month — sufficient for LASU's projected workload.
+- **NFR-5.3** If monthly AI cost exceeds $5, the system MUST switch
+  to `AI_TRIAGE_FALLBACK_TO_RULES = true` and notify operations.
+
+Spec: `docs/specs/0005-complaint-submission.md`. Status:
+**Implemented** (NFR-5.1 measured per submission via
+`aiSuggestion.costUsd`; NFR-5.2 verifiable from costUsd aggregation;
+NFR-5.3 threshold switch implementation pending manual operations
+toggle in this build).
+
+### NFR-6 — Privacy
+
+Reporters keep their identity; AI never sees emails; AI rationale
+stays internal.
+
+- **NFR-6.1** Anonymous mode strips reporter identity from both the
+  persisted document AND from any AI prompt.
+- **NFR-6.2** Reporter email is never sent to OpenAI.
+- **NFR-6.3** AI rationale text is visible only to admins (not to the
+  reporter's public dashboard) but is stored on the complaint document
+  for audit and supervisor review.
+
+Specs: 0005 (NFR-6.1, NFR-6.2), 0006 (NFR-6.3 — enforced by
+`reporterView` stripping `aiSuggestion`). Status: **Implemented**.
+
+### NFR-7 — Transparency / Explainability
+
+Every complaint has an audit-grade AI record, even when the rules
+path was taken. Admins see the rationale; the reporter does not.
+
+- **NFR-7.1** Every complaint's `aiSuggestion` field MUST be populated
+  (with `fallback=true` if the rules-based path was taken).
+- **NFR-7.2** Admins see the AI's rationale in the queue view
+  (≤ 240 chars).
+- **NFR-7.3** If the AI's suggested category differs from the reporter's
+  selected category, the admin queue MUST show a visible warning badge.
+
+Specs: 0005 (NFR-7.1), 0007 (NFR-7.2, NFR-7.3). Status:
+**Implemented** (NFR-7.1, NFR-7.2). NFR-7.3 mismatch badge is built
+into the admin queue.
+
+### NFR-8 — Internationalisation (current scope)
+
+English-only at launch; multi-language is deferred.
+
+- **NFR-8.1** All user-facing strings are in English at launch.
+- **NFR-8.2** The AI system prompt is in English; AI responses are in
+  English.
+- **NFR-8.3** Yoruba / pidgin / Hausa support is a Phase 2
+  enhancement.
+
+Spec: `docs/specs/0001-project-setup-and-dependencies.md`. Status:
+**Implemented**.
+
+## Out of Scope (verified exclusions — review must not block on these)
 
 - Native iOS / Android apps.
 - IoT sensor instrumentation.
-- Multi-institution deployment.
-- University SSO / LDAP federation.
-- ML-based fine-tuned triage models.
+- Multi-institution deployment — single LASU deployment only.
+- University SSO / LDAP federation — local BetterAuth credentials only.
+- ML-based fine-tuned triage (e.g. Naive Bayes baseline + transformer
+  fine-tuning) — rules + AI via OpenAI is the launch state; ML
+  fine-tuning is Phase 2.
 - Local-language UI (Yoruba, pidgin, Hausa).
-- Email / SMS notification channels (in-app + Ably only at launch).
-- Asset / inventory registry beyond `categories`.
-- Non-maintenance grievance handling.
+- Email / SMS notification channels — in-app / Ably push only at launch.
+- Asset / inventory registry beyond the `categories` collection.
+- Non-maintenance grievance handling (academic, disciplinary,
+  financial, security).
 - On-device or self-hosted LLM inference.
 
-## Traceability Matrix (summary)
+## Traceability Matrix
 
-| FR  | Spec                                | Status       |
-|-----|-------------------------------------|--------------|
-| 1–5 | 0004-authentication                 | Implemented  |
-| 6–9 | 0005-complaint-submission           | Implemented  |
-| 10–12 | 0006-reporter-dashboard           | Implemented  |
-| 13–16 | 0005/0009                         | Implemented  |
-| 17–20 | 0007-admin-queue-and-assignment   | Implemented  |
-| 21–24 | 0008-technician-queue-and-status-updates | Implemented |
-| 25–28 | 0009-sla-engine-and-escalation    | Implemented  |
-| 29–32 | 0010-real-time-notifications      | Implemented  |
-| 33–35 | 0011-reporting-dashboard          | Implemented  |
-| 36–38 | 0012-image-pipeline               | Implemented  |
-| 39–40 | 0002/0010                         | Implemented  |
-| 41–43 | 0003-design-system-ui-foundation  | Implemented  |
+Each row must have a corresponding test. A requirement without a
+traceable test is a gap.
+
+| ID    | Spec                                       | Test Source                                | Status      |
+|-------|--------------------------------------------|--------------------------------------------|-------------|
+| FR-1.1 | `0005-complaint-submission`               | e2e complaint-submission | Implemented  |
+| FR-1.2 | `0005-complaint-submission`               | unit ComplaintForm | Implemented  |
+| FR-1.3 | `0005-complaint-submission`               | unit/api route tests | Implemented  |
+| FR-1.4 | `0005-complaint-submission`               | e2e acknowledgement page | Implemented  |
+| FR-2.1 | `0005-compliant-submission`               | unit triage integration | Implemented  |
+| FR-2.2 | `0005-compliant-submission`               | unit Zod schema parse | Implemented  |
+| FR-2.3 | `0005-compliant-submission`               | unit fallback path | Implemented  |
+| FR-2.4 | `0005-compliant-submission`               | unit error path (rare) | Partial       |
+| FR-2.5 | `0005-compliant-submission`               | unit timeout mock | Implemented  |
+| FR-3.1 | `0009-sla-engine-and-escalation`          | unit/complaint schema | Implemented  |
+| FR-3.2 | `0009-sla-engine-and-escalation`          | unit triage integration | Implemented  |
+| FR-3.3 | `0009-sla-engine-and-escalation`          | unit sla-sweep | Implemented  |
+| FR-4.1 | `0004-authentication`                     | unit dal.test.ts | Implemented  |
+| FR-4.2 | `0004-authentication`                     | unit/e2e auth.spec | Implemented  |
+| FR-4.3 | `0004-authentication`                     | Config review (BetterAuth default) | Implemented |
+| FR-4.4 | `0004-authentication`                     | e2e admin/technician queue redirects | Implemented |
+| FR-4.5 | `0004-authentication`                     | unit anonymised token | Implemented  |
+| FR-5.1 | `0007-admin-queue-and-assignment`         | e2e admin-queue | Implemented  |
+| FR-5.2 | `0007-admin-queue-and-assignment`         | unit/api assign route | Implemented  |
+| FR-5.3 | `0007-admin-queue-and-assignment`         | unit reassignment audit | Implemented  |
+| FR-6.1 | `lib/db/models/complaint.ts`               | unit transition.test.ts | Implemented  |
+| FR-6.2 | `lib/db/models/complaint.ts`               | unit status history tests | Implemented  |
+| FR-6.3 | `app/api/complaints/[id]/route.ts`         | unit/api route RBAC | Implemented  |
+| FR-6.4 | `lib/db/models/complaint.ts`               | unit cross-field validator | Implemented  |
+| FR-7.1 | `0009-sla-engine-and-escalation`          | e2e + unit cron route | Implemented  |
+| FR-7.2 | `0009-sla-engine-and-escalation`          | unit escalate path | Implemented  |
+| FR-7.3 | `0009-sla-engine-and-escalation`          | unit escalate path | Implemented  |
+| FR-7.4 | `0009-sla-engine-and-escalation`          | unit notification doc shape | Implemented  |
+| FR-8.1 | `0006-reporter-dashboard`                 | e2e reporter-dashboard | Implemented  |
+| FR-8.2 | `0006-reporter-dashboard`                 | unit detail page | Implemented  |
+| FR-8.3 | `0006-reporter-dashboard`                 | unit anonymous token | Implemented  |
+| FR-9.1 | `0005-compliant-submission`               | unit duplicate.test.ts | Implemented  |
+| FR-9.2 | `0005-compliant-submission`               | unit duplicate parent + skip triage | Implemented |
+| FR-9.3 | `0005-compliant-submission`               | unit ordering check | Implemented  |
+| FR-10.1 | `0011-reporting-dashboard`               | e2e admin-reports | Implemented  |
+| FR-10.2 | `0011-reporting-dashboard`               | unit aggregations | Implemented  |
+| FR-10.3 | `0011-reporting-dashboard`               | unit filter chain | Implemented  |
+| FR-10.4 | `0011-reporting-dashboard`               | e2e read-only | Implemented  |
+| NFR-1.x | `0005/0006/0007/0009`                    | k6 plan pending | Plan-defined |
+| NFR-2.x | `0005/0009/0012`                         | unit + monitoring | Implemented  |
+| NFR-3.x | `0001/0004/0005/0012`                    | unit + manual review | Implemented  |
+| NFR-4.x | `0001/0002/0005`                         | lint + structure review | Implemented  |
+| NFR-5.x | `0005`                                  | unit + ops review | Implemented  |
+| NFR-6.x | `0005/0006`                              | unit + reporterView | Implemented  |
+| NFR-7.x | `0005/0007`                              | unit + UI badge check | Implemented  |
+| NFR-8.x | `0001`                                  | static check (no Yoruba/pidgin/Hausa) | Implemented |
 
 ## Verification
 
-- **Unit / integration:** `npm test` — 58 suites, 316 tests (last sweep:
-  `4071224`).
-- **E2E smoke:** `npm run test:e2e` — 24 specs across 7 spec files (last
-  sweep: `1a4eee6`).
-- **Lint / typecheck:** tracked separately. Pre-existing issues are
-  documented in `context/progress-tracker.md` and queued for a dedicated
-  cleanup pass; no new regressions permitted.
-- **Load:** Apache JMeter or k6 plans for `/api/complaints` and
-  `/api/complaints/:id`. Plans derived from NFR-1, NFR-6.
+- **Unit + integration:** `npm test` → 58 suites, 316 tests; last
+  green sweep `4071224`.
+- **E2E smoke:** `npm run test:e2e` → 24 specs across 7 spec files; last
+  green sweep `1a4eee6`.
+- **Lint / typecheck:** tracked separately. Pre-existing issues
+  catalogued in `context/progress-tracker.md`; this commit introduces
+  no new regressions.
+- **Load (NFR-1.x):** k6 plan derived from the per-endpoint budgets
+  above. Plan summary in `context/progress-tracker.md -> Current Goal`.
+- **Manual UAT checklist:** reporter / admin / technician flows verified
+  against the FR list above during pilot onboarding.
+
+## Authoritative Source
+
+This file restates Sections 3.3.6.4 and 3.3.6.5 of the academic
+doc. If a conflict is introduced here, the academic doc wins and a PR
+must reconcile both. If the build cannot satisfy an FR or NFR due to a
+missing external dependency (Ably free tier, Cloudinary plan, OpenAI
+budget), declare it explicitly in `context/progress-tracker.md`
+under **Open Questions** and route to `/scope`.
