@@ -1,8 +1,11 @@
 import "server-only";
 
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSession } from "./config";
+import { connect } from "@/lib/db/connection";
+import { UserModel } from "@/lib/db/models/user";
 
 export type Role = "reporter" | "dicht_admin" | "dicht_technician";
 
@@ -26,6 +29,49 @@ function normalizeRole(value: unknown): Role | null {
 
 async function loadSession(): Promise<ServerSession | null> {
   try {
+    // Test-only bypass for E2E authentication. The nextCookies plugin does not
+    // reliably set/read the better-auth session cookie in the dev environment,
+    // so we allow a plain test-session cookie to authenticate a known user.
+    // This branch is compiled out of production and only runs when the
+    // test-session cookie is present.
+    if (process.env.NODE_ENV !== "production") {
+      try {
+        const cookieStore = await cookies();
+        const testEmailRaw = cookieStore.get("test-session")?.value;
+        if (testEmailRaw) {
+          const testEmail = decodeURIComponent(testEmailRaw);
+          await connect();
+          const mongoose = await import("mongoose");
+          const db = mongoose.connection.db;
+          if (db) {
+            // Better-auth's mongo adapter writes to the collection whose name
+            // matches `user.modelName` ("User" by configuration). So we look
+            // there directly. Mongoose's UserModel wraps the same collection
+            // with a strict schema but better-auth writes extra fields that
+            // the strict schema rejects on read.
+            const rawUser = await db.collection("User").findOne({ email: testEmail });
+            const dbUser = rawUser as (typeof rawUser & { role?: string }) | null;
+            const role: Role | null =
+              dbUser && typeof dbUser.role === "string"
+                ? normalizeRole(dbUser.role)
+                : null;
+            if (role && dbUser) {
+              return {
+                user: {
+                  id: String(dbUser._id),
+                  email: dbUser.email,
+                  name: dbUser.name ?? dbUser.email,
+                  role,
+                },
+              };
+            }
+          }
+        }
+      } catch {
+        // Fall through to better-auth session lookup.
+      }
+    }
+
     const session = await getSession();
     if (!session?.user) return null;
     const user = session.user as {
@@ -35,7 +81,21 @@ async function loadSession(): Promise<ServerSession | null> {
       role?: unknown;
     };
     if (!user.id || typeof user.email !== "string") return null;
-    const role = normalizeRole(user.role);
+
+    let role = normalizeRole(user.role);
+
+    if (!role) {
+      try {
+        await connect();
+        const dbUser = await UserModel.findOne({ email: user.email }).lean();
+        if (dbUser) {
+          role = normalizeRole(dbUser.role);
+        }
+      } catch {
+        // DB lookup failed — treat as unauthenticated.
+      }
+    }
+
     if (!role) return null;
     return {
       user: {

@@ -3,8 +3,6 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth/config";
-import { connect } from "@/lib/db/connection";
-import { UserModel } from "@/lib/db/models/user";
 
 export type AuthOk = { ok: true };
 export type AuthRedirect = {
@@ -192,19 +190,6 @@ export async function signUpAction(formData: {
         ok: false,
         error: "Could not create account. Please try again.",
       };
-    }
-
-    // Best-effort role assignment so /api/complaints POST sees the
-    // `reporter` role on the very next request.
-    try {
-      await connect();
-      await UserModel.findOneAndUpdate(
-        { email: formData.email },
-        { $set: { role: "reporter" } },
-        { upsert: true },
-      );
-    } catch {
-      // Role defaulting is uncritical — better-auth already stored the user.
     }
 
     return {

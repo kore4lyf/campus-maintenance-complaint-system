@@ -65,6 +65,7 @@ export async function getAuth(): Promise<BetterAuthInstance> {
           type: "string",
           required: false,
           input: false,
+          defaultValue: "reporter",
         },
         anonymousId: {
           type: "string",
