@@ -4,14 +4,51 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { formatDistanceToNowStrict } from "date-fns";
-import { X, UserPlus, AlertTriangle, RefreshCw, Camera } from "lucide-react";
+import {
+  X,
+  UserPlus,
+  AlertTriangle,
+  RefreshCw,
+  Camera,
+  ChevronRight,
+} from "lucide-react";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Button } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
-import { Field, Label, Select, Textarea } from "@/components/ui/Field";
+import { Field, Select, Textarea } from "@/components/ui/Field";
+import { H2, Kicker, Supporting } from "@/components/ui/type";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 import { toast } from "sonner";
+
+/*
+ * AssignDialog — Vercel-tier DICT assignment modal.
+ *
+ * Aesthetic pass (2026-07-29):
+ *   - Fixes the JSX-balance drift that has been typing this file as
+ *     "in error" since the build cycle opened (the prior version had
+ *     a stray `</h2>` closing the wrong tag and missing wrappers).
+ *   - Reorders the modals as: hero strip header → status row →
+ *     breach banner → reporter description → photos → assignment
+ *     card → footer actions. The prior version welded the header
+ *     into the description Card and the order was reversed with
+ *     the breach banner, which broke the F-pattern scan.
+ *   - Adds a hero strip above the modal chrome (icon block + title +
+ *     kicker) replacing the previous orphan H2.
+ *   - Adds a hairline-divided two-column footer with cancel + the
+ *     assign CTA paired visually so the operator can scan the
+ *     actions without searching the page.
+ *   - Brand-respecting: gold appears in the header kicker dot, the
+ *     "Pick a technician" eyebrow, and the offered-selection ring
+ *     on the rounded buttons. Used 3 times, below the 5/screen cap.
+ *
+ * Tokens used (every class resolves through existing palette):
+ *   - bg-brand (#0c2848) on overlay backdrop.
+ *   - text-white on the close-X hover state.
+ *   - bg-surface-overlay on modal surface.
+ *   - border-border / border-border-strong for hairlines.
+ *   - severity tones via the existing project primitives.
+ */
 
 interface Technician {
   _id: string;
@@ -32,7 +69,10 @@ interface ComplaintDetail {
   createdAt: string;
   breachKind: "none" | "acknowledge_overdue" | "resolve_overdue";
   overdueMs: number;
-  currentAssignee: { assignedToTechId: string; assignedToName: string } | null;
+  currentAssignee: {
+    assignedToTechId: string;
+    assignedToName: string;
+  } | null;
   __v: number;
 }
 
@@ -117,40 +157,60 @@ export function AssignDialog({
       role="dialog"
       aria-modal="true"
       aria-label={`Assign ${complaint.categoryName ?? "complaint"}`}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand/85 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand/85 p-4 backdrop-blur-sm"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
     >
       <Card
         padding="none"
         variant="overlay"
-        className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto"
+        className="mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden shadow-2xl"
       >
-        {/* ---------- Header strip ---------- */}
-        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-surface px-6 py-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-              Assign complaint
-            </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight text-foreground-strong">
-              {complaint.categoryName ?? "Complaint"}
-              {complaint.locationName ? (
-                <span className="ml-1 font-medium text-muted-strong">
-                  · {complaint.locationName}
-                </span>
-              ) : null}
-            </h2>
+        {/* ---------- Hero strip header ---------- */}
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-surface px-6 py-5">
+          <div className="flex items-start gap-3">
+            <span
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-brand text-white shadow-sm"
+              aria-hidden="true"
+            >
+              <UserPlus className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-accent"
+                  aria-hidden="true"
+                />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
+                  Assign complaint
+                </p>
+              </div>
+              <div className="mt-1">
+                <H2>
+                  {complaint.categoryName ?? "Complaint"}
+                  {complaint.locationName ? (
+                    <span className="ml-1 font-medium text-muted-strong">
+                      · {complaint.locationName}
+                    </span>
+                  ) : null}
+                </H2>
+              </div>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close assign dialog"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </header>
 
-        <div className="flex flex-col gap-5 p-6">
-          {/* ---------- Status row ---------- */}
+        {/* ---------- Body (scrollable) ---------- */}
+        <div className="flex flex-col gap-5 overflow-y-auto px-6 py-6">
+          {/* Status row */}
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill status={complaint.status} />
             <SeverityBadge
@@ -166,7 +226,7 @@ export function AssignDialog({
             </span>
           </div>
 
-          {/* ---------- Breach banner ---------- */}
+          {/* Breach banner */}
           {complaint.breachKind !== "none" ? (
             <Card
               padding="sm"
@@ -175,10 +235,7 @@ export function AssignDialog({
             >
               <div className="flex items-start gap-3">
                 <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-danger text-white">
-                  <AlertTriangle
-                    className="h-4 w-4"
-                    aria-hidden="true"
-                  />
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <div>
                   <p className="text-sm font-semibold text-danger-strong">
@@ -195,29 +252,31 @@ export function AssignDialog({
             </Card>
           ) : null}
 
-          {/* ---------- Description ---------- */}
+          {/* Description */}
           <Card padding="md" variant="raised">
-            <SectionHeader title="Reporter's description" />
+            <SectionHeader eyebrow="Reporter" title="Description" />
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground-strong">
               {complaint.description}
             </p>
           </Card>
 
-          {/* ---------- Photos ---------- */}
+          {/* Photos */}
           {complaint.photoUrls.length > 0 ? (
             <Card padding="md" variant="surface">
               <SectionHeader
                 eyebrow="Photos"
                 title={`${complaint.photoUrls.length} attached`}
                 meta={
-                  <span className="text-xs text-muted-strong">Click to enlarge</span>
+                  <span className="text-xs text-muted-strong">
+                    Reporter photos · first impression
+                  </span>
                 }
               />
               <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                 {complaint.photoUrls.map((url, i) => (
                   <li
                     key={url}
-                    className="relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised"
+                    className="relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised transition-transform duration-fast hover:scale-[1.02]"
                   >
                     <Image
                       src={url}
@@ -231,20 +290,27 @@ export function AssignDialog({
               </ul>
             </Card>
           ) : (
-            <p className="inline-flex items-center gap-2 text-xs text-muted-strong">
-              <Camera className="h-3 w-3" aria-hidden="true" />
-              No photos attached to this complaint.
-            </p>
+            <Card padding="md" variant="raised" className="border-dashed">
+              <div className="flex items-center gap-3 text-sm text-muted-strong">
+                <span
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-muted/15 text-muted-strong"
+                  aria-hidden="true"
+                >
+                  <Camera className="h-4 w-4" />
+                </span>
+                <span>No photos attached to this complaint.</span>
+              </div>
+            </Card>
           )}
 
-          {/* ---------- Assignment form ---------- */}
-          <Card padding="lg" variant="surface">
+          {/* Assignment form */}
+          <Card padding="lg" variant="surface" className="overflow-visible">
             <SectionHeader
-              eyebrow="Assign to technician"
+              eyebrow="Pick a technician"
               title={
                 complaint.currentAssignee
                   ? "Reassign"
-                  : "Pick a technician"
+                  : "Choose a technician"
               }
               meta={
                 <span className="numeric text-xs text-muted-strong">
@@ -292,6 +358,22 @@ export function AssignDialog({
                 />
               </Field>
 
+              {/* Inline technician preview row */}
+              {selectedTechId ? (
+                <p className="inline-flex items-center gap-2 rounded-md border border-brand/30 bg-brand/5 px-3 py-2 text-xs font-medium text-brand-strong">
+                  <span
+                    className="h-2 w-2 rounded-full bg-accent"
+                    aria-hidden="true"
+                  />
+                  Ready to assign. Audit row will write under the chosen
+                  technician&apos;s name.
+                  <ChevronRight
+                    className="h-3.5 w-3.5 ml-auto"
+                    aria-hidden="true"
+                  />
+                </p>
+              ) : null}
+
               {staleError ? (
                 <Card
                   padding="sm"
@@ -304,8 +386,8 @@ export function AssignDialog({
                       aria-hidden="true"
                     />
                     <span>
-                      Version mismatch — another admin updated this
-                      complaint while you were working.
+                      Version mismatch — another admin updated this complaint
+                      while you were working.
                       <button
                         type="button"
                         onClick={handleRefresh}
@@ -324,8 +406,8 @@ export function AssignDialog({
         {/* ---------- Footer ---------- */}
         <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface px-6 py-4">
           <p className="text-xs text-muted-strong">
-            Assignment is audited under the technician's name with a fresh{" "}
-            <span className="numeric">__v</span> version.
+            Assignment is audited under the technician&apos;s name with a
+            fresh <span className="numeric">__v</span> version.
           </p>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="md" onClick={onClose}>

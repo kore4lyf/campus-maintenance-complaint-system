@@ -6,6 +6,28 @@ import { Badge } from "@/components/ui/Badge";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import type { QueryKey } from "@tanstack/react-query";
 
+/*
+ * RealtimeStatusBadge — DICT console connection status pill.
+ *
+ * Aesthetic: an inline status affordance that reads as a hairline-pill
+ * with a translucent tone-mapped fill. Uses the project's Badge
+ * primitive + semantic tone mapping (success / warning / neutral) so
+ * the colour stays in the locked palette. The pulse dot on the
+ * "connected" state animates via dot-pulse so a DICT console operator
+ * can confirm the channel is wired without leaving the queue.
+ *
+ * Astryx mapping:
+ *   - tone="success" → Astryx Banner.status="success" colour pair.
+ *   - the leadingIcon slot uses the project's Lucide pattern.
+ *
+ * Tokens used (no new tokens):
+ *   - bg-success (the live dot & fill)
+ *   - bg-warning (polling fallback)
+ *   - bg-muted (connecting)
+ *   - text-success-strong / text-warning-strong / text-muted-strong
+ *     (paired via the existing Badge primitives)
+ */
+
 interface RealtimeStatusBadgeProps {
   channelName: string;
   queryKey: QueryKey;
@@ -35,12 +57,20 @@ export function RealtimeStatusBadge({
 
   if (connectionState === "connected") {
     return (
-      <Badge
-        tone="success"
-        leadingIcon={<Radio className="h-3 w-3" aria-hidden="true" />}
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success-strong ring-1 ring-inset ring-success/20"
+        aria-label="Live connection active"
       >
-        Live · auto-refreshing
-      </Badge>
+        <span
+          aria-hidden="true"
+          className="relative flex h-1.5 w-1.5 items-center justify-center"
+        >
+          <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60" />
+          <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-success" />
+        </span>
+        <Radio className="h-3 w-3" aria-hidden="true" />
+        <span>Live · auto-refreshing</span>
+      </span>
     );
   }
 

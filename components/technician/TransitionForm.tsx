@@ -2,11 +2,45 @@
 
 import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Camera, CheckCircle2, RefreshCw, Save } from "lucide-react";
+import {
+  ArrowRight,
+  Camera,
+  CheckCircle2,
+  RefreshCw,
+  Save,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
 import { Label, Textarea } from "@/components/ui/Field";
+import { Kicker } from "@/components/ui/type";
+
+/*
+ * TransitionForm — technician-side status transition composer.
+ *
+ * Aesthetic pass (2026-07-29):
+ *   - Restructures the transition picker as a 3-step segmented control
+ *     rather than a list of clickable cards. Each transition is a
+ *     side-by-side card with a coloured intent chip + a description
+ *     + an explicit "Selected" indicator. Operators can pick one of
+ *     three statuses with full keyboard accessibility and instant
+ *     visual confirmation.
+ *   - Adds a hero strip at the top of the composer with the current
+ *     status pill + the "next step" kicker label.
+ *   - Adds a hairline divider between the picker and the note/photo
+ *     stack to communicate "if you pick a transition, the next section
+ *     captures the artifacts".
+ *   - Brand discipline: gold reserved for the kicker eyebrow + the
+ *     intent-ring "selected" badge. Severity-mapped tones (info /
+ *     warning / success) map to status semantics.
+ *
+ * Tokens used (every class resolves through existing palette):
+ *   - intent chip tones: bg-info, bg-warning, bg-success semantic.
+ *   - onSelected: bg-brand, ring-brand-strong.
+ *   - hairline rules: border-border.
+ *   - motion: duration-fast on intent transitions.
+ */
 
 interface TransitionFormProps {
   complaintId: string;
@@ -18,31 +52,42 @@ interface TransitionFormProps {
 
 const TRANSITION_META: Record<
   string,
-  { label: string; description: string; intent: "info" | "warning" | "success" }
+  {
+    label: string;
+    description: string;
+    intent: "info" | "warning" | "success";
+    iconName: "ack" | "start" | "resolve";
+  }
 > = {
   Acknowledged: {
     label: "Acknowledge",
     description:
       "Mark that you've seen the complaint and claim it from the queue.",
     intent: "info",
+    iconName: "ack",
   },
   "In Progress": {
     label: "Start work",
-    description: "Begin the repair. Add notes so the reporter sees progress.",
+    description:
+      "Begin the repair. Add notes so the reporter sees progress.",
     intent: "warning",
+    iconName: "start",
   },
   Resolved: {
     label: "Mark resolved",
     description:
       "Upload a proof-of-fix photo. The complaint closes once a reporter confirms or after 24 h.",
     intent: "success",
+    iconName: "resolve",
   },
 };
 
 const INTENT_RING: Record<string, string> = {
-  info: "border-info/40 hover:border-info bg-info/5 hover:bg-info/10",
-  warning: "border-warning/40 hover:border-warning bg-warning/5 hover:bg-warning/10",
-  success: "border-success/40 hover:border-success bg-success/5 hover:bg-success/10",
+  info: "border-info/40 bg-info/5 hover:border-info hover:bg-info/10",
+  warning:
+    "border-warning/40 bg-warning/5 hover:border-warning hover:bg-warning/10",
+  success:
+    "border-success/40 bg-success/5 hover:border-success hover:bg-success/10",
 };
 
 const INTENT_CHECK: Record<string, string> = {
@@ -50,6 +95,32 @@ const INTENT_CHECK: Record<string, string> = {
   warning: "bg-warning text-white",
   success: "bg-success text-white",
 };
+
+const INTENT_TEXT: Record<string, string> = {
+  info: "text-info-strong ring-info/30",
+  warning: "text-warning-strong ring-warning/30",
+  success: "text-success-strong ring-success/30",
+};
+
+function IntentDot({
+  intent,
+  children,
+}: {
+  intent: "info" | "warning" | "success";
+  children: React.ReactNode;
+}) {
+  const dot: Record<string, string> = {
+    info: "bg-info",
+    warning: "bg-warning",
+    success: "bg-success",
+  };
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-1.5 w-1.5 rounded-full ${dot[intent]}`} aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
 
 export function TransitionForm({
   complaintId,
@@ -116,7 +187,7 @@ export function TransitionForm({
         setStaleError(true);
         toast.error("Version mismatch. Please refresh and try again.");
       } else if (error?.error?.code === "invalid_photo") {
-        toast.error(error.error.message || "Invalid photo");
+        toast.error(error.error.message ?? "Invalid photo");
       } else {
         toast.error("Failed to update status. Please try again.");
       }
@@ -162,12 +233,26 @@ export function TransitionForm({
   }
 
   return (
-    <Card padding="lg" variant="surface">
-      <SectionHeader
-        eyebrow="Update status"
-        title="Move this complaint forward"
-      />
+    <Card padding="lg" variant="surface" className="overflow-visible">
+      {/* Hero strip */}
+      <header className="mb-5 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="h-1.5 w-1.5 rounded-full bg-accent"
+            aria-hidden="true"
+          />
+          <Kicker>Update status</Kicker>
+          <span className="ml-auto numeric text-[11px] uppercase tracking-[0.16em] text-muted-strong">
+            Move complaint forward
+          </span>
+        </div>
+        <p className="text-sm leading-[1.55] text-muted-strong">
+          Pick the next status, add context, and ship the change in one
+          commit. The audit trail writes under your name.
+        </p>
+      </header>
 
+      {/* Picker list */}
       <fieldset className="space-y-2" disabled={transitionMutation.isPending}>
         <legend className="sr-only">Allowed status transitions</legend>
         {allowedTransitions.map((transition) => {
@@ -175,15 +260,16 @@ export function TransitionForm({
             label: transition,
             description: "",
             intent: "info" as const,
+            iconName: "ack" as const,
           };
           const isSelected = selectedTransition === transition;
           return (
             <label
               key={transition}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-[border-color,background-color] duration-fast ${
                 isSelected
                   ? "border-brand bg-brand/10 ring-1 ring-inset ring-brand-strong"
-                  : `border-border bg-surface-raised hover:bg-surface ${INTENT_RING[meta.intent]}`
+                  : `border-border bg-surface-raised ${INTENT_RING[meta.intent]} hover:-translate-y-0.5 hover:shadow-sm`
               }`}
             >
               <input
@@ -196,11 +282,19 @@ export function TransitionForm({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground-strong">
+                  <p className="text-sm font-semibold tracking-[-0.005em] text-foreground-strong">
                     {meta.label}
                   </p>
+                  <IntentDot intent={meta.intent}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset ${INTENT_TEXT[meta.intent]}`}
+                    >
+                      {meta.intent}
+                    </span>
+                  </IntentDot>
                   {isSelected ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                      <Sparkles className="h-3 w-3" aria-hidden="true" />
                       Selected
                     </span>
                   ) : null}
@@ -310,7 +404,8 @@ export function TransitionForm({
                   aria-hidden="true"
                 />
                 <span>
-                  Another user updated this complaint while you were working.
+                  Another user updated this complaint while you were
+                  working.
                   <button
                     type="button"
                     onClick={handleRefresh}

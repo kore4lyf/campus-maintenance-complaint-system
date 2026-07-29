@@ -12,11 +12,12 @@ import {
   ShieldCheck,
   Tag,
   MapPin,
-  AlignLeft,
   Image as ImageIcon,
   EyeOff,
   AlertCircle,
   Sparkles,
+  CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
@@ -28,6 +29,33 @@ import {
   Select,
   Checkbox,
 } from "@/components/ui/Field";
+import { H2, Kicker, Supporting } from "@/components/ui/type";
+
+/*
+ * ComplaintForm — the largest of the reporter surfaces (415 LoC).
+ *
+ * Aesthetic pass (2026-07-29):
+ *   - Adds numbered caption strips at the top of each card
+ *     (`01 Identification`, `02 Description`, `03 Photo`, `04 Privacy`)
+ *     to mirror the home / detail / queue compositional cadence.
+ *   - Two-column label + count pill on the description meta slot
+ *     (so character count is visible without consuming label real
+ *     estate), with a hairline character-progress ring optional.
+ *   - Photo block uses a brand-tinted drag-and-drop surface with
+ *     a hairline border; chosen photo carries an `accent-soft`
+ *     badge to differentiate the chosen state.
+ *   - Privacy block keeps the Sparkles accent chip restraint.
+ *   - Error block lifted into a Card with border-danger/40 to give
+ *     it visual differentiation from success states.
+ *   - Submit footer restructured as a hairline-bordered action row
+ *     with a sticky-feel shadow at the bottom of long forms.
+ *
+ * Tokens used (no new tokens):
+ *   - bg-brand (#0c2848) on the primary CTA.
+ *   - text-brand-strong on the privacy eyebrow accent.
+ *   - text-success-strong on the chosen-photo badge.
+ *   - hairline border-border on every section divider.
+ */
 
 const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX = 2000;
@@ -82,6 +110,7 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ComplaintInput>({
     resolver: zodResolver(complaintSchema),
@@ -93,11 +122,14 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
     },
   });
 
+  const descriptionValue = watch("description") ?? "";
+
   const validatePhoto = (file: File | null): string | null => {
     if (!file) return null;
     if (!ALLOWED_PHOTO_MIME.includes(file.type as (typeof ALLOWED_PHOTO_MIME)[number])) {
       return "Photo must be a JPG, PNG, or WebP image";
     }
+
     if (file.size > PHOTO_MAX_BYTES) {
       return `Photo must be ${PHOTO_MAX_MB} MB or smaller`;
     }
@@ -138,7 +170,9 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
           });
         } catch (err) {
           const message =
-            err instanceof Error ? err.message : "Network error. Please try again.";
+            err instanceof Error
+              ? err.message
+              : "Network error. Please try again.";
           setFormError(message);
           toast.error(message);
           return;
@@ -207,6 +241,17 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
     });
   });
 
+  const characterRatio = Math.min(
+    1,
+    descriptionValue.length / DESCRIPTION_MAX,
+  );
+  const characterTone =
+    descriptionValue.length > DESCRIPTION_MAX * 0.9
+      ? "text-warning-strong"
+      : descriptionValue.length < DESCRIPTION_MIN
+        ? "text-muted-strong"
+        : "text-foreground-strong";
+
   return (
     <form
       onSubmit={onSubmit}
@@ -214,11 +259,24 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
       noValidate
       encType="multipart/form-data"
     >
+      {/* ---------- Identity section ---------- */}
       <Card padding="lg" variant="surface">
-        <SectionHeader
-          eyebrow="Identification"
-          title="What's broken and where?"
-        />
+        <header className="mb-5 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="numeric text-xl font-semibold leading-none tracking-[-0.02em] text-foreground-strong">
+              01
+            </span>
+            <span aria-hidden="true" className="h-px w-6 bg-border-strong" />
+            <Kicker>Identification</Kicker>
+          </div>
+          <H2 className="text-xl font-semibold tracking-[-0.01em] text-foreground-strong">
+            What&apos;s broken and where?
+          </H2>
+          <Supporting>
+            Pick the closest category and location so the technician can
+            route the right equipment to your building.
+          </Supporting>
+        </header>
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field
@@ -275,22 +333,54 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
         </div>
       </Card>
 
+      {/* ---------- Description section ---------- */}
       <Card padding="lg" variant="surface">
-        <SectionHeader
-          eyebrow="Description"
-          title="What happened?"
-          meta={
-            <span className="numeric text-xs text-muted-strong">
-              {DESCRIPTION_MIN}–{DESCRIPTION_MAX} characters
+        <header className="mb-5 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="numeric text-xl font-semibold leading-none tracking-[-0.02em] text-foreground-strong">
+              02
             </span>
-          }
-        />
+            <span aria-hidden="true" className="h-px w-6 bg-border-strong" />
+            <Kicker>Description</Kicker>
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <H2 className="text-xl font-semibold tracking-[-0.01em] text-foreground-strong">
+                What happened?
+              </H2>
+              <Supporting>
+                Be specific. Mention what you saw, when, and how often it
+                happens.
+              </Supporting>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-2.5 py-1 text-xs font-medium">
+              <span className="text-muted-strong">
+                {DESCRIPTION_MIN}–{DESCRIPTION_MAX} chars
+              </span>
+              <span
+                aria-hidden="true"
+                className="h-3 w-px bg-border-strong"
+              />
+              <span className={`numeric ${characterTone}`}>
+                {descriptionValue.length} / {DESCRIPTION_MAX}
+              </span>
+              <span
+                aria-hidden="true"
+                className="h-2 w-12 overflow-hidden rounded-full bg-surface-raised ring-1 ring-inset ring-border"
+              >
+                <span
+                  className="block h-full bg-brand transition-[width] duration-medium"
+                  style={{ width: `${characterRatio * 100}%` }}
+                />
+              </span>
+            </div>
+          </div>
+        </header>
 
         <Field
           label="Describe the fault"
           htmlFor="complaint-description"
           error={errors.description?.message}
-          hint="Be specific. Mention what you saw, when, and how often it happens."
           required
         >
           <Textarea
@@ -303,21 +393,29 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
         </Field>
       </Card>
 
+      {/* ---------- Photo section ---------- */}
       <Card padding="lg" variant="surface">
-        <SectionHeader
-          eyebrow="Photo"
-          title="Attach a photo (optional)"
-          meta={
-            <span className="text-xs text-muted-strong">
-              JPG, PNG, or WebP · up to {PHOTO_MAX_MB} MB
+        <header className="mb-5 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="numeric text-xl font-semibold leading-none tracking-[-0.02em] text-foreground-strong">
+              03
             </span>
-          }
-        />
+            <span aria-hidden="true" className="h-px w-6 bg-border-strong" />
+            <Kicker>Photo</Kicker>
+            <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-muted/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-strong">
+              Optional
+            </span>
+          </div>
+          <H2 className="text-xl font-semibold tracking-[-0.01em] text-foreground-strong">
+            Attach a photo
+          </H2>
+          <Supporting>
+            A photo helps the technician act on the first visit. JPG, PNG,
+            or WebP up to {PHOTO_MAX_MB}&nbsp;MB.
+          </Supporting>
+        </header>
 
-        <Field
-          htmlFor="complaint-photo"
-          error={photoError ?? undefined}
-        >
+        <Field htmlFor="complaint-photo" error={photoError ?? undefined}>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
               <label
@@ -335,13 +433,17 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
                 onChange={onPhotoChange}
               />
               {photoFile ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success-strong">
-                  <ImageIcon className="h-3 w-3" aria-hidden="true" />
-                  {photoFile.name} · {Math.round(photoFile.size / 1024)} KB
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success-strong ring-1 ring-inset ring-success/30">
+                  <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                  {photoFile.name} ·{" "}
+                  <span className="numeric">
+                    {Math.round(photoFile.size / 1024)} KB
+                  </span>
                 </span>
               ) : (
-                <span className="text-xs text-muted">
-                  Tip: a photo speeds up the technician's first visit.
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                  <Sparkles className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+                  Tip: a photo speeds up the technician&apos;s first visit.
                 </span>
               )}
             </div>
@@ -349,11 +451,20 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
         </Field>
       </Card>
 
+      {/* ---------- Privacy section ---------- */}
       <Card padding="lg" variant="raised">
-        <SectionHeader
-          eyebrow="Privacy"
-          title="One more thing…"
-        />
+        <header className="mb-5 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="numeric text-xl font-semibold leading-none tracking-[-0.02em] text-foreground-strong">
+              04
+            </span>
+            <span aria-hidden="true" className="h-px w-6 bg-border-strong" />
+            <Kicker>Privacy</Kicker>
+          </div>
+          <H2 className="text-xl font-semibold tracking-[-0.01em] text-foreground-strong">
+            One more thing…
+          </H2>
+        </header>
 
         <Field
           htmlFor="complaint-anonymous"
@@ -363,7 +474,10 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
             id="complaint-anonymous"
             label={
               <span className="inline-flex items-center gap-1.5 font-medium">
-                <EyeOff className="h-4 w-4 text-muted-strong" aria-hidden="true" />
+                <EyeOff
+                  className="h-4 w-4 text-muted-strong"
+                  aria-hidden="true"
+                />
                 Submit anonymously
               </span>
             }
@@ -372,8 +486,8 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
                 We hide your name and email. You will get a private tracker
                 URL instead of a sign-in session.{" "}
                 <span className="inline-flex items-center gap-1 font-medium text-accent-strong">
-                  <Sparkles className="h-3 w-3" aria-hidden="true" /> Recommended
-                  for sensitive issues.
+                  <Sparkles className="h-3 w-3" aria-hidden="true" />{" "}
+                  Recommended for sensitive issues.
                 </span>
               </>
             }
@@ -382,33 +496,48 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
         </Field>
       </Card>
 
+      {/* ---------- Error banner ---------- */}
       {formError ? (
         <Card
           padding="sm"
           variant="surface"
           className="border-danger/40 bg-danger/5"
         >
-          <p role="alert" className="flex items-start gap-2 text-sm font-medium text-danger">
-            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <p
+            role="alert"
+            className="flex items-start gap-2 text-sm font-medium text-danger-strong"
+          >
+            <AlertCircle
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              aria-hidden="true"
+            />
             <span>{formError}</span>
           </p>
         </Card>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
-          <ShieldCheck className="h-3 w-3 text-accent-strong" aria-hidden="true" />
-          Your submission is private and visible only to DICT.
-        </p>
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          loading={isPending}
-          leadingIcon={<Send className="h-4 w-4" />}
-        >
-          {isPending ? "Submitting" : "Submit complaint"}
-        </Button>
+      {/* ---------- Submit footer (sticky shadow at the bottom) ---------- */}
+      <div className="sticky bottom-0 z-10 -mx-1 mt-2 rounded-xl border border-border bg-surface/95 px-5 py-4 shadow-sm backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
+            <ShieldCheck className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+            Your submission is private and visible only to DICT.
+          </p>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={isPending}
+            leadingIcon={<Send className="h-4 w-4" />}
+            trailingIcon={
+              !isPending ? (
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              ) : undefined
+            }
+          >
+            {isPending ? "Submitting" : "Submit complaint"}
+          </Button>
+        </div>
       </div>
     </form>
   );

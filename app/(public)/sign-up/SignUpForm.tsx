@@ -16,7 +16,6 @@ import {
 import { toast } from "sonner";
 import { signUpAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Field, Input, PasswordInput } from "@/components/ui/Field";
 
 const signUpSchema = z.object({
@@ -130,22 +129,17 @@ export function SignUpForm() {
       </Field>
 
       {formError ? (
-        <Card
-          padding="sm"
-          variant="surface"
-          className="border-danger/40 bg-danger/5 text-danger"
+        <div
+          role="alert"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-md border border-danger/30 bg-danger-soft p-3 text-sm text-danger-strong"
         >
-          <p
-            role="alert"
-            className="flex items-start gap-2 text-sm font-medium"
-          >
-            <AlertCircle
-              className="mt-0.5 h-4 w-4 flex-shrink-0"
-              aria-hidden="true"
-            />
-            <span>{formError}</span>
-          </p>
-        </Card>
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 flex-shrink-0"
+            aria-hidden="true"
+          />
+          <span className="font-medium">{formError}</span>
+        </div>
       ) : null}
 
       <Button
@@ -165,13 +159,13 @@ export function SignUpForm() {
         {isPending ? "Creating account" : "Create account"}
       </Button>
 
-      <p className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-strong">
+      <p className="inline-flex items-center justify-start gap-1.5 text-xs text-muted">
         <Sparkles
           className="h-3 w-3 text-accent-strong"
           aria-hidden="true"
         />
-        Reporter accounts are auto-approved. DICT accounts are seeded
-        by administrators.
+        Reporter accounts are auto-approved. Your display name shows up
+        in the DICT queue.
       </p>
     </form>
   );

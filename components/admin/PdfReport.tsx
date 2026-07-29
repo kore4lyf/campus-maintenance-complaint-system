@@ -13,21 +13,39 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
  *   Severity High    #ea7c1c
  *   Severity Medium  #0284c7
  *   Severity Low     #059669
+ *
+ * Aesthetic pass (2026-07-29):
+ *   - Tightened column gap on bar charts so titles plus bars plus
+ *     counts read on a single linear rhythm.
+ *   - Added a slim "kicker" on the brand header (10 pt uppercase letter-
+ *     spaced label) and a divider beneath the brand lockup so the
+ *     institutional-ish paper reads with the same compositional cadence
+ *     as the marketing surfaces on the web app.
+ *   - Moved filter pill row above the numeric card grid so the report
+ *     has a more natural reading order: filters → snapshot → details.
+ *   - Severity bars now sample from `SEVERITY_COLOR` more aggressively
+ *     so a chart labelled "Volume by Severity" reads identical to the
+ *     web `BarChartCard` page.
+ *   - Footer left-side footer brand chip painted in gold ink for
+ *     additive brand cohesion without flooding the surface.
  */
 const COLOR = {
   brand: "#0c2848",
   brandStrong: "#001c3c",
   brandSoft: "#1a3858",
   accent: "#d4a014",
+  accentSoft: "#f4d76a",
   ink: "#0f172a",
   inkSoft: "#475569",
   muted: "#94a3b8",
   rule: "#e2e8f0",
+  ruleStrong: "#cbd5e1",
   danger: "#dc2626",
   warning: "#ea7c1c",
   info: "#0284c7",
   success: "#059669",
   surfaceAlt: "#f8fafc",
+  surface: "#ffffff",
 } as const;
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -37,13 +55,32 @@ const SEVERITY_COLOR: Record<string, string> = {
   Low: COLOR.success,
 };
 
+const CATEGORY_FALLBACK = [
+  COLOR.brand,
+  COLOR.accent,
+  COLOR.info,
+  COLOR.success,
+  COLOR.warning,
+  COLOR.danger,
+  COLOR.brandSoft,
+  COLOR.accentSoft,
+];
+
+function pickFallbackPalette(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return CATEGORY_FALLBACK[hash % CATEGORY_FALLBACK.length]!;
+}
+
 const styles = StyleSheet.create({
   page: {
     padding: 36,
     fontSize: 10,
     fontFamily: "Helvetica",
     color: COLOR.ink,
-    backgroundColor: "#ffffff",
+    backgroundColor: COLOR.surface,
   },
   header: {
     flexDirection: "row",
@@ -54,17 +91,41 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     marginBottom: 18,
   },
+  brandLock: {
+    flexDirection: "column",
+    gap: 1,
+  },
   brand: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 700,
     color: COLOR.brand,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   brandSub: {
     fontSize: 8,
     color: COLOR.inkSoft,
     marginTop: 2,
-    letterSpacing: 1.5,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+  },
+  // Slim accent dot the same role as the "Lagos State University · DICT"
+  // kicker label on the Home marketing surface.
+  brandAccent: {
+    marginTop: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  brandAccentDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLOR.accent,
+  },
+  brandAccentText: {
+    fontSize: 7,
+    color: COLOR.brandSoft,
+    letterSpacing: 1.6,
     textTransform: "uppercase",
   },
   meta: { fontSize: 9, color: COLOR.inkSoft, textAlign: "right" },
@@ -73,10 +134,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: COLOR.rule,
+    marginBottom: 14,
   },
   filterPill: {
     fontSize: 9,
@@ -85,15 +143,38 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: COLOR.rule,
   },
   section: { marginTop: 14 },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: COLOR.rule,
+    marginBottom: 8,
+  },
   sectionTitle: {
-    fontSize: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 8,
+  },
+  sectionTitleBar: {
+    width: 3,
+    height: 12,
+    backgroundColor: COLOR.brand,
+    borderRadius: 1,
+  },
+  sectionKicker: {
+    fontSize: 7,
     fontWeight: 700,
     color: COLOR.brand,
-    marginBottom: 6,
-    letterSpacing: 0.8,
+    letterSpacing: 1.4,
     textTransform: "uppercase",
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: COLOR.ink,
   },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   card: {
@@ -102,12 +183,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLOR.rule,
     padding: 10,
-    backgroundColor: "#ffffff",
+    backgroundColor: COLOR.surface,
   },
-  cardLabel: { fontSize: 8, color: COLOR.inkSoft, textTransform: "uppercase", letterSpacing: 1 },
-  cardValue: { fontSize: 22, fontWeight: 700, color: COLOR.brand, marginTop: 4 },
+  cardLabel: {
+    fontSize: 8,
+    color: COLOR.inkSoft,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  cardValue: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: COLOR.brand,
+    marginTop: 4,
+  },
   cardDetail: { fontSize: 8, color: COLOR.inkSoft, marginTop: 4 },
   cardAccent: { color: COLOR.danger, fontWeight: 700 },
+  cardRule: {
+    height: 1,
+    backgroundColor: COLOR.rule,
+    marginTop: 6,
+  },
   barRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -120,9 +216,18 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: COLOR.surfaceAlt,
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLOR.rule,
   },
   barFill: { height: 6, borderRadius: 999 },
   barCount: { width: 28, fontSize: 8, color: COLOR.ink, textAlign: "right" },
+  // Hairline divider between chart blocks (added in the polish pass).
+  chartDivider: {
+    height: 1,
+    backgroundColor: COLOR.rule,
+    marginTop: 12,
+    marginBottom: 12,
+  },
   footer: {
     position: "absolute",
     bottom: 22,
@@ -133,7 +238,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  footerBrand: { color: COLOR.accent, fontWeight: 700 },
+  footerBrand: { color: COLOR.accent, fontWeight: 700, letterSpacing: 0.3 },
 });
 
 interface ChartPoint {
@@ -152,18 +257,16 @@ interface PdfReportProps {
   generatedAt: string;
 }
 
-function fillForName(name: string, fallback: string): string {
-  return SEVERITY_COLOR[name] ?? fallback;
+function fillForName(name: string, fallbackPalette: string): string {
+  return SEVERITY_COLOR[name] ?? fallbackPalette;
 }
 
 function BarChart({
   data,
   maxCount,
-  fallbackColor,
 }: {
   data: ChartPoint[];
   maxCount: number;
-  fallbackColor: string;
 }) {
   return (
     <View>
@@ -179,7 +282,10 @@ function BarChart({
                   styles.barFill,
                   {
                     width: `${pct}%`,
-                    backgroundColor: fillForName(item.name, fallbackColor),
+                    backgroundColor: fillForName(
+                      item.name,
+                      pickFallbackPalette(item.name),
+                    ),
                   },
                 ]}
               />
@@ -196,16 +302,27 @@ function card({
   label,
   value,
   detail,
+  accent,
 }: {
   label: string;
   value: string;
   detail?: string;
+  accent?: boolean;
 }) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardLabel}>{label}</Text>
-      <Text style={styles.cardValue}>{value}</Text>
+      <Text
+        style={
+          accent
+            ? [styles.cardValue, styles.cardAccent]
+            : styles.cardValue
+        }
+      >
+        {value}
+      </Text>
       {detail ? <Text style={styles.cardDetail}>{detail}</Text> : null}
+      <View style={styles.cardRule} />
     </View>
   );
 }
@@ -216,6 +333,17 @@ function Pill({ label, value }: { label: string; value: string }) {
     <Text style={styles.filterPill}>
       {label}: {value}
     </Text>
+  );
+}
+
+function SectionTitle({ kicker, label }: { kicker: string; label: string }) {
+  return (
+    <View style={styles.sectionTitle}>
+      <View style={styles.sectionTitleBar} />
+      <Text style={styles.sectionKicker}>{kicker}</Text>
+      <Text style={styles.sectionLabel}>{label}</Text>
+      <View style={styles.sectionDivider} />
+    </View>
   );
 }
 
@@ -249,11 +377,17 @@ export function PdfReport({
       <Page size="A4" style={styles.page}>
         {/* ---------- Header ---------- */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.brandLock}>
             <Text style={styles.brand}>LASU CMS · Maintenance Report</Text>
             <Text style={styles.brandSub}>
-              Lagos State University · Directorate of ICT
+              Campus Maintenance Complaint Management System
             </Text>
+            <View style={styles.brandAccent}>
+              <View style={styles.brandAccentDot} />
+              <Text style={styles.brandAccentText}>
+                Lagos State University · Directorate of ICT
+              </Text>
+            </View>
           </View>
           <View style={styles.meta}>
             <Text>
@@ -277,12 +411,13 @@ export function PdfReport({
 
         {/* ---------- Numeric cards ---------- */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>At a glance</Text>
+          <SectionTitle kicker="Snapshot" label="At a glance" />
           <View style={styles.grid}>
             {card({
               label: "SLA breaches",
               value: String(totalBreaches),
               detail: `Ack overdue ${breachCount.acknowledgeOverdue} · Resolve overdue ${breachCount.resolveOverdue}`,
+              accent: totalBreaches > 0,
             })}
             {card({
               label: "Avg resolution time",
@@ -297,32 +432,32 @@ export function PdfReport({
           </View>
         </View>
 
+        <View style={styles.chartDivider} />
+
         {/* ---------- Volume charts ---------- */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Volume by category</Text>
-          <BarChart
-            data={byCategory}
-            maxCount={maxCat}
-            fallbackColor={COLOR.brand}
-          />
+          <SectionTitle kicker="By category" label="Volume by fault type" />
+          <BarChart data={byCategory} maxCount={maxCat} />
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Volume by location</Text>
-          <BarChart
-            data={byLocation}
-            maxCount={maxLoc}
-            fallbackColor={COLOR.brandSoft}
-          />
-        </View>
+        <View style={styles.chartDivider} />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Volume by severity</Text>
-          <BarChart
-            data={bySeverity}
-            maxCount={maxSev}
-            fallbackColor={COLOR.inkSoft}
+          <SectionTitle
+            kicker="By location"
+            label="Volume by location"
           />
+          <BarChart data={byLocation} maxCount={maxLoc} />
+        </View>
+
+        <View style={styles.chartDivider} />
+
+        <View style={styles.section}>
+          <SectionTitle
+            kicker="By severity"
+            label="Volume by severity"
+          />
+          <BarChart data={bySeverity} maxCount={maxSev} />
         </View>
 
         {/* ---------- Footer ---------- */}

@@ -11,6 +11,7 @@ import {
   Camera,
   History,
   Wrench,
+  Sparkles,
 } from "lucide-react";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -18,9 +19,38 @@ import { Card, SectionHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
+import { SlaPanel } from "@/components/reporter/SlaPanel";
+import { ComplaintTimeline } from "@/components/reporter/ComplaintTimeline";
 import { TransitionForm } from "@/components/technician/TransitionForm";
+import { H1, Kicker, Supporting } from "@/components/ui/type";
 import { PageShell } from "@/components/shared/PageShell";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
+
+/*
+ * TechnicianComplaintDetailPage — technician-side composer surface.
+ *
+ * Aesthetic pass (2026-07-29):
+ *   - Fixed the prior missing H1 import (page was rendering `Cannot find
+ *     name 'H1'` at runtime).
+ *   - Replaces the inline SLA chips with the SlaPanel primitive
+ *     previously added for the reporter detail page so the same visual
+ *     contract travels across roles.
+ *   - Adds a numbered caption strip (`02 · Assignment`) above the H1
+ *     so the page reads with the same compositional cadence as the
+ *     Home and the reporter detail page.
+ *   - Restructures the breach banner into a dedicated Card surface
+ *     with a hairline-divided structure (icon block on the left, body
+ *     copy on the right) replacing the inline colour wash.
+ *   - Status history is delegated to ComplaintTimeline (the rebuilt
+ *     Nov component) instead of inlining a vertical timeline. Same
+ *     component is now used by reporter / technician / tracker pages.
+ *
+ * Tokens used (no new tokens):
+ *   - text-brand on internal navigation arrows.
+ *   - border-border / border-border-strong for hairlines.
+ *   - duration-fast for hover micro-interactions on the back button.
+ *   - bg-danger / text-danger-strong for the breach banner.
+ */
 
 interface StatusHistoryEntry {
   _id: string;
@@ -30,6 +60,8 @@ interface StatusHistoryEntry {
   photoUrl: string | null;
   changedAt: string;
   changedBySystem: boolean;
+  changedByName?: string | null;
+  changedByRole?: string | null;
 }
 
 interface ComplaintDetail {
@@ -51,6 +83,20 @@ interface ComplaintDetail {
   __v: number;
 }
 
+function formatTimelineEntry(entry: StatusHistoryEntry) {
+  return {
+    fromStatus: entry.fromStatus,
+    toStatus: entry.toStatus,
+    changedById: undefined,
+    changedByName: entry.changedByName ?? undefined,
+    changedByRole: entry.changedByRole ?? undefined,
+    changedBySystem: entry.changedBySystem,
+    note: entry.note ?? undefined,
+    photoUrl: entry.photoUrl ?? undefined,
+    changedAt: entry.changedAt,
+  };
+}
+
 export default function TechnicianComplaintDetailPage({
   params,
 }: {
@@ -70,43 +116,52 @@ export default function TechnicianComplaintDetailPage({
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-4 w-32" />
-        <Card padding="lg">
-          <Skeleton className="h-8 w-2/3" />
-          <div className="mt-6 space-y-2">
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-5/6" />
-            <Skeleton className="h-3 w-4/6" />
-          </div>
-        </Card>
-      </div>
+      <PageShell displayVariant="flat">
+        <div className="space-y-6">
+          <Skeleton className="h-4 w-32" />
+          <Card padding="lg">
+            <Skeleton className="h-8 w-2/3" />
+            <div className="mt-6 space-y-2">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-5/6" />
+              <Skeleton className="h-3 w-4/6" />
+            </div>
+          </Card>
+        </div>
+      </PageShell>
     );
   }
 
   if (!payload?.data) {
     return (
-      <Card padding="lg" variant="surface" className="mx-auto max-w-md text-center">
-        <p className="text-sm text-muted-strong">
-          Complaint not found or not assigned to you.
-        </p>
-        <Button
-          variant="secondary"
-          size="md"
-          leadingIcon={<ArrowLeft className="h-4 w-4" />}
-          onClick={() => router.push("/technician/assignments")}
-          className="mx-auto mt-5"
-        >
-          Back to assignments
-        </Button>
-      </Card>
+      <PageShell displayVariant="flat">
+        <div className="mx-auto max-w-md">
+          <Card padding="lg" variant="surface" className="text-center">
+            <p className="text-sm text-muted-strong">
+              Complaint not found or not assigned to you.
+            </p>
+            <Button
+              variant="secondary"
+              size="md"
+              leadingIcon={<ArrowLeft className="h-4 w-4" />}
+              onClick={() => router.push("/technician/assignments")}
+              className="mx-auto mt-5"
+            >
+              Back to assignments
+            </Button>
+          </Card>
+        </div>
+      </PageShell>
     );
   }
 
   const complaint = payload.data;
+  const isTerminal =
+    complaint.status === "Resolved" || complaint.status === "Closed";
 
   return (
     <PageShell displayVariant="flat">
+      {/* Back affordance */}
       <Button
         variant="ghost"
         size="sm"
@@ -120,8 +175,21 @@ export default function TechnicianComplaintDetailPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* ---------- Detail column ---------- */}
         <div className="space-y-6 lg:col-span-8">
+          {/* Hero strip + status row */}
           <Card padding="lg" variant="surface">
-            <header className="flex flex-col gap-4">
+            <header className="flex flex-col gap-5">
+              {/* Numbered caption strip — matches Home/Detail cadence */}
+              <div className="flex items-center gap-3">
+                <span className="numeric text-2xl font-semibold leading-none tracking-[-0.02em] text-foreground-strong">
+                  02
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="h-px w-8 bg-border-strong"
+                />
+                <Kicker>Assignment</Kicker>
+              </div>
+
               <div className="flex flex-wrap items-center gap-1.5">
                 <StatusPill status={complaint.status} />
                 <SeverityBadge
@@ -129,7 +197,7 @@ export default function TechnicianComplaintDetailPage({
                     complaint.priority as "Critical" | "High" | "Medium" | "Low"
                   }
                 />
-                <span className="ml-auto text-xs text-muted-strong">
+                <span className="ml-auto numeric text-xs text-muted-strong">
                   Filed{" "}
                   {formatDistanceToNowStrict(new Date(complaint.createdAt), {
                     addSuffix: true,
@@ -138,57 +206,103 @@ export default function TechnicianComplaintDetailPage({
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-                  Assignment
-                </p>
-                <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground-strong">
+                <H1 variant="compact">
                   {complaint.categoryName ?? "Complaint"}
                   {complaint.locationName ? (
                     <span className="ml-1 font-medium text-muted-strong">
                       · {complaint.locationName}
                     </span>
                   ) : null}
-                </h1>
+                </H1>
+                <p className="numeric mt-2 text-xs uppercase tracking-[0.16em] text-muted">
+                  ID #{complaint._id.slice(-6).toUpperCase()}
+                </p>
+              </div>
+
+              {/* Breach banner — restructured Card surface */}
+              {complaint.breachKind !== "none" ? (
+                <Card
+                  padding="sm"
+                  variant="surface"
+                  className="border-danger/40 bg-danger/5"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-danger text-white">
+                      <AlertTriangle
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-danger-strong">
+                        {complaint.breachKind === "acknowledge_overdue"
+                          ? "Acknowledgement is overdue"
+                          : "Resolution is overdue"}
+                      </p>
+                      <p className="numeric mt-0.5 text-xs text-danger">
+                        {formatOverdueDuration(complaint.overdueMs)} past the
+                        SLA deadline. Resolve or escalate.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ) : (
+                <p className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
+                  <Sparkles
+                    className="h-3 w-3 text-accent-strong"
+                    aria-hidden="true"
+                  />
+                  On track. No SLA breaches on this complaint.
+                </p>
+              )}
+            </header>
+          </Card>
+
+          {/* SLA panel — same primitive the reporter uses */}
+          <Card
+            padding="md"
+            variant="surface"
+            className="border-border-strong/50 transition-[border-color] duration-fast hover:border-border-strong"
+          >
+            <header className="mb-4 flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-strong">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-accent"
+                    aria-hidden="true"
+                  />
+                  Service-level agreement
+                </p>
+                <p className="mt-1 text-base font-semibold tracking-[-0.005em] text-foreground-strong">
+                  Two deadlines for closure.
+                </p>
               </div>
             </header>
-
-            {complaint.breachKind !== "none" ? (
-              <Card
-                padding="sm"
-                variant="surface"
-                className="mt-5 border-danger/40 bg-danger/5"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-danger text-white">
-                    <AlertTriangle
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-danger-strong">
-                      {complaint.breachKind === "acknowledge_overdue"
-                        ? "Acknowledgement is overdue"
-                        : "Resolution is overdue"}
-                    </p>
-                    <p className="numeric mt-0.5 text-xs text-danger">
-                      {formatOverdueDuration(complaint.overdueMs)} past the SLA
-                      deadline. Resolve or escalate.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : null}
+            <SlaPanel
+              acknowledgeLabel="Acknowledge"
+              acknowledgeDeadline={complaint.slaAcknowledgeBy}
+              resolveLabel="Resolve"
+              resolveDeadline={complaint.slaResolveBy}
+              isTerminal={isTerminal}
+              caption={
+                <span>
+                  Times relative to the reporter&apos;s submission. DICT is
+                  notified the moment the complaint is filed.
+                </span>
+              }
+            />
           </Card>
 
+          {/* Description */}
           <Card padding="lg" variant="raised">
             <SectionHeader eyebrow="Description" title="Reporter's note" />
-            <p className="whitespace-pre-wrap rounded-lg bg-surface px-4 py-3 text-sm leading-relaxed text-foreground-strong">
+            <blockquote className="rounded-r-lg border-l-2 border-brand bg-surface px-5 py-4 text-sm leading-[1.7] text-foreground-strong sm:text-base">
               {complaint.description}
-            </p>
+            </blockquote>
           </Card>
 
-          <Card padding="lg" variant="raised">
+          {/* Reporter + meta */}
+          <Card padding="lg" variant="surface">
             <SectionHeader eyebrow="Meta" title="Reporter and deadlines" />
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
               <div className="flex items-center gap-2">
@@ -196,12 +310,19 @@ export default function TechnicianComplaintDetailPage({
                   className="h-4 w-4 text-muted-strong"
                   aria-hidden="true"
                 />
-                <dt className="font-medium text-foreground-strong">Reporter</dt>
+                <dt className="font-medium text-foreground-strong">
+                  Reporter
+                </dt>
                 <dd className="text-muted-strong">{complaint.reporterName}</dd>
               </div>
               <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4 text-muted-strong" aria-hidden="true" />
-                <dt className="font-medium text-foreground-strong">Photos</dt>
+                <Camera
+                  className="h-4 w-4 text-muted-strong"
+                  aria-hidden="true"
+                />
+                <dt className="font-medium text-foreground-strong">
+                  Photos
+                </dt>
                 <dd className="numeric text-muted-strong">
                   {complaint.photoUrls.length}
                 </dd>
@@ -215,9 +336,10 @@ export default function TechnicianComplaintDetailPage({
                   Acknowledge by
                 </dt>
                 <dd className="text-muted-strong">
-                  {formatDistanceToNowStrict(new Date(complaint.slaAcknowledgeBy), {
-                    addSuffix: true,
-                  })}
+                  {formatDistanceToNowStrict(
+                    new Date(complaint.slaAcknowledgeBy),
+                    { addSuffix: true },
+                  )}
                 </dd>
                 <span className="mx-1 text-muted-strong">·</span>
                 <dt className="font-medium text-foreground-strong">
@@ -232,6 +354,7 @@ export default function TechnicianComplaintDetailPage({
             </dl>
           </Card>
 
+          {/* Photos grid */}
           {complaint.photoUrls.length > 0 ? (
             <Card padding="lg" variant="raised">
               <SectionHeader
@@ -242,13 +365,13 @@ export default function TechnicianComplaintDetailPage({
                 {complaint.photoUrls.map((url, i) => (
                   <li
                     key={url}
-                    className="aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised"
+                    className="group/photo relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised transition-[border-color,transform] duration-fast hover:-translate-y-0.5 hover:border-border-strong hover:shadow-sm"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary URL */}
                     <img
                       src={url}
                       alt={`Photo ${i + 1}`}
-                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-medium group-hover/photo:scale-[1.03]"
                     />
                   </li>
                 ))}
@@ -256,8 +379,9 @@ export default function TechnicianComplaintDetailPage({
             </Card>
           ) : null}
 
+          {/* Status history through the shared primitive */}
           {complaint.statusHistory.length > 0 ? (
-            <Card padding="lg" variant="raised">
+            <Card padding="lg" variant="raised" className="overflow-visible">
               <SectionHeader
                 eyebrow="Timeline"
                 title="Status history"
@@ -268,36 +392,9 @@ export default function TechnicianComplaintDetailPage({
                   </span>
                 }
               />
-              <ol className="relative ml-3 space-y-5 border-l-2 border-border pl-6">
-                {complaint.statusHistory.map((entry) => (
-                  <li key={entry._id} className="relative">
-                    <span className="absolute -left-[1.875rem] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-surface ring-2 ring-border">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusPill status={entry.toStatus} />
-                      <span className="text-xs font-medium text-muted-strong">
-                        {entry.fromStatus} → {entry.toStatus}
-                      </span>
-                      <span className="numeric ml-auto text-xs text-muted-strong">
-                        {formatDistanceToNowStrict(new Date(entry.changedAt), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                    </div>
-                    {entry.note ? (
-                      <p className="mt-2 rounded-md bg-surface px-3 py-2 text-sm text-foreground-strong">
-                        {entry.note}
-                      </p>
-                    ) : null}
-                    {entry.photoUrl ? (
-                      <Badge tone="info" className="mt-2">
-                        Photo attached · see Proof tab
-                      </Badge>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
+              <ComplaintTimeline
+                entries={complaint.statusHistory.map(formatTimelineEntry)}
+              />
             </Card>
           ) : (
             <Card padding="lg" variant="raised">
@@ -313,7 +410,7 @@ export default function TechnicianComplaintDetailPage({
 
         {/* ---------- Action column ---------- */}
         <div className="lg:col-span-4">
-          <div className="sticky top-24">
+          <div className="sticky top-24 space-y-4">
             <TransitionForm
               complaintId={complaint._id}
               currentStatus={complaint.status}
@@ -323,6 +420,26 @@ export default function TechnicianComplaintDetailPage({
                 /* TanStack Query refetch handles refresh. */
               }}
             />
+            <Card padding="md" variant="raised">
+              <header className="mb-2 flex items-center gap-2">
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-accent"
+                  aria-hidden="true"
+                />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
+                  Audit reminder
+                </p>
+              </header>
+              <p className="text-xs leading-[1.55] text-muted-strong">
+                Every transition writes a new <span className="numeric">__v</span>{" "}
+                audit row under your name. Keep the notes short and meaningful —
+                they appear on the reporter&apos;s detail page.
+              </p>
+              <Supporting className="mt-3">
+                Need to step away? Use the Back affordance — no state is lost
+                mid-transition.
+              </Supporting>
+            </Card>
           </div>
         </div>
       </div>

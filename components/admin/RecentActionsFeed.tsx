@@ -5,7 +5,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { History, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SkeletonLines } from "@/components/ui/Skeleton";
+import { H3, Kicker } from "@/components/ui/type";
 
 interface RecentAction {
   complaintId: string;
@@ -33,9 +33,9 @@ export function RecentActionsFeed() {
           <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
             Recent
           </p>
-          <h3 className="mt-1 text-base font-semibold text-foreground-strong">
-            Assignment activity
-          </h3>
+          <div className="mt-1">
+            <H3>Assignment activity</H3>
+          </div>
         </div>
         <History className="h-4 w-4 text-muted-strong" aria-hidden="true" />
       </header>

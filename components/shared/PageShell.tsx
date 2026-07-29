@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { H1, Kicker } from "@/components/ui/type";
 
 /*
  * PageShell — section & rhythm contract for in-app screens.
@@ -118,7 +119,10 @@ export interface HeroBandProps {
  * `DualAudienceSection`) and the page's vertical padding scale
  * (`pt-12 pb-12 sm:pt-16 sm:pb-16`).
  *
- * Spec 0013 §A.
+ * Spec 0013 §A. Spec 0014 §AC-2 updates the inner render to use the
+ * <H1>, <Kicker>, and leading-paragraph primitives — no inline
+ * <h1>/<p> styling remains in this file. Single-source rule for the
+ * Astryx-aligned type scale.
  */
 export function HeroBand({
   kicker,
@@ -131,16 +135,12 @@ export function HeroBand({
       <div className="mx-auto w-full max-w-7xl px-4 pt-12 pb-12 sm:px-6 sm:pt-16 sm:pb-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0 flex-1">
-            {kicker ? (
-              <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-                {kicker}
-              </p>
-            ) : null}
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground-strong [line-height:1.1] sm:text-5xl">
-              {title}
-            </h1>
+            {kicker ? <Kicker>{kicker}</Kicker> : null}
+            <div className="mt-3">
+              <H1>{title}</H1>
+            </div>
             {subtitle ? (
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-strong sm:text-lg">
+              <p className="mt-3 max-w-2xl text-base leading-[1.55] text-muted-strong sm:text-lg sm:leading-[1.5]">
                 {subtitle}
               </p>
             ) : null}

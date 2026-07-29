@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { signInAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, PasswordInput } from "@/components/ui/Field";
-import { Card } from "@/components/ui/Card";
 
 const signInSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -76,6 +75,7 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         label="Email"
         htmlFor="sign-in-email"
         error={errors.email?.message}
+        hint="Use your LASU email if you have one."
         required
       >
         <Input
@@ -93,6 +93,7 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         label="Password"
         htmlFor="sign-in-password"
         error={errors.password?.message}
+        hint="Minimum 8 characters."
         required
       >
         <PasswordInput
@@ -105,22 +106,17 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
       </Field>
 
       {formError ? (
-        <Card
-          padding="sm"
-          variant="surface"
-          className="border-danger/40 bg-danger/5 text-danger"
+        <div
+          role="alert"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-md border border-danger/30 bg-danger-soft p-3 text-sm text-danger-strong"
         >
-          <p
-            role="alert"
-            className="flex items-start gap-2 text-sm font-medium"
-          >
-            <AlertCircle
-              className="mt-0.5 h-4 w-4 flex-shrink-0"
-              aria-hidden="true"
-            />
-            <span>{formError}</span>
-          </p>
-        </Card>
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 flex-shrink-0"
+            aria-hidden="true"
+          />
+          <span className="font-medium">{formError}</span>
+        </div>
       ) : null}
 
       <Button
@@ -138,12 +134,12 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         {isPending ? "Signing in" : "Sign in"}
       </Button>
 
-      <p className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-strong">
+      <p className="inline-flex items-center justify-start gap-1.5 text-xs text-muted">
         <ShieldCheck
           className="h-3 w-3 text-accent-strong"
           aria-hidden="true"
         />
-        Your session is encrypted. We never store passwords in plain text.
+        Your session is encrypted and lasts seven days.
       </p>
     </form>
   );

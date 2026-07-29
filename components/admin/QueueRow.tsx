@@ -2,11 +2,20 @@
 
 import { formatDistanceToNowStrict } from "date-fns";
 import { Camera, ChevronRight } from "lucide-react";
-import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { CategoryBadge } from "@/components/reporter/CategoryBadge";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
+
+/*
+ * QueueRow — admin "Queue" surface.
+ *
+ * Spec 0014 §AC-3: the per-row chrome is no longer a <Card>. The row
+ * now renders edge-to-edge with a 4px left accent (the breach-kind
+ * color), a 1px hairline divider at the bottom (parent ul provides
+ * `divide-y divide-border`), and a hover wash matching the new
+ * <ComplaintRow> on the reporter surface.
+ */
 
 interface QueueRowProps {
   complaint: {
@@ -42,12 +51,16 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
       : complaint.description;
 
   return (
-    <Card padding="none" className="group overflow-hidden p-0">
+    <li
+      className={`group cursor-pointer border-l-4 ${breachAccent(complaint.breachKind)} transition-colors duration-fast hover:bg-surface-raised/40 focus-within:bg-surface-raised/40`}
+    >
       <button
+        type="button"
         onClick={() => onSelect(complaint)}
-        className={`block w-full border-l-4 ${breachAccent(complaint.breachKind)} text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2`}
+        className="block w-full px-5 py-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+        style={{ minHeight: "44px" }}
       >
-        <div className="flex items-stretch gap-5 p-5">
+        <div className="flex items-stretch gap-5">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <StatusPill status={complaint.status} />
@@ -75,9 +88,9 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
               {shortDescription}
             </p>
 
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <div className="numeric mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
               {complaint.breachKind !== "none" ? (
-                <span className="numeric inline-flex items-center gap-1 font-medium text-danger">
+                <span className="inline-flex items-center gap-1 font-medium text-danger">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-danger" />
                   {complaint.breachKind === "acknowledge_overdue"
                     ? "Acknowledgement overdue"
@@ -85,14 +98,14 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
                   · {formatOverdueDuration(complaint.overdueMs)}
                 </span>
               ) : (
-                <span className="numeric text-muted">
+                <span className="text-muted">
                   Resolve by{" "}
                   {formatDistanceToNowStrict(new Date(complaint.slaResolveBy), {
                     addSuffix: true,
                   })}
                 </span>
               )}
-              <span className="numeric text-muted">
+              <span className="text-muted">
                 Submitted{" "}
                 {formatDistanceToNowStrict(new Date(complaint.createdAt), {
                   addSuffix: true,
@@ -104,7 +117,10 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
           <div className="flex flex-shrink-0 flex-col items-end justify-between gap-3 text-right">
             {complaint.currentAssignee ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/15 px-2.5 py-1 text-xs font-medium text-muted-strong">
-                <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-1.5 w-1.5 rounded-full bg-success"
+                />
                 {complaint.currentAssignee.assignedToName}
               </span>
             ) : (
@@ -114,12 +130,12 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
               </span>
             )}
             <ChevronRight
-              className="h-4 w-4 text-muted-strong transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-brand"
+              className="h-4 w-4 text-muted-strong transition-transform duration-fast group-hover:translate-x-0.5 group-hover:text-brand"
               aria-hidden="true"
             />
           </div>
         </div>
       </button>
-    </Card>
+    </li>
   );
 }

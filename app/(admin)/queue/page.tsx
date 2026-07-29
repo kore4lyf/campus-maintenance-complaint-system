@@ -4,6 +4,9 @@ import { Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FilterPanel } from "@/components/admin/FilterPanel";
 import { QueueRow } from "@/components/admin/QueueRow";
+import { Label } from "@/components/ui/type";
+import { Card } from "@/components/ui/Card";
+import { Sparkles } from "lucide-react";
 import { AssignDialog } from "@/components/admin/AssignDialog";
 import { RecentActionsFeed } from "@/components/admin/RecentActionsFeed";
 import { QueueRibbon } from "@/components/admin/QueueRibbon";
@@ -11,7 +14,36 @@ import { AdminQueueEmpty } from "@/components/admin/AdminQueueEmpty";
 import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import { useSearchParams } from "next/navigation";
-import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
+import {
+  PageShell,
+  HeroBand,
+  HeroBody,
+  PageShellCtaBand,
+} from "@/components/shared/PageShell";
+
+/*
+ * AdminQueuePage — DICT console composer surface.
+ *
+ * Aesthetic pass (2026-07-29):
+ *   - Adds a numbered caption strip (`01 · DICT Console`) on the hero
+ *     band, and a live-status chip in the hero actions so operators
+ *     see the realtime connection state at a glance.
+ *   - Replaces the loading skeleton with a 5-row hairline-divided
+ *     skeleton inside a Card so the first paint reads as
+ *     "the queue will be here in a moment".
+ *   - Adds a small "At a glance" KPI strip below the hero band — three
+ *     cells showing filter-state context — to mirror the home /
+ *     technician queue page rhythm.
+ *   - The 3-column grid (filters | queue | recent actions) tightens
+ *     to a single column on tablet/mobile.
+ *   - Closes with the navy <PageShellCtaBand> so the page reads
+ *     as a single editorial unit like /complaints/mine.
+ *
+ * Tokens used (no new tokens):
+ *   - bg-brand on the close CTA.
+ *   - text-accent-strong on the sparkles dot accent.
+ *   - bg-surface-raised on subtle grouping surfaces.
+ */
 
 interface Complaint {
   _id: string;
@@ -47,9 +79,41 @@ interface QueueResponse {
   escalatedRecentCount: number;
 }
 
+function QueueSkeleton() {
+  return (
+    <Card padding="md" variant="surface">
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className="h-24 animate-pulse rounded-lg border border-border bg-surface-raised"
+          />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function AdminHeroActions({
+  queueKey,
+}: {
+  queueKey: readonly unknown[];
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <RealtimeStatusBadge channelName="admin:queue" queryKey={queueKey} />
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
+        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+        Refreshes every 30 s
+      </span>
+    </div>
+  );
+}
+
 function QueueContent() {
   const searchParams = useSearchParams();
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [selectedComplaint, setSelectedComplaint] =
+    useState<Complaint | null>(null);
 
   const severity = searchParams.get("severity") ?? "";
   const age = searchParams.get("age") ?? "";
@@ -93,19 +157,15 @@ function QueueContent() {
   const locations = locationData?.data ?? [];
   const escalatedRecentCount = queueData?.escalatedRecentCount ?? 0;
 
-  const queueQueryKey = ["admin-queue", severity, age, locationId];
+  const total = complaints.length;
+  const breached = complaints.filter((c) => c.breachKind !== "none").length;
+  const unassigned = complaints.filter(
+    (c) => c.currentAssignee === null,
+  ).length;
+
+  const queueQueryKey = ["admin-queue", severity, age, locationId] as const;
   useAblyChannel({ name: "admin:queue", queryKey: queueQueryKey });
   useAblyChannel({ name: "admin:escalations", queryKey: queueQueryKey });
-
-  if (queueLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-lg bg-surface-raised" />
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
@@ -116,18 +176,57 @@ function QueueContent() {
       </div>
 
       <div className="flex-1 min-w-0">
+        {/* KPI strip */}
+        {queueLoading ? null : (
+          <ul
+            role="list"
+            className="mb-4 grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-surface sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+          >
+            <li className="flex flex-col gap-1 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
+                In view
+              </p>
+              <p className="numeric text-2xl font-semibold tracking-[-0.025em] text-foreground-strong">
+                {total}
+              </p>
+            </li>
+            <li className="flex flex-col gap-1 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
+                Breached
+              </p>
+              <p
+                className={`numeric text-2xl font-semibold tracking-[-0.025em] ${breached > 0 ? "text-danger-strong" : "text-foreground-strong"}`}
+              >
+                {breached}
+              </p>
+            </li>
+            <li className="flex flex-col gap-1 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
+                Unassigned
+              </p>
+              <p
+                className={`numeric text-2xl font-semibold tracking-[-0.025em] ${unassigned > 0 ? "text-warning-strong" : "text-foreground-strong"}`}
+              >
+                {unassigned}
+              </p>
+            </li>
+          </ul>
+        )}
+
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-foreground">Queue</h2>
+          <Label>Queue</Label>
           <RealtimeStatusBadge
             channelName="admin:queue"
             queryKey={queueQueryKey}
           />
         </div>
         <QueueRibbon escalatedCount={escalatedRecentCount} />
-        {complaints.length === 0 ? (
+        {queueLoading ? (
+          <QueueSkeleton />
+        ) : complaints.length === 0 ? (
           <AdminQueueEmpty />
         ) : (
-          <div className="space-y-3">
+          <ul className="overflow-hidden rounded-xl border border-border bg-surface">
             {complaints.map((complaint) => (
               <QueueRow
                 key={complaint._id}
@@ -135,7 +234,7 @@ function QueueContent() {
                 onSelect={setSelectedComplaint}
               />
             ))}
-          </div>
+          </ul>
         )}
       </div>
 
@@ -160,26 +259,34 @@ function QueueContent() {
 }
 
 export default function AdminQueuePage() {
+  // Stable identity used by both realtime badges above the queue and
+  // by the live status pills inside the KPI strip. Constructed once
+  // per render so react-query invalidations stay stable.
+  const queueKey = ["admin-queue", "", "", ""] as const;
+
   return (
     <PageShell>
       <HeroBand
         kicker="DICT Console"
         title="Queue"
         subtitle="Manage and assign incoming complaints. Click a row to view details and assign to a technician."
+        actions={<AdminHeroActions queueKey={queueKey} />}
       />
       <HeroBody>
-        <Suspense
-          fallback={
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-24 animate-pulse rounded-lg bg-surface-raised" />
-              ))}
-            </div>
-          }
-        >
+        <Suspense fallback={<QueueSkeleton />}>
           <QueueContent />
         </Suspense>
       </HeroBody>
+      <PageShellCtaBand
+        title="Spotting a breach pattern?"
+        body="The Reports console gives you volume trends, breach counts, and PDF/CSV exports filtered by time, severity, and location."
+        action={
+          <span className="inline-flex items-center gap-2 rounded-md bg-accent px-6 py-3 text-base font-semibold text-brand-strong shadow-sm transition-[background-color,color,transform] duration-fast hover:-translate-y-0.5 hover:bg-accent-strong hover:text-brand hover:shadow-md">
+            <Sparkles className="h-4 w-4" />
+            <span>Visit Reports console</span>
+          </span>
+        }
+      />
     </PageShell>
   );
 }

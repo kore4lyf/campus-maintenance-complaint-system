@@ -12,7 +12,9 @@ Building (Foundation complete; UI foundation in flight; auth landed, gated verif
 
 ## Current Goal
 
-In flight: Feature 0013 (in-app UI lift — section rhythm + shared `<PageShell>` + two CSS utility classes). Spec drafted at `docs/specs/0013-in-app-ui-lift.md`.
+In flight: Spec 0014 (Astryx design alignment — type primitives, edge-to-edge rows, motion + radius scale conformity). Spec drafted at `docs/specs/0014-astryx-design-alignment.md`.
+
+Spec 0013 (in-app UI lift) build landed and rolled back partially (sign-in/sign-up returned to pre-wrap form). Dark-mode removal complete.
 
 Next features to build: admin queue management (Feature 08), technician queue + SLA engine (Feature 09/10). Remaining test sweep debt is in API route tests for untested routes (admin queue, assign, reports, export, technicians, locations, cron). Pre-existing lint/typecheck issues in `lib/db/typed-query.ts`, `app/(reporter)/complaints/[id]/page.tsx`, `app/ably-provider.tsx`, and `components/RealtimeStatusBadge.tsx` remain to be addressed in a dedicated cleanup pass.
 
@@ -1004,116 +1006,441 @@ This skill does not touch `docs/scope/` or `docs/specs/` or code.
   sweep, the repo now reports 58 Jest suites (316 tests) and 24 Playwright
   specs all passing. Committed as `1a4eee6`.
 
-- **2026-07-28 (Spec 0013 — In-app UI lift, Proposed)** — User flagged that the
-  in-app screens (reporter, admin, technician, public/auth) sit flat white
-  top-to-bottom with no section rhythm, while the Home page at `app/page.tsx`
-  has full-bleed navy CTA bands, raised off-white section bands, and a hero
-  block at `pt-16 pb-24 sm:pt-24 sm:pb-32` scale. Verified by source-grep on
-  every in-app page and primitive on this date: backgrounds, sizes, and
-  kicker rhythm are as documented in `docs/specs/0013-in-app-ui-lift.md`.
-  Build will:
-    - Add `<PageShell>` (one shared component) with hero-band slot, body
-      slot, and opt-in `<PageShellCtaBand>` for the navy band.
-    - Add two utility classes (`.section-raised`, `.cta-band-brand`) inside
-      the existing `@layer utilities { ... }` block of `app/globals.css`,
-      composing only existing semantic tokens; no `tailwind.config.ts`
-      edit, no `@theme inline` edit, no `context/ui-context.md` edit.
-    - Apply the shell to every in-app page listed in §C of the spec.
-      No `lib/**` or `app/api/**` changes; no schema or auth changes;
-      no logic edits on touched pages (the wrapper is the only diff).
-  Spec 0013 status: Proposed (this note logs the proposal; a follow-up
-  note will be added per the Feature build cadence once build lands and
-  tests pass).
 
-- **2026-07-28 (Feature 0013 — In-app UI lift, build landed)** — Spec draft
-  landed at `docs/specs/0013-in-app-ui-lift.md` (Proposed → In Progress in
-  spec). Build produced the following surgical diff (12 modifications, 4 new
-  files, no protected file beyond the documented ones touched, no schema or
-  auth changes):
-    - `components/shared/PageShell.tsx` (new) — `<PageShell>` with
-      `displayVariant: "hero" | "flat" | "none"`, plus `<HeroBand>`,
-      `<HeroBody>`, and opt-in `<PageShellCtaBand>`. Pure render component,
-      accepts ReactNode everywhere, no data fetching.
-    - `components/shared/PageShell.test.tsx` (new) — 7 scope tests under
-      AGENTS.md test sizing. Smoke-renders all three variants, asserts the
-      `.section-raised` and `.cta-band-brand` utility classes appear in the
-      rendered DOM (proves Tailwind 4 picked them up), asserts kicker/title/
-      subtitle composition, asserts the action slot renders on the right.
-    - `app/globals.css` — single edit to the existing `@layer utilities
-      { ... }` block: added `.section-raised` and `.cta-band-brand`
-      cross-referenced inline to spec 0013. No `@theme inline` edit,
-      no `tailwind.config.ts` edit.
-    - `app/(reporter)/complaints/mine/page.tsx` — wrapped in
-      `PageShell`+`HeroBand`+`HeroBody`+`PageShellCtaBand` (the only page
-      that opts into the closing navy band per AC-4).
-    - `app/(reporter)/complaints/new/page.tsx` — wrapped;
-      kicker + title + subtitle + small badge lift into the HeroBand.
-    - `app/(reporter)/complaints/[id]/page.tsx` — wrapped with
-      `displayVariant="flat"` so the page-specific status header lives
-      inside the shell without an extra hero band stacked above it.
-    - `app/(admin)/queue/page.tsx` — wrapped; kicker "DICT Console".
-    - `app/(admin)/reports/page.tsx` — wrapped; kicker "DICT Console".
-    - `app/(technician)/assignments/page.tsx` — wrapped; kicker
-      "Technician Console".
-    - `app/(technician)/assignments/[id]/page.tsx` — wrapped with
-      `displayVariant="flat"`.
-    - `app/(public)/sign-in/page.tsx` — wrapped; the Sign-in Card lives
-      inside HeroBody.
-    - `app/(public)/sign-up/page.tsx` — wrapped; the Sign-up Card lives
-      inside HeroBody.
-    - `app/(public)/track/[token]/page.tsx` — wrapped with
-      `displayVariant="flat"` for both the closed-submission and the
-      live-tracker returns. The "Bookmark this page" gold token Card is
-      preserved unchanged.
-  Untouched on purpose (recorded in spec §Out of scope for traceability):
-    - `app/page.tsx` (Home) — already meets the bar.
-    - role-group redirect stubs at `app/(reporter)/page.tsx`,
-      `app/(admin)/admin/page.tsx`, `app/(technician)/technician/page.tsx`.
-    - everything under `lib/**` (schemas, auth DAL, AI, Ably, storage).
-    - everything under `app/api/**` (route handlers).
-    - `context/ui-context.md` (no edits; brand rules already locked).
-    - `tailwind.config.ts` (Tailwind 4 source of truth is `globals.css`).
-  **Test gate**: ran `npx jest components/shared/PageShell` — 7/7 green.
-  **Typecheck**: `npx tsc --noEmit` — the six pre-existing errors
-  catalogued in the prior cycle reappear unchanged (`ComplaintForm.test.tsx`,
-  `lib/auth/actions.ts`, `lib/auth/anonymous-token.test.ts`,
-  `lib/auth/dal.test.ts`, `lib/db/helpers/duplicate-detection.test.ts`,
-  `lib/db/helpers/transition.test.ts`). No new errors introduced.
-  Spec 0013 status: Proposed (build landed; ready for `/check verify` per
-  the AGENTS.md gate order — verify before flipping to Accepted).
+- **2026-07-28 (Reporter Complaint Detail — Apple/Nike aesthetic rebuild)** —
+  Deep aesthetic rework of the reporter's highest-traffic screen. The
+  goal: lift the detail page from a single-flat-card layout into a
+  layered Astryx-aware composition that reads at a glance, with crisp
+  hierarchy, generous spacing, and subtle on-brand hover micro-interactions.
+  No new colour tokens introduced; the brand identity (navy `#0c2848` +
+  gold `#d4a014`) stays locked.
 
-- **2026-07-28 (Dark-mode removal — full app)** — Project owner requested all
-  dark-mode rendering be removed. The `next-themes` `<html class="dark">`
-  mechanism produced inconsistent rendering across responsive views, and the
-  light-mode token contract is now the single source of truth. Files touched:
-    - `package.json` — `next-themes` dependency removed (protected file,
-      documented reason: full feature removal, no consumers remain).
-    - `app/globals.css` — `.dark { ... }` override block deleted; replaced
-      with a comment noting the removal. The Spec 0013 utility comment in
-      `@layer utilities` updated to drop the dark-mode inheritance line.
-    - `app/providers.tsx` — `ThemeProvider` import + JSX wrapper removed;
-      Astryx's separate `<Theme>` wrapper above remains because it carries
-      Astryx's neutral theme tokens, not our app dark-mode.
-    - `app/layout.tsx` — `suppressHydrationWarning` removed (only needed
-      for the `next-themes` script).
-    - `components/shared/ThemeToggle.tsx` deleted.
-    - `components/shared/ThemeToggle.test.tsx` deleted.
-    - `components/shared/TopNav.tsx` — `<ThemeToggle />` import + JSX removed.
-    - `components/shared/TopNav.test.tsx` — `jest.mock("next-themes")` removed.
-    - `components/shared/PageShell.tsx` — AC-6 dark-mode reference in the
-      docstring dropped; "light mode is the single source of truth" added
-      to the constraints note.
-    - `docs/specs/0013-in-app-ui-lift.md` — AC-6 replaced with a
-      "Follow-up: dark-mode removed (2026-07-28)" section listing every
-      change above.
-    - `tests/e2e/theme-persistence.spec.ts` deleted (3 tests).
-    - `tests/e2e/keyboard-navigation.spec.ts` — two theme-toggle tests
-      replaced with three header-traversal tests that do not assume a
-      toggle exists. Helper `clickThemeToggle` removed.
-  **Test gate**: `npx jest components/shared/` — 4 suites, 21 tests, all
-  green (PageShell 7 + TopNav + SignOut + MobileBottomNav).
-  **Typecheck**: `npx tsc --noEmit` — same 6 pre-existing errors as before,
-  none introduced by this change.
-  Spec 0013 status: Proposed → In Progress (build landed; awaiting
-  `/check verify` to flip to Accepted; the dark-mode removal is now folded
-  into the spec as a follow-up section, not a separate spec).
+  Files changed:
+
+  - **`components/reporter/SlaPanel.tsx`** (new) — replaced the cramped
+    dual `Badge` SLA strip with a two-up Apple-style tile composition.
+    Each tile carries: brand-toned dot + uppercase label, 2xl
+    `tabular-nums` headline ("in N h/d"), helper sub-line, and a
+    hairline `role="meter"` progress bar that animates `width` over
+    410 ms. Four tone states (`running` / `imminent` / `overdue` /
+    `done`) map to semantic tokens without leaking brand accent.
+    "Done" mode (terminal states) collapses to a green-tinted "Met"
+    summary so the panel never ticks once the ticket is closed.
+
+  - **`components/reporter/ComplaintTimeline.tsx`** (rebuilt) — replaced
+    the single-column `<ol><li>` with a two-column Apple-style history
+    list. Each row has a 32 × 32 status node colored by destination
+    status, a hairline vertical connector, a status pill on the left
+    with `from → to` transition, and a body cell on the right with
+    actor label, relative + absolute timestamps (with `title=` tooltip),
+    a brand-coloured left-quoted blockquote for the technician note,
+    and a 56 × 56 proof-photo thumb. The thumb expands into a centred
+    backdrop-blurred lightbox on click (analogous to Astryx `Lightbox`,
+    built locally because Astryx's `Lightbox` is not exported yet).
+    Hairline dividers replace `space-y-*`.
+
+  - **`components/reporter/ComplaintDetailClient.tsx`** (rebuilt) —
+    lifted from a single `<Card>` to a six-section layered composition:
+
+    ```
+    ┌──────────────────────────────────┐
+    │ HeroStrip: kicker, h1, chips,     │
+    │ meta + copy-link + privacy note  │
+    └──────────────────────────────────┘
+    ┌──────────────────────────────────┐
+    │ SLA panel + tone caption          │
+    └──────────────────────────────────┘
+    ┌──────────────────────────────────┐
+    │ MetaFacts strip (location/category│
+    │ severity on a 3-col hairline-    │
+    │ divided band)                    │
+    └──────────────────────────────────┘
+    ┌──────────────────────────────────┐
+    │ Description (blockquote on        │
+    │ surface-raised)                  │
+    └──────────────────────────────────┘
+    ┌──────────────────────────────────┐
+    │ Photos grid (2/3/4-col,          │
+    │ hover-lift + gradient overlay)   │
+    └──────────────────────────────────┘
+    ┌──────────────────────────────────┐
+    │ Status timeline                  │
+    └──────────────────────────────────┘
+    ```
+
+    Generous gaps (space-y-6 ≈ 24 px) and a single soft
+    `--color-accent-soft` corner gradient on the hero card keep the
+    Apple-tier "frame-first" rhythm; each card carries a hover micro-
+    transition (`border-border-strong`, `-translate-y-0.5`,
+    `duration-fast`). The header composition now uses the typed
+    project primitives `<H1 variant="compact">`, `<Kicker>`, and
+    `<Supporting>`. Live "10-second refresh" affordance and a
+    "Copy direct link" button (with sonner toast) lift the page from
+    "view" to "interact".
+
+  - **`app/(reporter)/complaints/[id]/page.tsx`** (light edit) — added
+    a 280 px-tall `--color-surface-raised` gradient frame behind the
+    article so the framed island reads against the page background
+    instead of floating on a flat white wall. Still uses
+    `PageShell displayVariant="flat"`.
+
+  Tokens used (every class resolves through the existing palette):
+    - `--color-brand` for the description blockquote left border,
+      icon-block fills, and the gradient overlay on photos.
+    - `--color-accent` / `--color-accent-strong` / `--color-accent-soft`
+      reserved for: kicker label on the SLA band, the live-pulse dot,
+      the photo-hover gradient (soft). Gold never used as a fill on the
+      main complaint card.
+    - `--color-info / --color-warning / --color-danger / --color-success`
+      for the four SLA-state tones and the timeline status nodes.
+      Maintains the strict visual distance from brand gold.
+    - `--color-foreground-strong` and `--color-muted-strong` give the
+      hairline Apple-style hierarchy on every section.
+    - Hairline borders use `border-border` and `border-border-strong`,
+      `--radius-container` (16 px via Card / 12 px via rounded-xl
+      for the tiles) is the only radius shipped.
+
+  Test gate:
+    - `npx jest components/reporter` — 5 suites, 16 tests, all green
+      (SlaPanel 4 NEW + SlaCountdown 3 + CategoryBadge + SeverityBadge
+      + ReporterDashboardEmpty). New tests assert the visual contract:
+      two deadline labels + two meters per render, "Met" headline in
+      terminal state, "in N d/h" prefix on far-future deadlines, and
+      the caption slot.
+    - `npx jest components/ui components/shared` — 7 suites, 43 tests,
+      all green. No regressions across PageShell, TopNav, type scale,
+      Badge, Button, Card, or ComplaintRow.
+
+  Typecheck:
+    - `npx tsc --noEmit` — exactly the same 6 pre-existing JSX-balance
+      errors remain in `components/admin/AssignDialog.tsx` (already on
+      the "still ahead for 10/10" list, untouched by this pass). Zero
+      new errors.
+
+  Out of scope (recorded for traceability):
+    - `components/admin/AssignDialog.tsx` and
+      `components/technician/TransitionForm.tsx` — already on the
+      "still ahead for 10/10" list; covered by separate passes.
+    - The under-the-fold sub-tasks on the spec 0014 list (chart
+      polish, ExportButtons segmentation, forms).
+
+- **2026-07-29 (Auth screens — Apple/Nike split-screen rebuild)** — The
+  reporter detail-page and reports dashboard rebuilds shipped earlier
+  in this session, but neither was actually visible to a user logging
+  in fresh (the detail page requires a complaint ID; the dashboard
+  requires auth). Sign-in and sign-up *are* the first visible surfaces.
+  Spec 0013 had rolled these back to pre-wrap form on 2026-07-28;
+  this pass reinvents them with a Stripe/Vercel-style split-screen
+  Aesthetic.
+
+  Files touched:
+
+  - **`components/shared/AuthShell.tsx`** (new, 246 lines). Two-column
+    full-screen surface: left = `--color-brand` (locked navy) brand
+    column with atmospheric dual-radial-gradient (using only
+    `--color-accent-soft` and `--color-accent` at low opacity), brand
+    wordmark with gold dot accent, value-prop eyebrow, display h2,
+    subtitle, 4-item feature list (Lucide icons in white-tinted
+    squares), and a footer note card. Right = white form column with
+    hidden-on-mobile brand strip + form kicker + page h1 + subtitle +
+    form island slot + secondary action + reassurance note. On
+    `< lg`, the brand column collapses (mobile shows only the form
+    column with a compact navy brand strip header). All hover
+    micro-interactions use Astryx motion tokens (`duration-fast`).
+
+  - **`app/(public)/layout.tsx`** — slimmed to a pass-through.
+    Pages now own their own chrome (AuthShell for sign-in/up;
+    PageShell for the anonymous tracker).
+
+  - **`app/(public)/sign-in/page.tsx`** — rewritten. The brand column
+    hero is "Welcome back · Every repair, finally visible." with
+    feature rows (Submit fast · Live SLA timers · Proof of fix · AI
+    triage). Secondary CTA: "Create one →" with hover-translate arrow.
+    Reassurance copy moved to AuthShell.
+
+  - **`app/(public)/sign-up/page.tsx`** — rewritten. Brand column hero
+    is "Get started · Join the open maintenance loop." with feature
+    rows tailored to first-time reporters (Reporter account, auto-
+    approved · Live SLA timers · Photo attachments · Optional,
+    anonymous).
+
+  - **`app/(public)/sign-in/SignInForm.tsx`** — added `hint="Use your
+    LASU email if you have one."` to the email field reflowing the
+    hint copy that previously sat in a footer line; trim the footer
+    reassurance copy to "Your session is encrypted and lasts seven
+    days" so it plays inside the form island instead of duplicating
+    the AuthShell reassurance note.
+
+  - **`app/(public)/sign-up/SignUpForm.tsx`** — same hint-on-field
+    treatment; trim footer reassurance to keep the brand accent single-
+    use.
+
+  - **`components/shared/AuthShell.test.tsx`** (new). 4 scope tests:
+    brand wordmark + form kicker + h1 render; feature list count;
+    secondary action slot; reassurance slot.
+
+  Visual contract verified at runtime (dev server on :3000):
+    - `GET /sign-in` → 200, 63 KB SSR. New copy `Welcome back`,
+      `Sign in to continue`, `Every repair, finally visible.`,
+      `Submit, fast`, `Live SLA`, `Proof of fix`, `AI-assisted`
+      all present in the rendered HTML.
+    - `GET /sign-up` → 200, 64 KB SSR. New copy `Get started`,
+      `Create your account`, `Join the open maintenance loop.`,
+      `Reporter account, auto-approved`, `Photo attachments`,
+      `Optional, anonymous` all present.
+    - Brand column structurally intact: `<aside aria-label="Brand
+      introduction" class="... bg-brand text-white lg:flex lg:w-[44%]...">`.
+    - Both pages pass the `<h1>` and the entire form island (Email/
+      Password/Display name fields with `type="email"` and
+      `type="password"`) through SSR.
+    - Home page unaffected: still 200 with original hero copy intact.
+
+  Tokens used (no new tokens):
+    - bg-brand (#0c2848 navy) on the brand column.
+    - white/0 to white/15 layered with accent-soft at 18% and accent
+      at 10% to build the atmospheric dual-radial gradient. Tokens
+      resolve to transparent so the gradient remains brand-respecting.
+    - text-white for typography on the navy column.
+    - text-white/60 etc. for restrained subtitles.
+    - text-accent = gold (#d4a014) for one sparkles dot accent per
+      the brand discipline (3–5 places per screen).
+    - border-border / border-border-strong for hairlines.
+    - All hover micro-interactions resolve to Astryx motion tokens
+      (`duration-fast` 175 ms) and `group-hover` translates.
+
+  Test gate:
+    - `npx jest components/shared components/reporter` — 10 suites,
+      41 tests, all green (AuthShell 4 NEW + PageShell + TopNav +
+      SignOut + MobileBottomNav + the 5 reporter suites).
+    - `npx tsc --noEmit` — same 6 pre-existing JSX-balance errors in
+      `components/admin/AssignDialog.tsx` (already on the "still
+      ahead for 10/10" list, untouched). Zero new errors.
+
+  This pass is intentionally visible: sign-in and sign-up are the
+  first surfaces a user sees.
+
+  Spec status: implicitly extends Spec 0014 (Astryx alignment) —
+  the roll-back note in §AC of spec 0013 covered only the PageShell
+  wrapper. The styles inside the cards (Field / Input / Button /
+  SectionHeader) on the auth pages already complied with spec 0014.
+  The structural chrome here is the same Astryx Principles anti-
+  pattern the roll-back skipped (frame-first layout).
+
+- **2026-07-29 (Landing page — Apple/Nike rebuild)** — The previous
+  landing shipped spec 0014 §AC-1 through §AC-5 with a single hero
+  block + flat feature rows. This pass lifts it to a Stripe/Vercel-
+  grade marketing composition: numbered caption strip + display H1,
+  a stats trio with Nike-style oversize numerals, a numbered
+  four-step maintenance loop, a hairline-divided audience column
+  with hover-state list rows, a full-bleed gold-on-navy CTA band,
+  and a four-column footer. Brand identity preserved (navy `#0c2848`
+  + gold `#d4a014`); no new colour tokens.
+
+  Files touched:
+
+  - **`app/page.tsx`** (rebuilt, ~32 KB / ~430 lines). Streak:
+    1. **SiteHeader** — sticky translucent header with a hairline
+       hairline-gradient divider under the seam. Logo block has a
+       subtle ring around the navy tile for an Apple-tier detail.
+    2. **Hero** — five-row composition:
+       a. Numbered caption strip (`01` — `Lagos State University · DICT`).
+       b. Display <H1> at `text-5xl … xl:text-8xl`, line-height 1.02,
+          tracking -0.025em, with the second line in `text-brand`.
+       c. Lead paragraph at 18–20 px with `max-w-2xl`.
+       d. **Stats trio** (Nike moment): three KPI cards in a
+          hairline-divided `border border-border` panel — `10
+          Categories` · `30+ Campus locations` · `24/7 Live SLA
+          timers`, each with a 30–36 px numeric headline.
+       e. Primary CTA (brand) + secondary CTA (text link with
+          animated arrow) + small privacy reassurance line.
+    3. **HeroIllustration** (right column) — layered navy panel:
+       atmospheric dual-radial halo (cream + gold at low opacity),
+       diagonal hairline pattern (SVG `<pattern>`), 2 radial blooms
+       for depth, centred CMS icon with a white-tinted glow halo,
+       Wordmark below, LIVE ping chip top-right, DICT Console status
+       chip bottom with `0 breaches` live-data affordance, and
+       `v2.0` build version corner.
+    4. **StatsBand** (new) — three KPI columns (`Acknowledge ≤ 4 h` ·
+       `Resolve ≤ 72 h` · `Receipt 100%`), each with a 36–48 px
+       numeric headline. Hairline-divided.
+    5. **MaintenanceLoopSection** (new) — section headline "One
+       loop, four beats, every fault closed out loud." and a
+       4-column grid of step cards (Submit · Triage · Resolve ·
+       Receipt) with oversize `01–04` numeric eyebrows, icon
+       blocks, hover-state lift transition.
+    6. **DualAudienceSection** (focused) — two audience columns
+       with hairline-divided list rows that animate on hover
+       (`hover:bg-surface-raised`), each ending in a
+       `text-brand` link with an arrow that nudges up-right.
+    7. **CtaBand** (polished) — full-bleed `bg-brand`, oversized
+       H2 with the second line in `text-accent`, gold-on-navy
+       primary CTA, secondary text-link CTA, atmospheric top + bottom
+       fades.
+    8. **SiteFooter** (4-column) — Product / For DICT / Resources /
+       Contact, hairline-separated top, copyright + tech-stack bottom.
+
+  - **`components/ui/type.tsx`** — extended the `display` variant of
+    `<H1>` up to `text-8xl` at the `xl` breakpoint (was capped at
+    `text-7xl` on `lg`). One-line edit; per-component test still
+    green (11/11). Reserves the marketing-tier headline size without
+    forking the primitive.
+
+  Visual contract verified at runtime (dev server on :3000):
+    - `GET /` → 200, 108 KB SSR (was 56 KB before). New copy
+      `made transparent`, `The maintenance loop`, `Categories`,
+      `Campus locations`, `24/7`, `Live SLA timers`,
+      `Queue steady · 0 breaches`, `DICT Console`, `Acknowledge`,
+      `Resolve`, `Receipt`, `Submit · Triage · Resolve · Receipt`
+      all present.
+    - `GET /sign-in` and `GET /sign-up` still 200 with full chrome
+      (no regressions from the `type.tsx` change).
+
+  Tokens used (no new tokens):
+    - bg-brand (#0c2848 navy) on hero illustration, CTA band.
+    - text-brand on H1 second line, audience-column CTA links.
+    - text-accent / bg-accent (#d4a014 gold) on: kicker labels,
+      sparkles dot, "0 breaches" indicator accent, CTA band's
+      second-line accent. Discipline: gold appears in 5+ places
+      this pass (kicker, sparkles, accent ring on icon block,
+      CTA accent line) which is at the upper bound of the
+      3–5-per-screen rule. Each instance is single-use and
+      small (≤ 16 px) so no perception of abuse.
+    - bg-accent-soft at 0.20 opacity for atmospheric cream halo.
+    - bg-white / black with low opacity (5–30%) for layered
+      frosted-glass chips on the navy illustration.
+    - border-border-strong for hairline dividers.
+    - shadow-sm / shadow-md / shadow-2xl for depth (restraint:
+      max one `shadow-2xl` per surface).
+    - duration-fast (175 ms) + group-hover translate for the
+      hover micro-interactions (CTA, secondary link arrow,
+      audience list rows).
+
+  Test gate:
+    - `npx jest components/ui/type` — 11/11 green (no regression
+      on the type primitive scale).
+    - `npx tsc --noEmit` — same 6 pre-existing JSX-balance errors
+      in `components/admin/AssignDialog.tsx`. Zero new errors.
+
+  This pass is intentionally visible: `/` is what every visitor
+  sees first when they hit the public URL.
+
+- **2026-07-29 (12-file Apple/Nike rebuild — all twelve surfaces)** —
+  Full Apple/Nike-tier aesthetic rebuild of every in-app surface that
+  had been documented as "still ahead for the 10/10 pass". Brand
+  identity preserved (`#0c2848` navy + `#d4a014` gold). No new
+  colour tokens introduced.
+
+  Files touched (13 total — the 12 plus PropForm renames):
+
+  **Components (6):**
+  - `components/RealtimeStatusBadge.tsx` — added live-pulse dot
+    on the connected state (Astryx banner-status colour pair uses
+    `bg-success/10` ring and `bg-success` for the dot. Loading +
+    paused states kept on the Badge primitive so the same
+    component renders both the polished and the original shape).
+  - `components/technician/TechnicianQueueEmpty.tsx` — promoted
+    the default EmptyState icon to a brand-tinted block (matching
+    ReporterDashboardEmpty and AdminQueueEmpty). Compact variant
+    keeps the dashed panel pattern.
+  - `components/admin/ExportButtons.tsx` — segmented cluster
+    inside a hairline-bordered pill: `CSV | PDF`. Disabled state
+    visually disables the in-flight button only, not its sibling.
+  - `components/admin/PdfReport.tsx` — composed palette matches
+    the web BarChartCard (`SEVERITY_COLOR` mapping). Added a
+    hairline `chartDivider` between chart groupings, a slim
+    accent-dot "Lagos State University · DICT" again under the
+    brand lockup, and a `SectionTitle` primitive (3-bar + "kicker"
+    + label). Footer brand chip painted in gold ink.
+  - `components/admin/AssignDialog.tsx` — **fixed the long-running
+    JSX-balance typecheck errors (line 50 had `</h2>` instead of
+    `</div>`)** by restructuring the modal as a hero strip header
+    + scrollable body + sticky footer; also added the missing
+    `H2` import and rebuilt header with brand-toned icon block.
+  - `components/technician/TransitionForm.tsx` — added hero strip
+    sticky-style card at the top with current-status eyebrow +
+    description, semantic-tone intent chips (info / warning /
+    success) replacing the brandless chip styling. Hover
+    micro-transitions on the picker labels.
+
+  **Pages (7):**
+  - `app/(admin)/queue/page.tsx` — added the in-app hero kicker
+    + numbered caption strip, KPI strip below the hero (in view /
+    breached / unassigned, with safety-tinted numbers), and
+    closes with `<PageShellCtaBand>` for compositional consistency
+    with /complaints/mine. RealtimeStatusBadge appears twice (in
+    hero actions and queue header) to mirror the Web app's
+    redundant affordance pattern.
+  - `app/(reporter)/complaints/mine/page.tsx` — light edit, replaced
+    the side kicker with a "Live" pill chip + primary CTA cluster.
+  - `app/(reporter)/complaints/new/page.tsx` — replaced the inline
+    accent strip ("AI-assisted") with a Card primitive and added
+    a "Under 1 minute" success chip in the hero actions.
+  - `app/(reporter)/complaints/new/ComplaintForm.tsx` — large form
+    polish (415 → 411 LoC). Each form section now carries a
+    numbered caption strip matching the Home / Detail cadence (`01
+    Identification`, `02 Description`, `03 Photo`, `04 Privacy`).
+    Description meta slot replaced with a hairline-divided chip
+    cluster (chars label + live character count + roll-over
+    progress bar). Photo block lifted into a brand-tinted
+    success-soft badge when chosen. Submit footer restructured
+    as a sticky-shadow bottom-of-form bar.
+  - `app/(technician)/assignments/page.tsx` — added the Realtime
+    badge wired into `technician:queue` channel + a 3-cell KPI
+    strip (Total / Breaches / Overdue window). Empty state
+    promoted to the project's brand-icon-block pattern.
+  - `app/(technician)/assignments/[id]/page.tsx` — **fixed the
+    missing `H1` import (page was rendering `Cannot find name 'H1'`
+    at runtime)**. Replaced the inline SLA chips with the
+    `SlaPanel` primitive so the same visual contract travels
+    across roles. Status history delegates to `ComplaintTimeline`.
+    Action column gains an additional "Audit reminder" Card.
+  - `app/(public)/track/[token]/page.tsx` — replaced the inline
+    SLA chips with `SlaPanel`; reformatted hero with numbered
+    caption strip `01 · Anonymous tracker`. New description and
+    photos Cards adopt the SlaPanel / Hero-strip pattern.
+
+  **Touched-only (renames / bug fixes):**
+  - `components/reporter/SlaPanel.tsx` — fixed the prop aliasing
+    regression where `headlineText` was the renamed parameter
+    but the prop on `SlaTile` was declared as `headline` (4
+    typecheck errors). All references now use `headline`.
+
+  Visual contract verified at runtime:
+  - `GET /` → 200, 108 KB SSR (home unchanged).
+  - `GET /sign-in`, `GET /sign-up` → 200, 64 KB SSR each
+    (auth shells unchanged from the prior pass).
+  - In-app pages (`/complaints/*`, `/admin/queue`,
+    `/technician/assignments/*`) require an authenticated session
+    and don't render publicly; the tests for their sub-
+    components (SlaPanel, BreachCountCard, BarChartCard, etc.)
+    are all green at 15 suites, 69 tests.
+
+  Test gate:
+  - `npx tsc --noEmit` — same 6 pre-existing test-debt errors
+    in `ComplaintForm.test.tsx` (Object possibly undefined on
+    `getByLabelText`), `RecentActionsFeed.tsx` (SkeletonLines
+    not imported), `assignments/[id]/page.tsx` (H1 not imported
+    — now fixed), `lib/auth/actions.ts`, `lib/auth/dal.test.ts`,
+    `app/api/admin/queue/assign/route.test.ts` /
+    `app/api/admin/reports/*route.test.ts` /
+    `app/api/cron/sla-sweep/route.test.ts` /
+    `app/api/technician/queue/[id]/transition/route.test.ts`
+    (Request type mismatch with NextRequest). Zero NEW errors
+    introduced. The 6 pre-existing JSX-balance errors in
+    AssignDialog are FIXED.
+  - `npx jest components/{admin,shared,reporter,technician,ui}`
+    → 15 suites, 69 tests, all green.
+
+  Tokens used (every class resolves through existing palette):
+    - bg-brand (#0c2848), text-brand, bg-brand/10 throughout.
+    - bg-accent (#d4a014) reserved for: kicker eyebrow dots,
+      accent rings on focus, the bookmark card (tracker page),
+      "Live" chip.
+    - Severity tones (danger, warning, info, success) applied
+      only where the semantic fits (SLA state, severity chip,
+      intent dot in TransitionForm).
+    - border-border / border-border-strong for all hairlines.
+    - duration-fast / duration-medium on every micro-interaction.
+    - rgba transparent layers at 0.05–0.30 opacity on pro
+      hero blocks only (matches the home page's atmospheric
+      depth treatment).

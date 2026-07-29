@@ -81,6 +81,25 @@
     0 24px 60px -16px rgb(12 40 72 / 0.08);
   --shadow-2xl: 0 20px 50px -12px rgb(12 40 72 / 0.12);
   --shadow-none: 0 0 #0000;
+
+  /* ---------- Spec 0014 — Motion tokens (Astryx-aligned, 2026-07-28)
+     Maps to Astryx's three duration bands + single ease standard.
+     https://astryx.atmeta.com/docs/tokens (Duration Tokens / Easing Tokens).
+     Specifically:
+       --duration-fast      175ms   transitions in line with Astryx
+       --duration-medium    410ms   list/row entrances, drawer opens
+       --duration-slow      975ms   hero / page transition (reserved)
+       --ease-standard      cubic-bezier(0.24, 1, 0.4, 1)   Astryx standard */
+  --duration-fast: 175ms;
+  --duration-medium: 410ms;
+  --duration-slow: 975ms;
+  --ease-standard: cubic-bezier(0.24, 1, 0.4, 1);
+
+  /* Spec 0014 §C — Astryx radius page scale. 32 px is the Astryx
+     --radius-page value, larger than Tailwind's rounded-3xl (24 px
+     default). Reserved for the Home hero surface; every other surface
+     uses --radius-container (16 px = Tailwind rounded-xl). */
+  --radius-page: 2rem; /* 32 px */
 }
 
 /* Dark mode removed (2026-07-28): the .dark token overlay was deleted so
@@ -111,13 +130,17 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Smooth colour transitions on theme toggle, suppressed by reduced-motion
-     guard below. */
+  /* Smooth colour transitions, suppressed by reduced-motion guard below.
+     Replaces the pre-0014 200ms ease with Astryx's standard duration +
+     ease (--duration-fast 175ms + --ease-standard cubic-bezier(0.24, 1,
+     0.4, 1), per Astryx Duration Tokens / Easing Tokens). */
   *,
   *::before,
   *::after {
-    transition: background-color 200ms ease, color 200ms ease,
-      border-color 200ms ease, box-shadow 200ms ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
   }
 }
 
@@ -161,6 +184,40 @@
   .cta-band-brand {
     background-color: var(--color-brand);
     color: #ffffff;
+  }
+
+  /* ---------- Spec 0014 (Astryx design alignment, 2026-07-28) ----------
+     Three utilities added to align chrome with Astryx Principles:
+     components-over-primitives, semantic-tokens-over-hardcoded-values,
+     and dense-data-is-rows-not-cards.
+
+     .radius-page   → 32 px Astryx --radius-page. Reserved for the
+                       Home hero surface only (`app/page.tsx`). Every
+                       other surface uses rounded-xl (Astryx
+                       --radius-container, 16 px).
+     .row-hover     → hover/focus wash for edge-to-edge list rows.
+                       Pairs with the new <ComplaintRow> component.
+     .duration-fast → alias to the Astryx motion token. Use sparingly;
+                       the global `*` transition already references the
+                       same token.
+     .duration-medium → alias for 410ms entrance/transition.
+  */
+  .radius-page {
+    border-radius: var(--radius-page);
+  }
+  .row-hover {
+    background-color: transparent;
+    transition: background-color var(--duration-fast) var(--ease-standard);
+  }
+  .row-hover:hover,
+  .row-hover:focus-within {
+    background-color: color-mix(in srgb, var(--color-surface-raised) 40%, transparent);
+  }
+  .duration-fast {
+    transition-duration: var(--duration-fast);
+  }
+  .duration-medium {
+    transition-duration: var(--duration-medium);
   }
 }
 

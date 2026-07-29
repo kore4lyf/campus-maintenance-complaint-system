@@ -190,11 +190,24 @@ export default async function ComplaintDetailPage({
 
   return (
     <PageShell displayVariant="flat">
-      <ComplaintDetailClient
-        complaintId={id}
-        initialComplaint={result.complaint}
-        initialTimeline={result.timeline}
-      />
+      {/*
+        Detail-page frame: a raised-band canvas behind the article. The
+        body container inside <PageShell> already gives the article
+        generous vertical breathing room; we paint a soft
+        surface-raised band and round the bottom of the canvas so the
+        page does not feel like a flat white wall. No new tokens.
+      */}
+      <div className="relative">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[280px] bg-gradient-to-b from-surface-raised via-surface-raised/60 to-transparent"
+        />
+        <ComplaintDetailClient
+          complaintId={id}
+          initialComplaint={result.complaint}
+          initialTimeline={result.timeline}
+        />
+      </div>
     </PageShell>
   );
 }

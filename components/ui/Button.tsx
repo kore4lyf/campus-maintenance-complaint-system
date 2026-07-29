@@ -5,8 +5,21 @@ import { Loader2 } from "lucide-react";
 
 /*
  * Button — five visual variants × three sizes, with token-driven styling.
- * Apple/Nike pattern: primary is restrained (one per surface), secondary sits
- * beside it on the same baseline, ghost/destructive recede.
+ *
+ * Spec 0014 §D: Astryx size scale + Apple HIG 44 pt tap-target floor.
+ *   sm: h-8 (32 px) = Astryx --size-element-md. Compact toolbar use,
+ *                       table row actions, mobile bottom nav.
+ *   md: h-11 (44 px) = Astryx --spacing-11 = Apple HIG floor. Default
+ *                       for every form / dialog / page CTA. The 44 px
+ *                       floor ensures fat-finger reliability.
+ *   lg: h-12 (48 px). Reserved for hero CTAs and primary marketing
+ *                       surfaces (a documented one-step deviation from
+ *                       Astryx's --size-element-lg = 36 px because
+ *                       padding-budget at 36 px is too tight for the
+ *                       marketing hero icons we already ship).
+ *
+ * Astryx Principles: "Use semantic tokens over hardcoded values" — no
+ * Tailwind hex anywhere in this file.
  */
 type Variant = "primary" | "secondary" | "ghost" | "destructive" | "link";
 type Size = "sm" | "md" | "lg";
@@ -33,7 +46,7 @@ const VARIANT: Record<Variant, string> = {
 
 const SIZE: Record<Size, string> = {
   sm: "h-8 px-3 text-sm gap-1.5",
-  md: "h-10 px-4 text-sm gap-2",
+  md: "h-11 px-4 text-base gap-2",
   lg: "h-12 px-6 text-base gap-2.5",
 };
 
@@ -62,7 +75,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading || undefined}
         className={[
           "inline-flex items-center justify-center rounded-md font-medium",
-          "transition-[background-color,color,border-color,box-shadow] duration-200",
+          "transition-[background-color,color,border-color,box-shadow] duration-fast",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
           "disabled:cursor-not-allowed disabled:opacity-60",
           VARIANT[variant],
