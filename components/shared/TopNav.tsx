@@ -16,7 +16,12 @@ import { SignOut } from "./SignOut";
  * it sits in a 44 px touch target too.
  */
 
-export function TopNav() {
+interface TopNavProps {
+  showNav?: boolean;
+  showSignIn?: boolean;
+}
+
+export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
   const user = useCurrentUser();
   const role = useCurrentRole();
 
@@ -28,43 +33,35 @@ export function TopNav() {
           className="group inline-flex min-h-[44px] items-center gap-3 rounded-md px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           aria-label="LASU CMS"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand shadow-sm transition-shadow group-hover:shadow-md">
-            <Image
-              src="/cms-lasu-icon.png"
-              alt=""
-              width={28}
-              height={28}
-              className="h-7 w-7"
-              priority
-            />
-          </span>
-          <span className="flex items-baseline gap-1.5">
-            <span className="text-base font-semibold tracking-tight text-brand">
-              LASU
-            </span>
-            <span className="text-base font-medium text-foreground-strong">
-              CMS
-            </span>
-          </span>
+          <Image
+            src="/cms-lasu-full.png"
+            alt="LASU CMS"
+            width={2081}
+            height={942}
+            className="h-20 w-auto"
+            priority
+          />
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
-          {role === "reporter" && (
-            <>
-              <NavLink href="/complaints/new">Submit</NavLink>
-              <NavLink href="/complaints/mine">My complaints</NavLink>
-            </>
-          )}
-          {role === "dicht_admin" && (
-            <>
-              <NavLink href="/admin/queue">Queue</NavLink>
-              <NavLink href="/admin/reports">Reports</NavLink>
-            </>
-          )}
-          {role === "dicht_technician" && (
-            <NavLink href="/technician/queue">Queue</NavLink>
-          )}
-        </nav>
+        {showNav && (
+          <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
+            {role === "reporter" && (
+              <>
+                <NavLink href="/complaints/new">Submit</NavLink>
+                <NavLink href="/complaints/mine">My complaints</NavLink>
+              </>
+            )}
+            {role === "dicht_admin" && (
+              <>
+                <NavLink href="/admin/queue">Queue</NavLink>
+                <NavLink href="/admin/reports">Reports</NavLink>
+              </>
+            )}
+            {role === "dicht_technician" && (
+              <NavLink href="/technician/queue">Queue</NavLink>
+            )}
+          </nav>
+        )}
 
         <div className="flex items-center gap-2">
           {user ? (
@@ -87,6 +84,13 @@ export function TopNav() {
             <div className="inline-flex min-h-[44px] items-center">
               <SignOut />
             </div>
+          ) : showSignIn ? (
+            <Link
+              href="/sign-in"
+              className="inline-flex min-h-[44px] items-center rounded-md px-4 text-sm font-medium text-brand transition-colors hover:bg-surface-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+            >
+              Sign in
+            </Link>
           ) : null}
         </div>
       </div>
