@@ -10,22 +10,52 @@ export function AblyClientProvider({
   children: React.ReactNode;
 }) {
   const [client, setClient] = useState<Ably.Realtime | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
-    if (!apiKey) return;
+    let cancelled = false;
 
-    const realtime = new Ably.Realtime({
-      key: apiKey,
-      clientId: `lasu-${window.crypto.randomUUID().slice(0, 8)}`,
-    });
+    async function init() {
+      try {
+        const realtime = new Ably.Realtime({
+          authUrl: "/api/ably/auth",
+          clientId: `lasu-${window.crypto.randomUUID().slice(0, 8)}`,
+          echoMessages: false,
+        });
 
-    setClient(realtime);
+        if (cancelled) {
+          realtime.close();
+          return;
+        }
+
+        realtime.connection.on("failed", (stateChange) => {
+          if (!cancelled) {
+            setError(
+              new Error(
+                stateChange.reason?.message || "Ably connection failed",
+              ),
+            );
+          }
+        });
+
+        setClient(realtime);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
+      }
+    }
+
+    init();
 
     return () => {
-      realtime.close();
+      cancelled = true;
     };
   }, []);
+
+  if (error) {
+    return <>{children}</>;
+  }
 
   if (!client) return <>{children}</>;
 

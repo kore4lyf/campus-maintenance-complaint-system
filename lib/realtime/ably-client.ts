@@ -1,26 +1,28 @@
 "use client";
 
-import * as Ably from "ably";
+import Ably from "ably";
 
 let clientPromise: Promise<Ably.Realtime> | null = null;
 
-export function getAblyClient(): Promise<Ably.Realtime> {
+export async function getAblyClient(): Promise<Ably.Realtime> {
   if (clientPromise) return clientPromise;
 
-  const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
-  if (!apiKey) {
-    clientPromise = Promise.reject(
-      new Error("NEXT_PUBLIC_ABLY_API_KEY is not set"),
-    );
-    return clientPromise;
-  }
-
-  clientPromise = new Promise<Ably.Realtime>((resolve) => {
+  clientPromise = new Promise<Ably.Realtime>((resolve, reject) => {
     const realtime = new Ably.Realtime({
-      key: apiKey,
+      authUrl: "/api/ably/auth",
       clientId: `lasu-${typeof window !== "undefined" ? window.crypto.randomUUID().slice(0, 8) : "ssr"}`,
+      echoMessages: false,
     });
-    resolve(realtime);
+
+    realtime.connection.on("connected", () => resolve(realtime));
+    realtime.connection.on("failed", (stateChange) => {
+      reject(
+        new Error(
+          stateChange.reason?.message || "Ably connection failed",
+        ),
+      );
+    });
+    realtime.connection.on("disconnected", () => resolve(realtime));
   });
 
   return clientPromise;

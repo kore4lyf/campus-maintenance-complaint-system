@@ -144,15 +144,14 @@ Plus one integration test file at `tests/integration/realtime-channel-contract.t
 
 **Security model**:
 
-- Authentication: Ably's public client token derived from the API key via `ably.auth.requestToken` per the Ably integration pattern. The client never receives the API key directly; the token restricts channel access by capability name plus expiry.
+- Authentication: the browser uses `/api/ably/auth` to obtain short-lived tokens; the client never receives the API key directly; the token restricts channel access by capability name plus expiry.
 - Authorization: client can subscribe to any channel the publish side touches because every channel is role scoped server side; the client is not allowed to publish (capability `subscribe` only).
 - PII discipline: Ably event payloads do not include reporter PII. The `notifications` row in the database is the canonical record; Ably pushes carry only the complaint id plus the breach kind plus a short message.
 
 **Configuration required**:
 
-- `NEXT_PUBLIC_ABLY_API_KEY`: the public side Ably key; add a comment in `.env.example` explaining that the client uses a public token derived from this key.
-- `ABLY_API_KEY`: already in `.env.example` from Feature 01 for the server side publisher.
-- No new server side configuration.
+- `ABLY_API_KEY`: in `.env.example` for the server-side token endpoint plus publisher.
+- No new server-side configuration.
 
 **Critical test scenarios** (each maps to an acceptance criterion in `## Requirements`):
 
@@ -167,7 +166,7 @@ Plus one integration test file at `tests/integration/realtime-channel-contract.t
 
 Tracer Bullet ordering: stand up the client hook end to end (channel subscription plus connection state listener plus TanStack Query invalidation) before thickening with the admin queue wiring plus the visual ribbon plus the integration test plus the smoke flows.
 
-1. **Build `lib/realtime/ably-client.ts`** exporting `getAblyClient()` that lazily creates the client using `NEXT_PUBLIC_ABLY_API_KEY` plus the public token request pattern per the Ably React integration. Use the Ably SDK function `Realtime.Promise(options)` plus `client.connection.on(stateChange)` plus `client.channels.get(name).subscribe(event)`. The module seeds the client once per browser session; the hook calls `getAblyClient()` on every render but the underlying client is shared. Satisfies **AC-6**.
+1. **Build `lib/realtime/ably-client.ts`** exporting `getAblyClient()` that lazily creates the client via `/api/ably/auth` per the Ably React integration. Use the Ably SDK `authUrl` option plus `client.connection.on(stateChange)` plus `client.channels.get(name).subscribe(event)`. The module seeds the client once per browser session; the hook calls `getAblyClient()` on every render but the underlying client is shared. Satisfies **AC-6**.
 
 2. **Build `useAblyChannel({ name, queryKey })` React hook** in `lib/realtime/use-ably-channel.ts`. Subscribes on mount, unsubscribes on unmount, and calls `queryClient.invalidateQueries({ queryKey })` on every event. Exposes the connection state via a small state hook. Satisfies **AC-5**, **AC-6**.
 
@@ -196,14 +195,14 @@ Tracer Bullet ordering: stand up the client hook end to end (channel subscriptio
 
 **Neutral**:
 
-- No new env var; `ABLY_API_KEY` plus `NEXT_PUBLIC_ABLY_API_KEY` are already set per Feature 01 plus spec 0007.
+- No new env var; `ABLY_API_KEY` is already set per Feature 01 plus spec 0007.
 - New files: `lib/realtime/ably-client.ts`, `lib/realtime/use-ably-channel.ts`, `components/RealtimeStatusBadge.tsx`, plus `tests/integration/realtime-channel-contract.test.ts`. Consistent with the locked file organization from code-standards plus spec 0003 foundation.
 - The realtime layer does not introduce a parallel state store; TanStack Query stays the single source of truth for server state.
 
 ## Follow-up
 
 - [ ] When reporter plus technician surfaces get push (in a Slice 5 maintenance task), the same `useAblyChannel` hook plus the shared event payload schema apply, so the work is additive rather than a rewrite.
-- [ ] When LASU IT provisions Ably plus the token issuance endpoint in production, the `NEXT_PUBLIC_ABLY_API_KEY` plus the token endpoint path are operationalised; local development uses the simulator default plus the stub Ably in tests.
+- [ ] When LASU IT provisions Ably plus the token issuance endpoint in production, the token endpoint path is operationalised; local development uses the server-side token route plus the stub Ably in tests.
 - [ ] A small server side heartbeat monitor that surfaces a Sonner alert when Ably has been disconnected for more than two minutes from a Slice 5 observability feature; current feature guarantees TanStack Query fallback so admin queue stays correct.
 - [ ] When the SLA reporting dashboard ships in Slice 4 (Feature 11), the realtime layer's escalation events feed the breach count by severity chart in real time without polling.
 - [ ] Consider installing the `using-ably` community skill into `AGENTS.md` `## Agent skills` so future Ably work lands on the canonical patterns; recommended but not blocking.

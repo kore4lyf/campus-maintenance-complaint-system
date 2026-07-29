@@ -61,9 +61,6 @@ export function useAblyChannel({
       if (channel) {
         channel.unsubscribe();
       }
-      if (realtime) {
-        realtime.close();
-      }
     };
   }, [name, queryKey, queryClient]);
 

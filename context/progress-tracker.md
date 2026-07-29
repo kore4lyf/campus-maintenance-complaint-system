@@ -657,8 +657,8 @@ started. Consult this list before re-litigating any decision.
 - **2026-07-26 (Feature 10 build — Real-time notifications)** — Built the client
   side Ably subscription layer per spec 0010.
   - Built `lib/realtime/ably-client.ts` exporting `getAblyClient()` that lazily
-    creates an `Ably.Realtime` instance using `NEXT_PUBLIC_ABLY_API_KEY`. The
-    client is shared across the browser session and seeded once per page load.
+    creates an `Ably.Realtime` instance via `/api/ably/auth`. The client is
+    shared across the browser session and seeded once per page load.
   - Built `lib/realtime/use-ably-channel.ts` exporting `useAblyChannel({
     name, queryKey })` that subscribes to a channel on mount, unsubscribes on
     unmount, and calls `queryClient.invalidateQueries({ queryKey })` on every
