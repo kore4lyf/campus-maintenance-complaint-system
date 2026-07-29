@@ -37,15 +37,9 @@ function badRequest(code: string, message: string, status: number) {
   );
 }
 
-async function readPhotosFromRequest(
-  request: Request,
+async function readPhotosFromFormData(
+  form: FormData,
 ): Promise<{ buffer: Buffer; mime: string; name: string | null }[]> {
-  const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.includes("multipart/form-data")) {
-    return [];
-  }
-
-  const form = await request.formData();
   const photos: { buffer: Buffer; mime: string; name: string | null }[] = [];
 
   for (const [key, value] of form.entries()) {
@@ -92,7 +86,9 @@ export async function POST(
   }
 
   let body: unknown;
+  let photos: { buffer: Buffer; mime: string; name: string | null }[] = [];
   const contentType = request.headers.get("content-type") ?? "";
+
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
     const rawBody = form.get("body");
@@ -104,6 +100,11 @@ export async function POST(
       }
     } else {
       body = {};
+    }
+    try {
+      photos = await readPhotosFromFormData(form);
+    } catch {
+      // Photos are optional for In Progress, required for Resolved
     }
   } else {
     try {
@@ -134,13 +135,6 @@ export async function POST(
       `Cannot transition from ${currentStatus} to ${toStatus}`,
       422,
     );
-  }
-
-  let photos: { buffer: Buffer; mime: string; name: string | null }[] = [];
-  try {
-    photos = await readPhotosFromRequest(request);
-  } catch {
-    // Photos are optional for In Progress, required for Resolved
   }
 
   if (toStatus === "Resolved" && photos.length === 0) {
