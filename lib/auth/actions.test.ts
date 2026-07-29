@@ -6,10 +6,9 @@ jest.mock("@/lib/db/connection", () => ({
   connect: jest.fn(async () => undefined),
 }));
 
-jest.mock("@/lib/db/models/user", () => ({
-  UserModel: {
-    findOneAndUpdate: jest.fn(async () => null),
-  },
+jest.mock("@/lib/db/models/user", () => ({}));
+jest.mock("@/lib/db/connection", () => ({
+  connect: jest.fn(async () => undefined),
 }));
 
 const mockHeaders = new Map<string, string>();
@@ -32,10 +31,8 @@ jest.mock("next/navigation", () => ({
 
 import { signInAction, signUpAction, signOutAction } from "./actions";
 import { getAuth } from "@/lib/auth/config";
-import { UserModel } from "@/lib/db/models/user";
 
 const getAuthMock = getAuth as jest.Mock;
-const findOneAndUpdateMock = UserModel.findOneAndUpdate as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -130,7 +127,7 @@ describe("signInAction", () => {
 });
 
 describe("signUpAction", () => {
-  test("writes role=reporter after BetterAuth creates the user", async () => {
+  test("returns ok with the default reporter landing when BetterAuth creates the user", async () => {
     getAuthMock.mockResolvedValue({
       api: {
         signUpEmail: jest.fn(async () => ({
@@ -144,11 +141,6 @@ describe("signUpAction", () => {
       name: "New User",
     });
     expect(result).toMatchObject({ ok: true, redirectTo: "/complaints/mine" });
-    expect(findOneAndUpdateMock).toHaveBeenCalledWith(
-      { email: "new@example.com" },
-      { $set: { role: "reporter" } },
-      { upsert: true },
-    );
   });
 
   test("returns user_already_exists error mapped to friendly copy", async () => {

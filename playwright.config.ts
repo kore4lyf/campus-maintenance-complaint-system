@@ -29,4 +29,5 @@ export default defineConfig({
     stdout: "ignore",
     stderr: "pipe",
   },
+  globalSetup: "./tests/e2e/global-setup.ts",
 });
