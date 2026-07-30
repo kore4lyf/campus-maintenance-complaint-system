@@ -10,7 +10,6 @@ export async function getAblyClient(): Promise<Ably.Realtime> {
   clientPromise = new Promise<Ably.Realtime>((resolve, reject) => {
     const realtime = new Ably.Realtime({
       authUrl: "/api/ably/auth",
-      clientId: `lasu-${typeof window !== "undefined" ? window.crypto.randomUUID().slice(0, 8) : "ssr"}`,
       echoMessages: false,
     });
 

@@ -1,7 +1,6 @@
-import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { Sparkles } from "lucide-react";
+import { TopNav } from "./TopNav";
 
 /*
  * AuthShell — Stripe/Vercel-style split-screen auth surface.
@@ -51,10 +50,6 @@ interface AuthShellProps {
    */
   title: ReactNode;
   /**
-   * Optional subtitle paragraph under the <h1>.
-   */
-  subtitle?: ReactNode;
-  /**
    * The form element (a Server Component or Client-Component island).
    */
   children: ReactNode;
@@ -68,14 +63,6 @@ interface AuthShellProps {
    * Items render as feature rows with a Lucide-icon-style bullet.
    */
   brandPanel: {
-    eyebrow: string;
-    title: string;
-    body: string;
-    features: Array<{
-      icon: () => ReactNode;
-      title: string;
-      body: string;
-    }>;
     footerNote: string;
   };
   /**
@@ -93,7 +80,6 @@ interface AuthShellProps {
 export function AuthShell({
   kicker,
   title,
-  subtitle,
   children,
   secondaryAction,
   brandPanel,
@@ -103,7 +89,7 @@ export function AuthShell({
     <div className="relative flex min-h-dvh flex-col bg-surface text-foreground lg:flex-row">
       {/* ─────────── Brand column ─────────── */}
       <aside
-        className="relative isolate hidden flex-col justify-between overflow-hidden bg-brand text-white lg:flex lg:w-[44%] lg:min-h-dvh lg:px-12 lg:py-14 xl:w-[48%] xl:px-16"
+        className="relative isolate hidden flex-col justify-end overflow-hidden bg-brand text-white lg:flex lg:w-[44%] lg:min-h-dvh lg:px-12 lg:py-14 xl:w-[48%] xl:px-16"
         aria-label="Brand introduction"
       >
         {/* Atmospheric depth layers */}
@@ -112,7 +98,7 @@ export function AuthShell({
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             background:
-              "radial-gradient(circle at 28% 18%, rgba(244,215,106,0.18), transparent 48%), radial-gradient(circle at 78% 92%, rgba(212,160,20,0.10), transparent 55%)",
+              "radial-gradient(circle at 28% 82%, rgba(244,215,106,0.24), transparent 48%), radial-gradient(circle at 78% 8%, rgba(212,160,20,0.10), transparent 55%)",
           }}
         />
         <div
@@ -121,77 +107,25 @@ export function AuthShell({
         />
 
         {/* Brand header */}
-        <header className="flex items-center gap-3">
-          <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-inset ring-white/20 backdrop-blur-sm">
-            <Image
-              src="/cms-lasu-icon.png"
-              alt=""
-              width={28}
-              height={28}
-              className="h-7 w-7"
-              priority
-            />
-            <span className="absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-accent shadow-md" />
-          </span>
-          <div className="flex flex-col">
-            <span className="text-base font-semibold tracking-tight text-white">
-              LASU CMS
-            </span>
-            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/60">
-              DICT · Maintenance
-            </span>
-          </div>
+        <header className="flex items-center gap-2">
+          <Image
+            src="/cms-lasu-full.png"
+            alt="LASU CMS"
+            width={2081}
+            height={942}
+            className="h-10 w-auto"
+            priority
+          />
         </header>
 
         {/* Hero content */}
-        <div className="flex flex-col gap-10">
-          <div className="flex flex-col gap-5">
-            <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80 backdrop-blur-sm">
-              <Sparkles className="h-3 w-3 text-accent" aria-hidden="true" />
-              {brandPanel.eyebrow}
-            </p>
-            <h2 className="text-balance text-4xl font-semibold tracking-[-0.025em] [line-height:1.08] sm:text-5xl">
-              {brandPanel.title}
-            </h2>
-            <p className="max-w-md text-base leading-[1.55] text-white/75 sm:text-lg sm:leading-[1.5]">
-              {brandPanel.body}
-            </p>
-          </div>
-
-          <ul role="list" className="flex flex-col divide-y divide-white/10 border-y border-white/10">
-            {brandPanel.features.map((feature, idx) => {
-              const Icon = feature.icon;
-              return (
-                <li
-                  key={`${feature.title}-${idx}`}
-                  className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
-                >
-                  <span
-                    className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-inset ring-white/20"
-                    aria-hidden="true"
-                  >
-                    <Icon />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold tracking-[-0.005em] text-white">
-                      {feature.title}
-                    </p>
-                    <p className="mt-1 text-sm leading-[1.55] text-white/70">
-                      {feature.body}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        <div className="flex flex-col gap-10" />
 
         {/* Footer note on the navy column */}
         <p className="text-xs leading-[1.5] text-white/55">
           <span className="font-semibold text-white/70">{brandPanel.footerNote}</span>
           <br />
-          Built on Next.js · MongoDB · Vercel AI · Ably. © {new Date().getFullYear()}{" "}
-          Lagos State University.
+          Built on Next.js · MongoDB · Vercel AI · Ably. © {new Date().getFullYear()}
         </p>
 
         {/* Bottom hairline brand rule */}
@@ -206,38 +140,10 @@ export function AuthShell({
         id="main-content"
         className="flex flex-1 flex-col bg-surface"
       >
-        {/* Mobile-only brand strip + home link */}
-        <header className="flex items-center justify-between border-b border-border bg-surface/80 px-4 py-3.5 backdrop-blur-sm sm:px-6 lg:hidden">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
-            aria-label="LASU CMS home"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand">
-              <Image
-                src="/cms-lasu-icon.png"
-                alt=""
-                width={24}
-                height={24}
-                className="h-6 w-6"
-              />
-            </span>
-            <span className="flex items-baseline gap-1.5">
-              <span className="text-sm font-semibold tracking-tight text-brand">
-                LASU
-              </span>
-              <span className="text-sm font-medium text-foreground-strong">
-                CMS
-              </span>
-            </span>
-          </Link>
-          <Link
-            href="/"
-            className="text-xs font-medium text-muted-strong transition-colors hover:text-foreground-strong"
-          >
-            Home
-          </Link>
-        </header>
+        {/* Mobile brand strip */}
+        <div className="lg:hidden">
+          <TopNav />
+        </div>
 
         <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6 lg:px-12 lg:py-16 xl:px-20">
           <div className="w-full max-w-md">
@@ -256,11 +162,6 @@ export function AuthShell({
               <h1 className="text-3xl font-semibold tracking-[-0.02em] [line-height:1.15] text-foreground-strong sm:text-4xl">
                 {title}
               </h1>
-              {subtitle ? (
-                <p className="max-w-md text-base leading-[1.55] text-muted-strong">
-                  {subtitle}
-                </p>
-              ) : null}
             </header>
 
             {/* The actual form island */}

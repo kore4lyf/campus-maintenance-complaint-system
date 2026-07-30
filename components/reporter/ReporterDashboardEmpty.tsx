@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusCircle, ArrowRight, Sparkles } from "lucide-react";
+import { PlusCircle, ArrowRight } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 
@@ -14,18 +14,15 @@ export function ReporterDashboardEmpty() {
           <Button
             size="lg"
             variant="primary"
-            leadingIcon={<PlusCircle className="h-4 w-4" />}
-            trailingIcon={<ArrowRight className="h-4 w-4" />}
           >
             Submit a complaint
           </Button>
         </Link>
       }
       secondaryAction={
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
-          <Sparkles className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+        <p className="text-xs text-muted-strong">
           Anonymous submission is supported for sensitive issues.
-        </span>
+        </p>
       }
     />
   );

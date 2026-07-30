@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 export function SiteFooter() {
@@ -29,7 +31,7 @@ export function SiteFooter() {
     {
       title: "Contact",
       links: [
-        { href: "/", label: "DICT support" },
+        { href: "mailto:mailsupport@lasu.edu.ng", label: "DICT support" },
         { href: "/", label: "Report a bug" },
         { href: "/", label: "LASU DICT" },
       ],

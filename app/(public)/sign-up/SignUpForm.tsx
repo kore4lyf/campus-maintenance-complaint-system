@@ -11,7 +11,6 @@ import {
   AlertCircle,
   CheckCircle2,
   ArrowRight,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { signUpAction } from "@/lib/auth/actions";
@@ -147,26 +146,11 @@ export function SignUpForm() {
         variant="primary"
         size="lg"
         loading={isPending}
-        leadingIcon={
-          isPending ? undefined : <UserPlus className="h-4 w-4" />
-        }
-        trailingIcon={
-          !isPending ? (
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          ) : undefined
-        }
+        leadingIcon={ undefined }
+        trailingIcon={ undefined }
       >
         {isPending ? "Creating account" : "Create account"}
       </Button>
-
-      <p className="inline-flex items-center justify-start gap-1.5 text-xs text-muted">
-        <Sparkles
-          className="h-3 w-3 text-accent-strong"
-          aria-hidden="true"
-        />
-        Reporter accounts are auto-approved. Your display name shows up
-        in the DICT queue.
-      </p>
     </form>
   );
 }

@@ -7,7 +7,6 @@ import {
   Wrench,
   ChevronRight,
   Inbox,
-  Sparkles,
   Clock,
 } from "lucide-react";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
@@ -194,11 +193,7 @@ export default function TechnicianQueuePage() {
             title="No assignments right now"
             description="When DICT routes work to you, it lands here in real time. The queue auto-refreshes every 30 seconds."
             secondaryAction={
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
-                <Sparkles
-                  className="h-3 w-3 text-accent-strong"
-                  aria-hidden="true"
-                />
+              <span className="text-xs text-muted-strong">
                 New work arrivals trigger a soft notification ping.
               </span>
             }

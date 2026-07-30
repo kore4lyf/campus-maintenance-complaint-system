@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import "@fontsource/google-sans/400.css";
+import "@fontsource/google-sans/500.css";
+import "@fontsource/google-sans/600.css";
+import "@fontsource/google-sans/700.css";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -15,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

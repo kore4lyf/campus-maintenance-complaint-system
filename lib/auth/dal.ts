@@ -91,8 +91,19 @@ async function loadSession(): Promise<ServerSession | null> {
         if (dbUser) {
           role = normalizeRole(dbUser.role);
         }
+        if (!role) {
+          // Backfill missing role with the safest default and persist it so
+          // subsequent requests do not repeat the DB fallback.
+          role = "reporter";
+          await UserModel.updateOne(
+            { email: user.email },
+            { $set: { role: "reporter" } },
+          ).exec();
+        }
       } catch {
-        // DB lookup failed — treat as unauthenticated.
+        // DB lookup failed — default to reporter rather than hard-logout.
+        // "reporter" is the least privileged role, so this is safe.
+        role = "reporter";
       }
     }
 

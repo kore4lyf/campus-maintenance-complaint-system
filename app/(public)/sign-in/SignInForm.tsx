@@ -7,10 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Mail,
-  LogIn,
   AlertCircle,
   ShieldCheck,
-  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { signInAction } from "@/lib/auth/actions";
@@ -124,23 +122,11 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         variant="primary"
         size="lg"
         loading={isPending}
-        leadingIcon={<LogIn className="h-4 w-4" />}
-        trailingIcon={
-          !isPending ? (
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          ) : undefined
-        }
+        leadingIcon={undefined}
+        trailingIcon= {undefined}
       >
         {isPending ? "Signing in" : "Sign in"}
       </Button>
-
-      <p className="inline-flex items-center justify-start gap-1.5 text-xs text-muted">
-        <ShieldCheck
-          className="h-3 w-3 text-accent-strong"
-          aria-hidden="true"
-        />
-        Your session is encrypted and lasts seven days.
-      </p>
     </form>
   );
 }

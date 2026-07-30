@@ -21,7 +21,7 @@
  * "High" badge never reads as the brand colour.
  */
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  --font-sans: "Google Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
     Consolas, "Liberation Mono", monospace;
@@ -225,6 +225,11 @@
 ::selection {
   background-color: var(--color-accent-soft);
   color: var(--color-brand-strong);
+}
+
+/* Unlayered hover override — beats @layer utilities for color on hover */
+.signout-btn:hover {
+  color: var(--color-danger) !important;
 }
 
 /* Brand-tinted scrollbar */

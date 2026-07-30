@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   RefreshCw,
   Save,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
@@ -294,7 +293,6 @@ export function TransitionForm({
                   </IntentDot>
                   {isSelected ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                      <Sparkles className="h-3 w-3" aria-hidden="true" />
                       Selected
                     </span>
                   ) : null}

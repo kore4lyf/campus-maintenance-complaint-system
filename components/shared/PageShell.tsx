@@ -132,7 +132,7 @@ export function HeroBand({
 }: HeroBandProps) {
   return (
     <section className="section-raised">
-      <div className="mx-auto w-full max-w-7xl px-4 pt-12 pb-12 sm:px-6 sm:pt-16 sm:pb-16">
+      <div className="mx-auto max-w-7xl px-4 pt-12 pb-12 sm:px-6 sm:pt-16 sm:pb-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0 flex-1">
             {kicker ? <Kicker>{kicker}</Kicker> : null}
@@ -171,7 +171,7 @@ export interface HeroBodyProps {
 export function HeroBody({ children }: HeroBodyProps) {
   return (
     <div className="bg-surface">
-      <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-12 md:pb-24">
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-12 md:pb-24">
         {children}
       </div>
     </div>
@@ -204,7 +204,7 @@ export function PageShellCtaBand({
 }: PageShellCtaBandProps) {
   return (
     <section className="cta-band-brand">
-      <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-16 md:flex-row md:items-center md:justify-between md:px-6 md:py-20">
+      <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-16 sm:px-6 md:flex-row md:items-center md:justify-between md:py-20">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             {title}

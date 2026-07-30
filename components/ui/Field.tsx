@@ -303,6 +303,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             aria-invalid={invalid || undefined}
             className={[CONTROL, "pl-9 pr-9", invalid ? CONTROL_ERROR : "", className].join(" ")}
             style={{
+              appearance: "none",
               backgroundImage: CHEVRON_BG,
               backgroundPosition: "right 0.65rem center",
               backgroundSize: "1.25rem",
@@ -321,6 +322,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         aria-invalid={invalid || undefined}
         className={[CONTROL, "pr-9", invalid ? CONTROL_ERROR : "", className].join(" ")}
         style={{
+          appearance: "none",
           backgroundImage: CHEVRON_BG,
           backgroundPosition: "right 0.65rem center",
           backgroundSize: "1.25rem",

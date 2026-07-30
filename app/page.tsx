@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 export default async function LandingPage() {
   return (
     <div className="min-h-dvh bg-surface text-foreground">
-      <TopNav showNav={false} />
+      <TopNav />
       <Hero />
       <StatsBand />
       <MaintenanceLoopSection />

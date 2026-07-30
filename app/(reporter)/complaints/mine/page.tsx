@@ -5,7 +5,6 @@ import { getServerSession } from "@/lib/auth/dal";
 import { ComplaintList } from "@/components/reporter/ComplaintList";
 import {
   PageShell,
-  HeroBand,
   HeroBody,
   PageShellCtaBand,
 } from "@/components/shared/PageShell";
@@ -34,27 +33,6 @@ export default async function MyComplaintsPage(): Promise<React.ReactElement> {
 
   return (
     <PageShell>
-      <HeroBand
-        kicker="Your queue"
-        title="My complaints"
-        subtitle="Track the status of every complaint you have filed. New ones join the queue below in real time."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-              Live
-            </span>
-            <Link
-              href="/complaints/new"
-              className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform,box-shadow] duration-fast hover:-translate-y-0.5 hover:bg-brand-strong hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-            >
-              <PlusCircle className="h-4 w-4" />
-              New complaint
-            </Link>
-          </div>
-        }
-      />
-
       <HeroBody>
         <ComplaintList />
       </HeroBody>

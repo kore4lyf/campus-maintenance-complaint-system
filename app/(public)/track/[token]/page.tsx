@@ -18,7 +18,6 @@ import {
   Camera,
   Bookmark,
   Lock,
-  Sparkles,
   Copy,
 } from "lucide-react";
 import { PageShell } from "@/components/shared/PageShell";
@@ -324,8 +323,7 @@ export default async function AnonymousTrackerPage({
                   This URL is your private tracker. Open it from any browser
                   to check the latest status. Updates stream in real time.
                 </Supporting>
-                <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-strong">
-                  <Sparkles className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+                <p className="mt-3 text-xs text-muted-strong">
                   Tip: keep this URL private — anyone with the link can view
                   status.
                 </p>

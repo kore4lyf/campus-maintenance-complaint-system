@@ -78,7 +78,7 @@ export function ErrorBoundary({
               size="md"
               leadingIcon={<Mail className="h-4 w-4" />}
               onClick={() => {
-                window.location.href = "mailto:dicts@lasu.edu.ng";
+                window.location.href = "mailto:mailsupport@lasu.edu.ng";
               }}
             >
               Contact DICT

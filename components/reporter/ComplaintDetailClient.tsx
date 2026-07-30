@@ -12,7 +12,6 @@ import {
   Info,
   Link as LinkIcon,
   MapPin,
-  Sparkles,
   ShieldCheck,
   Timer,
 } from "lucide-react";
@@ -138,7 +137,6 @@ function HeroStrip({
             ) : null}
             {isFinalState ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success-strong ring-1 ring-inset ring-success/30">
-                <Sparkles className="h-3 w-3" aria-hidden="true" />
                 Final state
               </span>
             ) : null}

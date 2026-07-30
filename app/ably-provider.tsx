@@ -19,7 +19,6 @@ export function AblyClientProvider({
       try {
         const realtime = new Ably.Realtime({
           authUrl: "/api/ably/auth",
-          clientId: `lasu-${window.crypto.randomUUID().slice(0, 8)}`,
           echoMessages: false,
         });
 

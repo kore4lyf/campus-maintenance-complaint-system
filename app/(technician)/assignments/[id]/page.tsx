@@ -11,7 +11,6 @@ import {
   Camera,
   History,
   Wrench,
-  Sparkles,
 } from "lucide-react";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -247,11 +246,7 @@ export default function TechnicianComplaintDetailPage({
                   </div>
                 </Card>
               ) : (
-                <p className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
-                  <Sparkles
-                    className="h-3 w-3 text-accent-strong"
-                    aria-hidden="true"
-                  />
+                <p className="text-xs text-muted-strong">
                   On track. No SLA breaches on this complaint.
                 </p>
               )}

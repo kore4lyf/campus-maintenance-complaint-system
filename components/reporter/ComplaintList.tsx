@@ -144,21 +144,6 @@ export function ComplaintList() {
   if (allItems.length === 0) {
     return (
       <div className="space-y-6">
-        {!includeClosed ? (
-          <Card padding="sm" variant="raised">
-            <div className="flex items-center gap-3 text-xs text-muted-strong">
-              <span
-                className="h-1 w-1 rounded-full bg-muted-strong"
-                aria-hidden="true"
-              />
-              Showing open complaints only. Toggle{" "}
-              <span className="font-semibold text-foreground-strong">
-                Closed claims
-              </span>{" "}
-              to see resolved or closed items.
-            </div>
-          </Card>
-        ) : null}
         <ReporterDashboardEmpty />
       </div>
     );

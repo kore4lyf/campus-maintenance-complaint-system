@@ -9,7 +9,7 @@ import {
   RefreshCw,
   CalendarClock,
   Layers,
-  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { ReportsFilterPanel } from "@/components/admin/ReportsFilterPanel";
 import { BarChartCard } from "@/components/admin/BarChartCard";
@@ -172,7 +172,7 @@ function ReportsContent() {
           description="Resolve overdue escalates to DICT Director per the SLA policy. Acknowledge overdue is the early-warning band."
           icon={
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-danger/15 text-danger">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             </span>
           }
         />

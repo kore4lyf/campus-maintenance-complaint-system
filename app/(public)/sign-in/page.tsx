@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   LogIn,
   ArrowRight,
   ShieldCheck,
-  Sparkles,
   Send,
   Clock4,
   Camera,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AuthShell } from "@/components/shared/AuthShell";
 import { SignInForm } from "./SignInForm";
+import { getServerSession } from "@/lib/auth/dal";
 
 export const metadata: Metadata = {
   title: "Sign in · LASU CMS",
@@ -27,6 +28,11 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const session = await getServerSession();
+  if (session) {
+    redirect("/complaints/mine");
+  }
+
   const params = await searchParams;
   const redirectParam = params.redirect?.trim() ?? "";
 
@@ -89,8 +95,7 @@ export default async function SignInPage({
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-fast group-hover/create:translate-x-0.5" aria-hidden="true" />
           </Link>
           .{" "}
-          <span className="inline-flex items-center gap-1 text-xs text-muted">
-            <Sparkles className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+          <span className="text-xs text-muted">
             Anonymous submission is supported for sensitive issues.
           </span>
         </p>

@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { useCurrentUser, useCurrentRole } from "@/lib/auth/role-context";
 import { SignOut } from "./SignOut";
 
@@ -22,8 +25,30 @@ interface TopNavProps {
 }
 
 export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const user = useCurrentUser();
   const role = useCurrentRole();
+  const pathname = usePathname();
+
+  const navItems = (() => {
+    if (!showNav) return [];
+    if (role === "reporter") {
+      return [
+        { href: "/complaints/new", label: "Submit" },
+        { href: "/complaints/mine", label: "My complaints" },
+      ];
+    }
+    if (role === "dicht_admin") {
+      return [
+        { href: "/admin/queue", label: "Queue" },
+        { href: "/admin/reports", label: "Reports" },
+      ];
+    }
+    if (role === "dicht_technician") {
+      return [{ href: "/technician/queue", label: "Queue" }];
+    }
+    return [];
+  })();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur">
@@ -38,34 +63,27 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
             alt="LASU CMS"
             width={2081}
             height={942}
-            className="h-20 w-auto"
+            className="h-10 w-auto"
             priority
           />
         </Link>
 
-        {showNav && (
+        {navItems.length > 0 && (
           <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
-            {role === "reporter" && (
-              <>
-                <NavLink href="/complaints/new">Submit</NavLink>
-                <NavLink href="/complaints/mine">My complaints</NavLink>
-              </>
-            )}
-            {role === "dicht_admin" && (
-              <>
-                <NavLink href="/admin/queue">Queue</NavLink>
-                <NavLink href="/admin/reports">Reports</NavLink>
-              </>
-            )}
-            {role === "dicht_technician" && (
-              <NavLink href="/technician/queue">Queue</NavLink>
-            )}
+            {navItems.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <NavLink key={item.href} href={item.href} active={active}>
+                  {item.label}
+                </NavLink>
+              );
+            })}
           </nav>
         )}
 
         <div className="flex items-center gap-2">
           {user ? (
-            <div className="inline-flex min-h-[44px] items-center gap-2.5 rounded-full border border-border bg-surface-raised/60 py-1 pl-1 pr-2.5">
+            <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-surface-raised/60 py-1 px-2">
               <span
                 className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white"
                 aria-hidden="true"
@@ -92,23 +110,72 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
               Sign in
             </Link>
           ) : null}
+          {navItems.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMobileOpen((prev) => !prev)}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-md p-2 text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong md:hidden"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? (
+                <X className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Menu className="h-5 w-5" aria-hidden="true" />
+              )}
+            </button>
+          )}
         </div>
       </div>
+
+      {mobileOpen && navItems.length > 0 && (
+        <nav
+          aria-label="Mobile navigation"
+          className="border-t border-border bg-surface px-4 py-3 md:hidden"
+        >
+          <ul className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex min-h-[44px] items-center rounded-lg px-3 text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-brand/10 text-brand"
+                        : "text-muted-strong hover:bg-surface-raised hover:text-foreground-strong"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
     </header>
   );
 }
 
 function NavLink({
   href,
+  active,
   children,
 }: {
   href: string;
+  active: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
-      className="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-muted-strong transition-colors hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+      className={`inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+        active
+          ? "bg-brand/10 text-brand"
+          : "text-muted-strong hover:bg-surface-raised hover:text-foreground-strong"
+      }`}
     >
       {children}
     </Link>

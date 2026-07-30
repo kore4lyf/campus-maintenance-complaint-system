@@ -15,7 +15,6 @@ import {
   Image as ImageIcon,
   EyeOff,
   AlertCircle,
-  Sparkles,
   CheckCircle2,
   ChevronRight,
 } from "lucide-react";
@@ -44,7 +43,7 @@ import { H2, Kicker, Supporting } from "@/components/ui/type";
  *   - Photo block uses a brand-tinted drag-and-drop surface with
  *     a hairline border; chosen photo carries an `accent-soft`
  *     badge to differentiate the chosen state.
- *   - Privacy block keeps the Sparkles accent chip restraint.
+ *   - Privacy block keeps the accent chip restraint.
  *   - Error block lifted into a Card with border-danger/40 to give
  *     it visual differentiation from success states.
  *   - Submit footer restructured as a hairline-bordered action row
@@ -441,8 +440,7 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
                   </span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted">
-                  <Sparkles className="h-3 w-3 text-accent-strong" aria-hidden="true" />
+                <span className="text-xs text-muted">
                   Tip: a photo speeds up the technician&apos;s first visit.
                 </span>
               )}
@@ -485,8 +483,7 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
               <>
                 We hide your name and email. You will get a private tracker
                 URL instead of a sign-in session.{" "}
-                <span className="inline-flex items-center gap-1 font-medium text-accent-strong">
-                  <Sparkles className="h-3 w-3" aria-hidden="true" />{" "}
+                <span className="text-sm font-medium text-accent-strong">
                   Recommended for sensitive issues.
                 </span>
               </>
@@ -528,12 +525,8 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
             variant="primary"
             size="lg"
             loading={isPending}
-            leadingIcon={<Send className="h-4 w-4" />}
-            trailingIcon={
-              !isPending ? (
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              ) : undefined
-            }
+            leadingIcon={ undefined }
+            trailingIcon={ undefined }
           >
             {isPending ? "Submitting" : "Submit complaint"}
           </Button>

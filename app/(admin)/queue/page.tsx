@@ -6,7 +6,6 @@ import { FilterPanel } from "@/components/admin/FilterPanel";
 import { QueueRow } from "@/components/admin/QueueRow";
 import { Label } from "@/components/ui/type";
 import { Card } from "@/components/ui/Card";
-import { Sparkles } from "lucide-react";
 import { AssignDialog } from "@/components/admin/AssignDialog";
 import { RecentActionsFeed } from "@/components/admin/RecentActionsFeed";
 import { QueueRibbon } from "@/components/admin/QueueRibbon";
@@ -282,7 +281,6 @@ export default function AdminQueuePage() {
         body="The Reports console gives you volume trends, breach counts, and PDF/CSV exports filtered by time, severity, and location."
         action={
           <span className="inline-flex items-center gap-2 rounded-md bg-accent px-6 py-3 text-base font-semibold text-brand-strong shadow-sm transition-[background-color,color,transform] duration-fast hover:-translate-y-0.5 hover:bg-accent-strong hover:text-brand hover:shadow-md">
-            <Sparkles className="h-4 w-4" />
             <span>Visit Reports console</span>
           </span>
         }
