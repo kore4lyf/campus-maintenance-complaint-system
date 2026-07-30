@@ -172,6 +172,7 @@ function SlaTile({
 }) {
   const t = tileToneClasses(state);
   const fillPct = terminal ? 100 : Math.max(8, ratio * 100);
+  const stableFillPct = Math.round(fillPct * 100) / 100;
 
   return (
     <article
@@ -206,13 +207,14 @@ function SlaTile({
         className={`relative h-1 overflow-hidden rounded-full ${t.barBg}`}
         role="meter"
         aria-label={`${label} ${terminal ? "completed" : "remaining"} proportion`}
-        aria-valuenow={Math.round(fillPct)}
+        aria-valuenow={Math.round(stableFillPct)}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <span
           className={`absolute inset-y-0 left-0 block ${t.bar} transition-[width] duration-medium`}
-          style={{ width: `${fillPct}%` }}
+          style={{ width: `${stableFillPct}%` }}
+          suppressHydrationWarning
         />
       </div>
     </article>
