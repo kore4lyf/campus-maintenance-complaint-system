@@ -107,10 +107,7 @@ function HeroStrip({
     const url = `${window.location.origin}${shareUrl}`;
     try {
       void navigator.clipboard?.writeText(url);
-      toast.success("Link copied to clipboard", {
-        description: "Bookmark this URL to revisit the complaint any time.",
-        duration: 3000,
-      });
+      toast.success("Copied");
     } catch {
       toast("Could not copy link", {
         description: url,

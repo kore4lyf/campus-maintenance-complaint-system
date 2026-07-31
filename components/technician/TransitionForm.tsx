@@ -174,7 +174,7 @@ export function TransitionForm({
       return json.data;
     },
     onSuccess: () => {
-      toast.success("Status updated successfully");
+      toast.success("Updated");
       queryClient.invalidateQueries({ queryKey: ["technician-queue"] });
       queryClient.invalidateQueries({
         queryKey: ["technician-complaint", complaintId],
@@ -184,18 +184,18 @@ export function TransitionForm({
     onError: (error: { error?: { code?: string; message?: string } }) => {
       if (error?.error?.code === "stale_write") {
         setStaleError(true);
-        toast.error("Version mismatch. Please refresh and try again.");
+        toast.error("Version mismatch");
       } else if (error?.error?.code === "invalid_photo") {
         toast.error(error.error.message ?? "Invalid photo");
       } else {
-        toast.error("Failed to update status. Please try again.");
+        toast.error("Update failed");
       }
     },
   });
 
   function handleTransition(toStatus: string) {
     if (toStatus === "Resolved" && photos.length === 0) {
-      toast.error("Proof-of-fix photo is required for Resolved status");
+      toast.error("Photo required to resolve");
       return;
     }
     transitionMutation.mutate({

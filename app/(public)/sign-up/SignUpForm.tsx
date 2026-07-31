@@ -53,7 +53,7 @@ export function SignUpForm() {
         });
         if (result.ok) {
           toast.success(
-            result.message ?? `Account created. Signed in as ${data.name}.`,
+            result.message ?? "Account created",
           );
           // Toast appears before the route swap so the user sees it.
           setTimeout(() => {
@@ -68,7 +68,7 @@ export function SignUpForm() {
         const message =
           err instanceof Error
             ? err.message
-            : "Could not create account. Please try again.";
+            : "Could not create account";
         setFormError(message);
         toast.error(message);
       }

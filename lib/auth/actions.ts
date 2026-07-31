@@ -140,12 +140,12 @@ export async function signInAction(formData: {
     return {
       ok: true,
       redirectTo,
-      message: `Welcome back, ${user.name ?? user.email}. Signed in as ${roleLabel}.`,
+      message: "Signed in",
     };
   } catch (err) {
     const { error, code } = friendlyError(
       err,
-      "Sign-in failed. Please try again.",
+      "Sign-in failed",
     );
     return { ok: false, error, code };
   }
@@ -188,19 +188,19 @@ export async function signUpAction(formData: {
       }
       return {
         ok: false,
-        error: "Could not create account. Please try again.",
+        error: "Could not create account",
       };
     }
 
     return {
       ok: true,
       redirectTo: "/complaints/mine",
-      message: `Account created. Welcome, ${formData.name.split(" ")[0] ?? formData.name}.`,
+      message: "Account created",
     };
   } catch (err) {
     const { error, code } = friendlyError(
       err,
-      "Could not create account. Please try again.",
+      "Could not create account",
     );
     return { ok: false, error, code };
   }

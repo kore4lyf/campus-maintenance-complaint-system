@@ -91,7 +91,7 @@ export default async function SignInPage({
             href="/sign-up"
             className="group/create inline-flex items-center gap-1 font-semibold text-brand transition-colors hover:text-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           >
-            Create one
+            Sign up
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-fast group-hover/create:translate-x-0.5" aria-hidden="true" />
           </Link>
           .{" "}

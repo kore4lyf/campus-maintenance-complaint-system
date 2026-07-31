@@ -21,11 +21,11 @@ export function SignOut() {
           typeof err.digest === "string" &&
           err.digest.startsWith("NEXT_REDIRECT");
         if (!isRedirect) {
-          toast.error("Failed to sign out cleanly. Try again.");
+          toast.error("Sign out failed");
           return;
         }
       }
-      toast.success("Signed out. See you again.");
+      toast.success("Signed out");
     });
   }
 

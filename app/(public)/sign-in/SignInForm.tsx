@@ -60,7 +60,7 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         const message =
           err instanceof Error
             ? err.message
-            : "Sign-in failed. Please try again.";
+            : "Sign-in failed";
         setFormError(message);
         toast.error(message);
       }

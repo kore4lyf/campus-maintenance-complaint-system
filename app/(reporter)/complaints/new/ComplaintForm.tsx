@@ -171,7 +171,7 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
           const message =
             err instanceof Error
               ? err.message
-              : "Network error. Please try again.";
+              : "Network error";
           setFormError(message);
           toast.error(message);
           return;
@@ -193,7 +193,7 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
         if (!response.ok || !payload?.data?.redirectTo) {
           const message =
             payload?.error?.message ??
-            `Submission failed (HTTP ${response.status}). Please try again.`;
+            `Submission failed (HTTP ${response.status})`;
           setFormError(message);
           toast.error(message);
           return;
@@ -203,13 +203,8 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
 
         toast.success(
           data.isAnonymous
-            ? "Complaint submitted privately. Your identity is hidden from DICT staff."
-            : "Complaint submitted. Tracking it from your queue now.",
-          {
-            description: data.isAnonymous
-              ? "You can still view status in your dashboard."
-              : "You'll see it on your dashboard with a live SLA timer.",
-          },
+            ? "Submitted anonymously"
+            : "Complaint submitted",
         );
 
         // Brief hold so the toast is on-screen before the route swap.
@@ -221,7 +216,7 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
         const message =
           err instanceof Error
             ? err.message
-            : "Submission failed unexpectedly. Please try again.";
+            : "Submission failed";
         setFormError(message);
         toast.error(message);
       }

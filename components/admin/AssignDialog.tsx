@@ -116,7 +116,7 @@ export function AssignDialog({
       return json.data;
     },
     onSuccess: () => {
-      toast.success("Complaint assigned successfully");
+      toast.success("Assigned");
       queryClient.invalidateQueries({ queryKey: ["admin-queue"] });
       queryClient.invalidateQueries({ queryKey: ["recent-actions"] });
       onAssigned();
@@ -125,16 +125,16 @@ export function AssignDialog({
     onError: (error: { error?: { code?: string } }) => {
       if (error?.error?.code === "stale_write") {
         setStaleError(true);
-        toast.error("Version mismatch. Please refresh and try again.");
+        toast.error("Version mismatch");
       } else {
-        toast.error("Failed to assign complaint. Please try again.");
+        toast.error("Assign failed");
       }
     },
   });
 
   function handleAssign() {
     if (!selectedTechId) {
-      toast.error("Please select a technician");
+      toast.error("Select a technician");
       return;
     }
     setStaleError(false);
