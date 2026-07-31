@@ -140,6 +140,7 @@ export function ComplaintList() {
 
   const firstPage = data.data ?? [];
   const allItems = [...firstPage, ...pages.flat()];
+  const closedCount = allItems.filter((c) => c.status === "Closed").length;
 
   if (allItems.length === 0) {
     return (
@@ -185,6 +186,13 @@ export function ComplaintList() {
           </div>
         </div>
       </Card>
+
+      {/* Info banner when toggle is on but no closed complaints exist */}
+      {includeClosed && closedCount === 0 && (
+        <p className="px-1 text-xs text-muted-strong">
+          No closed complaints yet — all your complaints are still open.
+        </p>
+      )}
 
       {/* Edge-to-edge list */}
       <ul className="overflow-hidden rounded-xl border border-border bg-surface">
