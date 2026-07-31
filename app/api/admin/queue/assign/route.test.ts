@@ -23,7 +23,7 @@ function ensureComplaint(id: string, version: number): void {
     categoryId: "K1",
     locationId: "L1",
     reporterId: null,
-    anonymousId: null,
+    
     isAnonymous: false,
     priority: "High",
     proofPhotoUrl: null,

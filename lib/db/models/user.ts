@@ -13,7 +13,6 @@ const userSchema = new Schema(
       enum: ["reporter", "dicht_admin", "dicht_technician"],
       required: true,
     },
-    anonymousId: { type: String },
   },
   { timestamps: true }
 );

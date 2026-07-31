@@ -1,14 +1,13 @@
 import { toPublicUser, toPublicComplaint, toPublicJSON } from "./pii";
 
 describe("toPublicUser", () => {
-  test("strips passwordHash and anonymousId", () => {
+  test("strips passwordHash", () => {
     const doc = {
       _id: "abc123",
       email: "test@example.com",
       name: "Alice",
       role: "reporter",
       passwordHash: "hashed_secret",
-      anonymousId: "anon123",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -16,7 +15,6 @@ describe("toPublicUser", () => {
     expect(result.email).toBe("test@example.com");
     expect(result.name).toBe("Alice");
     expect(result).not.toHaveProperty("passwordHash");
-    expect(result).not.toHaveProperty("anonymousId");
   });
 });
 

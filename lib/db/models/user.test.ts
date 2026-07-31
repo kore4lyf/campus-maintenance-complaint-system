@@ -13,7 +13,6 @@ describe("userSchema", () => {
     expect(fieldNames).toContain("passwordHash");
     expect(fieldNames).toContain("name");
     expect(fieldNames).toContain("role");
-    expect(fieldNames).toContain("anonymousId");
   });
 
   it("has timestamps enabled", () => {

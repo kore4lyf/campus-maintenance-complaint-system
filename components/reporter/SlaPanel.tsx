@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Clock, ChevronRight } from "lucide-react";
+import { Clock } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 
 /*
@@ -48,12 +48,6 @@ export interface SlaPanelProps {
   resolveLabel: string;
   resolveDeadline: Date | string;
   /**
-   * Optional junction content rendered between the two tiles on wide
-   * screens (e.g. an arrow, a divider). On mobile the two tiles stack
-   * and the junction is hidden.
-   */
-  junction?: ReactNode | undefined;
-  /**
    * Optional helper text rendered below the tiles. Hidden when omitted.
    */
   caption?: ReactNode | undefined;
@@ -95,10 +89,9 @@ function classifyState(
 }
 
 function headline(state: SlaState, deadline: Date): string {
-  if (state === "done") {
-    return "Met";
-  }
+  if (state === "done") return "Met";
   const diff = formatDistanceToNowStrict(deadline, { addSuffix: false });
+  if (state === "overdue") return `${diff} overdue`;
   return `in ${diff}`;
 }
 
@@ -226,7 +219,6 @@ export function SlaPanel({
   acknowledgeDeadline,
   resolveLabel,
   resolveDeadline,
-  junction,
   caption,
   isTerminal = false,
 }: SlaPanelProps) {
@@ -240,7 +232,7 @@ export function SlaPanel({
       className="flex flex-col gap-3"
       aria-label="Service level agreement timers"
     >
-      <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-[1fr_auto_1fr]">
+      <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
         <SlaTile
           label={acknowledgeLabel}
           hint="DICT's first response deadline. The clock starts the moment you submit."
@@ -249,19 +241,6 @@ export function SlaPanel({
           headline={headline(ack.state, ackDate)}
           terminal={isTerminal}
         />
-        {junction ? (
-          <div
-            className="hidden items-center justify-center md:flex"
-            aria-hidden="true"
-          >
-            {junction}
-          </div>
-        ) : (
-          <ChevronRight
-            className="mx-auto hidden h-4 w-4 text-muted-strong md:block"
-            aria-hidden="true"
-          />
-        )}
         <SlaTile
           label={resolveLabel}
           hint="Target time for the technician to close out the fix."

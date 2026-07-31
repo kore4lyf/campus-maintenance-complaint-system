@@ -78,7 +78,7 @@ export async function GET(
   const category = await CategoryModel.findOne({ _id: complaint.categoryId }).lean();
   const location = await LocationModel.findOne({ _id: complaint.locationId }).lean();
 
-  let reporterName = "Anonymous";
+  let reporterName = "Anonymous Reporter";
   if (!complaint.isAnonymous && complaint.reporterId) {
     const reporter = await UserModel.findById(complaint.reporterId)
       .select("name")

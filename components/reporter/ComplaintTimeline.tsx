@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import Image from "next/image";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import {
@@ -10,10 +10,9 @@ import {
   CircleCheck,
   CheckCircle2,
   PenLine,
-  X,
-  ZoomIn,
 } from "lucide-react";
 import { StatusPill, type ComplaintStatus } from "@/components/ui/StatusPill";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 
 /*
  * ComplaintTimeline — Apple-style two-column history list.
@@ -132,79 +131,6 @@ function StatusNode({
   );
 }
 
-function ProofPhotoThumb({
-  url,
-  caption,
-  idx,
-}: {
-  url: string;
-  caption: string;
-  idx: number;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={`View proof of fix photo ${idx + 1}`}
-        className="group/photo relative inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-raised text-left transition-[transform,border-color,box-shadow] duration-fast hover:-translate-y-0.5 hover:border-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-      >
-        <Image
-          src={url}
-          alt={`Proof of fix ${idx + 1}`}
-          width={56}
-          height={56}
-          className="h-full w-full object-cover transition-transform duration-medium group-hover/photo:scale-105"
-        />
-        <span className="pointer-events-none absolute inset-0 flex items-end justify-end bg-gradient-to-t from-brand/40 to-transparent opacity-0 transition-opacity duration-fast group-hover/photo:opacity-100">
-          <ZoomIn className="m-1 h-3 w-3 text-white drop-shadow" aria-hidden="true" />
-        </span>
-      </button>
-
-      {open ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Proof of fix photo ${idx + 1}`}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-brand/85 p-4 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setOpen(false);
-          }}
-        >
-          <div
-            className="relative max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-surface-overlay shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close preview"
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface/90 text-muted-strong backdrop-blur transition-colors hover:bg-surface hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-            <Image
-              src={url}
-              alt={`Proof of fix ${idx + 1}`}
-              width={1200}
-              height={900}
-              className="max-h-[75vh] w-full object-contain"
-            />
-            <div className="border-t border-border bg-surface-raised px-5 py-4 text-center">
-              <p className="text-sm font-medium text-foreground-strong">
-                {caption}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
-}
-
 export function ComplaintTimeline({ entries }: ComplaintTimelineProps) {
   if (entries.length === 0) {
     return (
@@ -285,11 +211,11 @@ export function ComplaintTimeline({ entries }: ComplaintTimelineProps) {
               ) : null}
 
               {entry.photoUrl ? (
-                <div className="mt-1">
-                  <ProofPhotoThumb
-                    url={entry.photoUrl}
+                <div className="mt-1 h-14 w-14">
+                  <ImageLightbox
+                    src={entry.photoUrl}
+                    alt={`Proof of fix ${i + 1}`}
                     caption={`${entry.fromStatus} → ${entry.toStatus} · ${format(new Date(entry.changedAt), "PP p")}`}
-                    idx={entries.slice(0, i + 1).filter((e) => e.photoUrl).length - 1}
                   />
                 </div>
               ) : null}

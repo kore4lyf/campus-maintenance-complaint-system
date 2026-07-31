@@ -135,10 +135,8 @@ test.describe("Feature 05: Reporter submission flow", () => {
     await page.getByLabel(/submit anonymously/i).check();
     await page.getByRole("button", { name: /submit complaint/i }).click();
 
-    // After anonymous submit the form redirects to /track/{token}.
-    // The full chain (anonymous user creation + AI triage + DB write) can
-    // take a while, so we allow a generous timeout.
-    await page.waitForURL(/\/(track|complaints)\//, { timeout: 90_000 });
+    // After anonymous submit the form redirects to the complaint detail page.
+    await page.waitForURL(/\/complaints\/[a-f0-9]{24}/, { timeout: 90_000 });
   });
 });
 

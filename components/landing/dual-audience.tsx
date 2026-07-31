@@ -61,7 +61,7 @@ function AudienceColumn({
     <article className="flex flex-col gap-6">
       <header className="flex flex-col gap-3">
         <p className="inline-flex items-center gap-2 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+          
           {eyebrow}
         </p>
         <H2 className="text-balance tracking-[-0.018em]">{title}</H2>

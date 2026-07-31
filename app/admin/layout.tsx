@@ -13,7 +13,7 @@ export default function AdminLayout({
       <TopNav />
       <main
         id="main-content"
-        className="flex-1 pt-8 sm:pt-10"
+        className="flex-1" 
       >
         {children}
       </main>

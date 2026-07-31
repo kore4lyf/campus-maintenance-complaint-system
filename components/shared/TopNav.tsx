@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { useCurrentUser, useCurrentRole } from "@/lib/auth/role-context";
+import { useCurrentUser, useCurrentRole, useSessionStatus } from "@/lib/auth/role-context";
 import { SignOut } from "./SignOut";
 
 /*
@@ -28,6 +28,7 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const user = useCurrentUser();
   const role = useCurrentRole();
+  const sessionStatus = useSessionStatus();
   const pathname = usePathname();
 
   const navItems = (() => {
@@ -82,26 +83,28 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
         )}
 
         <div className="flex items-center gap-2">
-          {user ? (
-            <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-surface-raised/60 py-1 px-2">
-              <span
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white"
-                aria-hidden="true"
-              >
-                {user.name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "U"}
-              </span>
-              <span
-                className="hidden max-w-[10rem] truncate text-sm font-medium text-foreground-strong sm:inline"
-                title={user.name || user.email}
-              >
-                {user.name || user.email}
-              </span>
-            </div>
-          ) : null}
-          {user ? (
-            <div className="inline-flex min-h-[44px] items-center">
-              <SignOut />
-            </div>
+          {sessionStatus === "loading" ? (
+            <div className="h-8 w-20 animate-pulse rounded-md bg-surface-raised" />
+          ) : user ? (
+            <>
+              <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-surface-raised/60 py-1 px-2">
+                <span
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white"
+                  aria-hidden="true"
+                >
+                  {user.name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "U"}
+                </span>
+                <span
+                  className="hidden max-w-[10rem] truncate text-sm font-medium text-foreground-strong sm:inline"
+                  title={user.name || user.email}
+                >
+                  {user.name || user.email}
+                </span>
+              </div>
+              <div className="inline-flex min-h-[44px] items-center">
+                <SignOut />
+              </div>
+            </>
           ) : showSignIn ? (
             <Link
               href="/sign-in"

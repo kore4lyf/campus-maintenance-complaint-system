@@ -125,6 +125,19 @@ async function loadComplaint(
           )
       : {};
 
+  const isAnonymousComplaint = Boolean(doc.isAnonymous);
+  const maskedActors = isAnonymousComplaint
+    ? Object.fromEntries(
+        Object.entries(actors).map(([id, data]) => [
+          id,
+          {
+            ...data,
+            ...(id === String(doc.reporterId) ? { name: "Anonymous Reporter" } : {}),
+          },
+        ]),
+      )
+    : actors;
+
   const complaint: RenderedComplaint = {
     _id: String(doc._id),
     status: doc.status,
@@ -142,7 +155,7 @@ async function loadComplaint(
   if (location) complaint.locationName = location.name;
 
   const timeline: TimelineEntry[] = history.map((entry: any) => {
-    const actor = entry.changedById ? actors[String(entry.changedById)] : null;
+    const actor = entry.changedById ? maskedActors[String(entry.changedById)] : null;
     return {
       fromStatus: entry.fromStatus,
       toStatus: entry.toStatus,

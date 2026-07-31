@@ -14,6 +14,8 @@ export type CurrentUser = {
 
 export type CurrentUserOrNull = CurrentUser | null;
 
+export type SessionStatus = "loading" | "authenticated" | "unauthenticated";
+
 const authClient = createAuthClient({
   baseURL:
     typeof process !== "undefined" && process.env.NEXT_PUBLIC_BETTER_AUTH_URL
@@ -22,6 +24,7 @@ const authClient = createAuthClient({
 });
 
 const UserContext = createContext<CurrentUserOrNull>(null);
+const SessionStatusContext = createContext<SessionStatus>("loading");
 
 function resolveRole(value: unknown): Role | null {
   if (
@@ -39,7 +42,7 @@ export function RoleProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const sessionUser = (session?.user ?? null) as {
     id?: string;
     email?: string;
@@ -57,7 +60,17 @@ export function RoleProvider({
         }
       : null;
 
-  return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
+  const status: SessionStatus = isPending
+    ? "loading"
+    : user
+      ? "authenticated"
+      : "unauthenticated";
+
+  return (
+    <SessionStatusContext.Provider value={status}>
+      <UserContext.Provider value={user}>{children}</UserContext.Provider>
+    </SessionStatusContext.Provider>
+  );
 }
 
 export function useCurrentUser(): CurrentUserOrNull {
@@ -67,4 +80,8 @@ export function useCurrentUser(): CurrentUserOrNull {
 export function useCurrentRole(): Role | null {
   const user = useContext(UserContext);
   return user ? user.role : null;
+}
+
+export function useSessionStatus(): SessionStatus {
+  return useContext(SessionStatusContext);
 }

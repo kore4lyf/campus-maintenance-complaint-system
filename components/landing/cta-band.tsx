@@ -13,7 +13,7 @@ export function CtaBand() {
         <div className="flex flex-col items-start gap-8 px-0 py-20 md:flex-row md:items-center md:justify-between md:py-24 xl:py-28">
           <div className="max-w-3xl">
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+              
               Join the loop
             </p>
             <h2 className="mt-3 text-balance text-4xl font-semibold tracking-[-0.025em] text-white sm:text-5xl xl:text-6xl">

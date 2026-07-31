@@ -1,5 +1,4 @@
 const PII_BLACKLIST = [
-  "anonymousId",
   "passwordHash",
   "reporterEmail",
   "p@ssw0rd",

@@ -262,10 +262,6 @@ export default function TechnicianComplaintDetailPage({
             <header className="mb-4 flex items-center justify-between">
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-strong">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-accent"
-                    aria-hidden="true"
-                  />
                   Service-level agreement
                 </p>
                 <p className="mt-1 text-base font-semibold tracking-[-0.005em] text-foreground-strong">

@@ -102,7 +102,7 @@ function AdminHeroActions({
     <div className="flex flex-wrap items-center gap-2">
       <RealtimeStatusBadge channelName="admin:queue" queryKey={queueKey} />
       <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
-        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+        
         Refreshes every 30 s
       </span>
     </div>

@@ -2,11 +2,6 @@ jest.mock("@/lib/ai/triage", () => ({
   triageComplaint: jest.fn(),
 }));
 
-jest.mock("@/lib/auth/anonymous-token", () => ({
-  signAnonymousToken: jest.fn().mockResolvedValue("mock.jwt.token"),
-  verifyAnonymousToken: jest.fn(),
-}));
-
 jest.mock("@/lib/storage/cloudinary", () => ({
   compressAndUpload: jest.fn().mockResolvedValue({
     url: "https://example.cloudinary.com/x.jpg",

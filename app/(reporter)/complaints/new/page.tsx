@@ -74,7 +74,6 @@ export default async function NewComplaintPage(): Promise<React.ReactElement> {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white border border-border bg-surface px-3 py-1.5 text-xs font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
               Under 1 minute
             </span>
           </div>

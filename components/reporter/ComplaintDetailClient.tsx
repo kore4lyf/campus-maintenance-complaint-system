@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, SectionHeader } from "@/components/ui/Card";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { CategoryBadge } from "@/components/reporter/CategoryBadge";
@@ -155,7 +156,7 @@ function HeroStrip({
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-strong">
-            <p className="inline-flex items-center gap-1.5">
+            <p className="inline-flex items-center gap-1.5 text-muted-strong">
               <Calendar className="h-3.5 w-3.5 text-muted-strong" aria-hidden="true" />
               <span>Submitted</span>
               <span className="numeric font-medium text-foreground-strong">
@@ -165,11 +166,6 @@ function HeroStrip({
               <span className="numeric">
                 {format(new Date(complaint.createdAt), "p")}
               </span>
-            </p>
-            <span aria-hidden="true" className="hidden h-1.5 w-1.5 rounded-full bg-border sm:inline-block" />
-            <p className="inline-flex items-center gap-1.5">
-              <Clock4 className="h-3.5 w-3.5 text-muted-strong" aria-hidden="true" />
-              <span>Live updates every 10 seconds</span>
             </p>
           </div>
         </header>
@@ -196,7 +192,8 @@ function HeroStrip({
 /* ---------- Photos ---------- */
 
 function PhotoGrid({ urls }: { urls: string[] }) {
-  if (urls.length === 0) {
+  const valid = urls.filter(Boolean);
+  if (valid.length === 0) {
     return (
       <div className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-surface-raised p-4 text-sm text-muted-strong">
         <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-muted/15 text-muted-strong">
@@ -221,23 +218,15 @@ function PhotoGrid({ urls }: { urls: string[] }) {
       role="list"
       className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
     >
-      {urls.map((url, idx) => (
+      {valid.map((url, idx) => (
         <li
           key={url}
           className="group/photo relative aspect-square overflow-hidden rounded-xl border border-border bg-surface-raised transition-[border-color,transform] duration-fast hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md"
         >
-          <Image
+          <ImageLightbox
             src={url}
             alt={`Attachment ${idx + 1} for this complaint`}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-medium group-hover/photo:scale-[1.03]"
           />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-brand/60 to-transparent p-3 opacity-0 transition-opacity duration-fast group-hover/photo:opacity-100">
-            <span className="numeric text-xs font-semibold text-white drop-shadow">
-              #{idx + 1}
-            </span>
-          </div>
         </li>
       ))}
     </ul>
@@ -328,7 +317,7 @@ export function ComplaintDetailClient({
 
   const complaint = complaintData ?? initialComplaint;
   const timeline = timelineData ?? initialTimeline;
-  const photoUrls = complaint.photoUrls ?? [];
+  const photoUrls = (complaint.photoUrls ?? []).filter(Boolean);
 
   // Date.now() here is intentional: the deadline-vs-now semantic is asked
   // of the card at SSR time so the page paints with the correct overdue
@@ -368,7 +357,6 @@ export function ComplaintDetailClient({
         <header className="mb-4 flex items-center justify-between">
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-strong">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
               Service-level agreement
             </p>
             <p className="mt-1 text-base font-semibold tracking-[-0.005em] text-foreground-strong">

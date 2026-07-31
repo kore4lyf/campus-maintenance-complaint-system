@@ -146,7 +146,7 @@ test("technician sees only their own assignments", async () => {
       slaResolveBy: new Date(Date.now() + 120_000),
       createdAt: new Date(),
       reporterId: "R1",
-      anonymousId: null,
+      
       isAnonymous: false,
       priority: "High",
       proofPhotoUrl: null,
@@ -165,7 +165,7 @@ test("technician sees only their own assignments", async () => {
       slaResolveBy: new Date(Date.now() + 120_000),
       createdAt: new Date(),
       reporterId: "R1",
-      anonymousId: null,
+      
       isAnonymous: false,
       priority: "Medium",
       proofPhotoUrl: null,

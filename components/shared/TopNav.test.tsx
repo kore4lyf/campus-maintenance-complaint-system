@@ -46,6 +46,7 @@ jest.mock("next/navigation", () => ({
     push: jest.fn(),
     refresh: jest.fn(),
   }),
+  usePathname: () => "/",
 }));
 
 function setSession(session: SessionData) {

@@ -134,7 +134,7 @@ test("reporter who does not own the complaint gets 403", async () => {
     proofPhotoUrl: null,
     description: "x",
     parentComplaintId: null,
-    anonymousId: null,
+    
     isAnonymous: false,
     aiSuggestion: null,
     escalated: false,
@@ -159,7 +159,7 @@ test("reporter who owns the complaint gets the timeline in reverse chronological
     proofPhotoUrl: null,
     description: "x",
     parentComplaintId: null,
-    anonymousId: null,
+    
     isAnonymous: false,
     aiSuggestion: null,
     escalated: false,
@@ -218,7 +218,7 @@ test("technician without assignment gets 403", async () => {
     proofPhotoUrl: null,
     description: "x",
     parentComplaintId: null,
-    anonymousId: null,
+    
     isAnonymous: false,
     aiSuggestion: null,
     escalated: false,
@@ -243,7 +243,7 @@ test("admin can see the timeline regardless of ownership", async () => {
     proofPhotoUrl: null,
     description: "x",
     parentComplaintId: null,
-    anonymousId: null,
+    
     isAnonymous: false,
     aiSuggestion: null,
     escalated: false,

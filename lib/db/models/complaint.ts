@@ -117,13 +117,6 @@ function validateTransition(prev: string, nextStatus: string, role?: string) {
 }
 
 schema.pre("validate", function (this: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (this.isAnonymous && this.reporterId !== null && this.reporterId !== undefined) {
-    this.invalidate(
-      "reporterId",
-      "Anonymous complaints must have reporterId set to null",
-      this.reporterId
-    );
-  }
   if (this.slaAcknowledgeBy >= this.slaResolveBy) {
     this.invalidate(
       "slaAcknowledgeBy",

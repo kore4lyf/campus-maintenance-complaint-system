@@ -13,17 +13,19 @@ export function SignOut() {
     startTransition(async () => {
       try {
         await signOutAction();
-      } catch {
-        toast.error("Failed to sign out cleanly. Try again.");
-        return;
+      } catch (err) {
+        // signOutAction calls redirect("/") which throws a NEXT_REDIRECT
+        // error. That's expected — not a failure.
+        const isRedirect =
+          err instanceof Error &&
+          typeof err.digest === "string" &&
+          err.digest.startsWith("NEXT_REDIRECT");
+        if (!isRedirect) {
+          toast.error("Failed to sign out cleanly. Try again.");
+          return;
+        }
       }
       toast.success("Signed out. See you again.");
-      // signOutAction redirects to "/" anyway; this just gives the toast
-      // a moment to mount before the route swap.
-      setTimeout(() => {
-        router.push("/");
-        router.refresh();
-      }, 200);
     });
   }
 

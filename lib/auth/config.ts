@@ -28,7 +28,10 @@ async function getDbClient(): Promise<NonNullable<typeof mongoose.connection.db>
         throw new Error("Mongoose connection is not initialized");
       }
       return db;
-    })();
+    })().catch((error) => {
+      dbPromise = null;
+      throw error;
+    });
   }
   return dbPromise;
 }
@@ -66,11 +69,6 @@ export async function getAuth(): Promise<BetterAuthInstance> {
           required: false,
           input: false,
           defaultValue: "reporter",
-        },
-        anonymousId: {
-          type: "string",
-          required: false,
-          input: false,
         },
       },
     },

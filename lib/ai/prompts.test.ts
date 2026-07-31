@@ -70,10 +70,6 @@ describe("scrubPII", () => {
     expect(() => scrubPII({ prompt: "password reset flow" })).toThrow();
   });
 
-  test("throws when prompt contains 'anonymousId' marker", () => {
-    expect(() => scrubPII({ prompt: "anon: anonymousId=abc" })).toThrow();
-  });
-
   test("returns prompt unchanged when no PII markers are present", () => {
     const prompt = "Location: Library. Category: Plumbing Issues (Plumbing).";
     expect(scrubPII({ prompt })).toBe(prompt);

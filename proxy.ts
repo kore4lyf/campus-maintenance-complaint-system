@@ -32,7 +32,15 @@ export function proxy(request: NextRequest): NextResponse {
     return NextResponse.next();
   }
 
-  if (!getSessionCookie(request)) {
+  // Optimistic check only: either a real BetterAuth session cookie or, in
+  // non-production, the E2E `test-session` cookie (mirroring the DAL bypass in
+  // lib/auth/dal.ts). Authoritative verification still happens server-side.
+  const hasSessionCookie = Boolean(getSessionCookie(request));
+  const hasTestSession =
+    process.env.NODE_ENV !== "production" &&
+    Boolean(request.cookies.get("test-session"));
+
+  if (!hasSessionCookie && !hasTestSession) {
     return redirectToSignIn(request);
   }
 

@@ -1476,3 +1476,87 @@ This skill does not touch `docs/scope/` or `docs/specs/` or code.
     already filters `status: { $ne: "Closed" }`.
 
   Scope: self-contained fix; no UI or query layer changes needed.
+
+- **2026-07-31 (Anonymous complaint system redesign)** —
+  Refactored the anonymous submission flow: complaints now require
+  authentication, but reporters can hide their identity from admin
+  and technician. Removed the JWT tracker system entirely.
+
+  Behavior changes:
+  - Anonymous submission is an opt-in toggle (`isAnonymous: true`)
+    on a logged-in user's complaint; `reporterId` always points to
+    the logged-in user. No hidden "anonymous" user rows.
+  - Admin and technician views show "Anonymous Reporter" instead of
+    the reporter's name when `isAnonymous: true`. Reporter always
+    sees their own name on `/complaints/[id]` detail.
+  - `/track/[token]` route and `lib/auth/anonymous-token.ts` removed.
+    All authenticated submissions redirect to `/complaints/[id]`
+    (no separate tracker URL).
+  - Notifications and Ably pushes to the reporter are skipped for
+    anonymous complaints.
+  - Removed `anonymousId` field from User model, PII redaction, and
+    BetterAuth `additionalFields`.
+
+  Files changed:
+  - **Removed**: `lib/auth/anonymous-token.ts`,
+    `lib/auth/anonymous-token.test.ts`,
+    `app/(public)/track/[token]/page.tsx`.
+  - **Model/lib**: `lib/db/models/user.ts` (removed `anonymousId`),
+    `lib/db/models/complaint.ts` (no schema change to
+    `reporterId`/`isAnonymous`), `lib/utils/pii.ts` (removed
+    `anonymousId` from redaction list),
+    `lib/auth/dal.ts` (falls back to `role: "reporter"` and
+    backfills the DB instead of returning null for unknown roles),
+    `lib/auth/config.ts` (removed `anonymousId` from
+    `additionalFields`), `lib/db/connection.ts` (added
+    `readyState === 1` check plus `open` event listener for
+    stale-connection resilience).
+  - **Routes**: `app/api/complaints/route.ts` (anonymous submission
+    links to logged-in `reporterId`; uses `formInput.isAnonymous`
+    for the complaint record; response includes only `redirectTo`),
+    `app/(reporter)/complaints/new/ComplaintForm.tsx` (removed
+    tracker URL handling; one redirect path),
+    `app/(reporter)/complaints/[id]/page.tsx` (masks reporter
+    name in timeline actors as "Anonymous Reporter" when
+    `isAnonymous: true`),
+    `app/api/technician/queue/[id]/route.ts` (default reporterName
+    is "Anonymous Reporter"; lookup short-circuits when
+    `isAnonymous: true`),
+    `app/api/technician/queue/[id]/transition/route.ts` (no
+    changes — already skipped notifications for anonymous
+    complaints).
+  - **Tests**: `lib/db/models/user.test.ts` (removed
+    `anonymousId` assertion), `lib/db/models/complaint.test.ts`
+    (still asserts `isAnonymous` field exists),
+    `lib/utils/pii.test.ts` (removed `anonymousId` stripping
+    assertion), `lib/auth/dal.test.ts` (renamed "returns null
+    when role is unknown" → "falls back to reporter when role is
+    unknown"), `lib/ai/prompts.test.ts` (removed
+    `anonymousId` PII marker test),
+    `lib/db/connection.test.ts` (mocked mongoose now
+    includes `connection` object),
+    `lib/db/__tests__/invariants.runtime.test.ts` (AC-4 now
+    asserts anonymous complaints CAN carry a non-null
+    `reporterId`),
+    `app/api/complaints/route.test.ts`,
+    `app/api/complaints/[id]/timeline/route.test.ts`,
+    `app/api/admin/queue/*.test.ts`,
+    `app/api/technician/queue/*.test.ts` (cleaned
+    `anonymousId: null,` test fixture lines).
+
+  Test results:
+  - `app/api/complaints`: 3 suites, 22 tests, pass.
+  - `lib/`: 36 suites, 211 tests, pass.
+  - `app/`: 1 suite failed (authshell better-auth module
+    loader issue), 101 tests among 19 passing suites, pass.
+  - Components/reporter: passing.
+  - `components/shared/TopNav.test.tsx`: pre-existing
+    `usePathname` mock gap fixed.
+  - `app/layout.test.tsx`, `components/shared/AuthShell.test.tsx`:
+    pre-existing BetterAuth ESM module-loader failures;
+    not related to this refactor.
+
+  Scope: anonymous surface now has zero auth-bypass surface area;
+  reporter identity assurance shifts from token-based to
+  BetterAuth session. PII exposure for hidden reporters is now a
+  read-side concern only (masking in API mappers and views).

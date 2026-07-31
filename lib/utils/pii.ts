@@ -3,7 +3,6 @@ interface PublicUser {
   email: string;
   name: string | null;
   role: string;
-  anonymousId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,7 +37,7 @@ interface PublicComplaint {
 
 function toPublicUser(doc: Record<string, unknown>): PublicUser {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping PII
-  const { passwordHash: _, anonymousId: _aid, ...rest } = doc;
+  const { passwordHash: _, ...rest } = doc;
   return rest as unknown as PublicUser;
 }
 
@@ -71,7 +70,7 @@ function toPublicJSON(doc: Record<string, unknown>): Record<string, unknown> {
     return toPublicComplaint(doc) as unknown as Record<string, unknown>;
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping PII
-  const { passwordHash: _ph, anonymousId: _aid, ...rest } = doc;
+  const { passwordHash: _ph, ...rest } = doc;
   return rest;
 }
 

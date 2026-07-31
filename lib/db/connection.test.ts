@@ -6,6 +6,10 @@ jest.mock("mongoose", () => ({
   default: {
     connect: mockMongooseConnect,
     disconnect: mockMongooseDisconnect,
+    connection: {
+      readyState: 1,
+      once: jest.fn(),
+    },
   },
 }));
 

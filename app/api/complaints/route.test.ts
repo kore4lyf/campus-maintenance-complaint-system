@@ -78,25 +78,17 @@ jest.mock("@/lib/storage/cloudinary", () => ({
   compressAndUpload: jest.fn(),
 }));
 
-jest.mock("@/lib/auth/anonymous-token", () => ({
-  signAnonymousToken: jest.fn(),
-  verifyAnonymousToken: jest.fn(),
-}));
-
 import { POST } from "./route";
 import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
 import { getServerSession } from "@/lib/auth/dal";
 import { triageComplaint } from "@/lib/ai/triage";
 import { compressAndUpload } from "@/lib/storage/cloudinary";
-import { signAnonymousToken, verifyAnonymousToken } from "@/lib/auth/anonymous-token";
 import { findOrCreateDuplicateParent } from "@/lib/db/helpers/duplicate-detection";
 
 const getServerSessionMock = getServerSession as jest.Mock;
 const triageMock = triageComplaint as jest.Mock;
 const compressMock = compressAndUpload as jest.Mock;
-const signTokenMock = signAnonymousToken as jest.Mock;
-const verifyTokenMock = verifyAnonymousToken as jest.Mock;
 const dupMock = findOrCreateDuplicateParent as jest.Mock;
 const categoryModel = CategoryModel as jest.Mocked<typeof CategoryModel> & {
   __seed: (id: string, doc: unknown) => void;
@@ -143,13 +135,6 @@ beforeEach(() => {
     latencyMs: 1200,
   });
   dupMock.mockResolvedValue({ isDuplicate: false, parentComplaintId: null });
-  signTokenMock.mockResolvedValue("test.jwt.token");
-  verifyTokenMock.mockResolvedValue({
-    sub: "60f1b9c8e7d8e2b1a4f3ed99",
-    sid: "sid-1",
-    iat: 1,
-    exp: 7_776_000,
-  });
   getServerSessionMock.mockResolvedValue({
     user: {
       id: "60f1b9c8e7d8e2b1a4f3ed88",
@@ -158,10 +143,6 @@ beforeEach(() => {
       role: "reporter",
     },
   });
-  userCreateMock.mockImplementation(async (payload: unknown) => ({
-    _id: "60f1b9c8e7d8e2b1a4f3ed99",
-    ...(typeof payload === "object" && payload !== null ? payload : {}),
-  }));
 });
 
 function makeMultipartRequest(
@@ -314,7 +295,7 @@ describe("POST /api/complaints", () => {
     expect(createArg.parentComplaintId).toBe("60f1b9c8e7d8e2b1a4f3ed77");
   });
 
-  test("anonymous submission creates hidden user and returns a trackerUrl", async () => {
+  test("anonymous submission marks complaint as anonymous without tracker", async () => {
     createMock.mockResolvedValueOnce({
       _id: "60f1b9c8e7d8e2b1a4f3ed22",
       status: "Submitted",
@@ -333,20 +314,14 @@ describe("POST /api/complaints", () => {
       isAnonymous: true,
     }));
     expect(res.status).toBe(201);
-    expect(userCreateMock).toHaveBeenCalledTimes(1);
-    expect(signTokenMock).toHaveBeenCalledTimes(1);
     const body = (await res.json()) as {
       data: { id: string; redirectTo: string; trackerUrl?: string };
     };
-    expect(body.data.trackerUrl).toMatch(/^\/track\//);
-    expect(body.data.redirectTo).toMatch(/^\/track\//);
-    expect(compressMock).not.toHaveBeenCalled();
-    const userCreateArg = userCreateMock.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(userCreateArg.role).toBe("reporter");
-    expect(userCreateArg.name).toBe("Anonymous Reporter");
+    expect(body.data.trackerUrl).toBeUndefined();
+    expect(body.data.redirectTo).toMatch(/^\/complaints\//);
     const createArg = createMock.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(createArg.isAnonymous).toBe(true);
-    expect(createArg.reporterId).toBe("60f1b9c8e7d8e2b1a4f3ed99");
+    expect(createArg.reporterId).toBe("60f1b9c8e7d8e2b1a4f3ed88");
   });
 
   test("rejects unknown category with 422 invalid_category", async () => {

@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { ensureAuthenticated, createTestUser } from "./helpers";
 
+/*
+ * NOTE: Run this file individually (`npx playwright test tests/e2e/auth.spec.ts`)
+ * or with --workers=1. The sign-up/sign-in happy-path tests create rapid user
+ * sessions that can contend with each other when run alongside other test files,
+ * causing flaky timeout failures on waitForURL.
+ */
+
 test.describe("Feature 04: Authentication smoke", () => {
   test("sign-up page renders all required fields", async ({ page }) => {
     await page.goto("/sign-up");

@@ -167,7 +167,7 @@ test("filters out Closed complaints", async () => {
       slaResolveBy: new Date(Date.now() - 50_000),
       createdAt: new Date(),
       reporterId: "R1",
-      anonymousId: null,
+      
       isAnonymous: false,
       priority: "High",
       proofPhotoUrl: null,
@@ -186,7 +186,7 @@ test("filters out Closed complaints", async () => {
       slaResolveBy: new Date(Date.now() + 200_000),
       createdAt: new Date(),
       reporterId: "R1",
-      anonymousId: null,
+      
       isAnonymous: false,
       priority: "Medium",
       proofPhotoUrl: null,

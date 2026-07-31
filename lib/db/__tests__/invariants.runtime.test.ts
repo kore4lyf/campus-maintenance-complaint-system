@@ -71,13 +71,14 @@ function validComplaintData(overrides: Record<string, unknown> = {}) {
 }
 
 describe("AC-4: Anonymous complaint invariant (runtime)", () => {
-  it("rejects anonymous complaint with non-null reporterId", async () => {
+  it("accepts anonymous complaint with reporterId set to logged-in user", async () => {
     const doc = new Complaint(validComplaintData({
       isAnonymous: true,
       reporterId: new mongoose.Types.ObjectId(),
     }));
-
-    await expect(doc.save()).rejects.toThrow(/Anonymous complaints must have reporterId set to null/);
+    const saved = await doc.save();
+    expect(saved.isAnonymous).toBe(true);
+    expect(saved.reporterId).not.toBeNull();
   });
 
   it("accepts anonymous complaint with null reporterId", async () => {

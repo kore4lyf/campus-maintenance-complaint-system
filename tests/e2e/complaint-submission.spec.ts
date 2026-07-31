@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { ensureAuthenticated } from "./helpers";
 
+/*
+ * NOTE: Run this file individually (`npx playwright test tests/e2e/complaint-submission.spec.ts`)
+ * or with --workers=1. The form submission tests depend on a fresh authenticated
+ * session and real DB state; running alongside other test files can cause session
+ * contention and flaky timeouts.
+ */
+
 test.describe("Feature 05: Complaint submission smoke", () => {
   test("complaint form page renders all required fields", async ({ page }) => {
     await ensureAuthenticated(page);

@@ -56,7 +56,7 @@ export async function Hero() {
                 className="h-px w-8 bg-border-strong"
               />
               <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                
                 Lagos State University
               </p>
             </div>

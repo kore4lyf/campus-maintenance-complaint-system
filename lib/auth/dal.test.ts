@@ -87,7 +87,7 @@ describe("getServerSession", () => {
     await expect(getServerSession()).resolves.toBeNull();
   });
 
-  test("returns null when role is unknown", async () => {
+  test("falls back to reporter when role is unknown", async () => {
     getSessionMock.mockResolvedValueOnce({
       user: {
         id: "60f1b9c8e7d8e2b1a4f3ed88",
@@ -95,7 +95,9 @@ describe("getServerSession", () => {
         role: "guest",
       },
     });
-    await expect(getServerSession()).resolves.toBeNull();
+    const result = await getServerSession();
+    expect(result).not.toBeNull();
+    expect(result?.user.role).toBe("reporter");
   });
 
   test("returns null when BetterAuth throws", async () => {

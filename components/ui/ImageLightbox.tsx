@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { X, ZoomIn } from "lucide-react";
+import { createPortal } from "react-dom";
+import { X, ZoomIn, Loader2 } from "lucide-react";
+import { usePreloadImage } from "./use-preload-image";
 
 interface ImageLightboxProps {
   src: string;
@@ -22,12 +24,14 @@ export function ImageLightbox({
   className,
 }: ImageLightboxProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { loaded, error } = usePreloadImage(open ? src : null);
+
+  useEffect(() => setMounted(true), []);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if (event.key === "Escape") setOpen(false);
     },
     [],
   );
@@ -35,7 +39,11 @@ export function ImageLightbox({
   useEffect(() => {
     if (open) {
       document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = "";
+      };
     }
   }, [open, handleKeyDown]);
 
@@ -59,43 +67,54 @@ export function ImageLightbox({
         </span>
       </button>
 
-      {open ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Expanded view of ${alt}`}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-2xl border border-white/10 bg-surface-overlay shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close preview"
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface/90 text-muted-strong backdrop-blur transition-colors hover:bg-surface hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      {mounted
+        ? createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Expanded view of ${alt}`}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+              style={{ visibility: open ? "visible" : "hidden", pointerEvents: open ? "auto" : "none" }}
+              onClick={open ? () => setOpen(false) : undefined}
             >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-            <Image
-              src={src}
-              alt={alt}
-              width={width}
-              height={height}
-              className="max-h-[85vh] w-auto object-contain"
-            />
-            {caption ? (
-              <div className="border-t border-border bg-surface-raised px-5 py-4 text-center">
-                <p className="text-sm font-medium text-foreground-strong">
-                  {caption}
-                </p>
+              <div
+                className="relative flex max-h-[90vh] max-w-[90vw] flex-col overflow-hidden rounded-2xl border border-white/10 bg-surface-overlay shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close preview"
+                  className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface/90 text-muted-strong backdrop-blur transition-colors hover:bg-surface hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+                {open && !loaded && !error && (
+                  <div className="absolute inset-0 z-10 flex min-h-[200px] min-w-[300px] items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-strong" />
+                  </div>
+                )}
+                {open && (
+                  <Image
+                    src={src}
+                    alt={alt}
+                    width={width}
+                    height={height}
+                    className={`max-h-[85vh] w-auto object-contain transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"}`}
+                  />
+                )}
+                {caption ? (
+                  <div className="border-t border-border bg-surface-raised px-5 py-4 text-center shrink-0">
+                    <p className="text-sm font-medium text-foreground-strong">
+                      {caption}
+                    </p>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

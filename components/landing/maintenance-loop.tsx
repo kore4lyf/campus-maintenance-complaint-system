@@ -41,7 +41,7 @@ export function MaintenanceLoopSection() {
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
         <header className="flex max-w-3xl flex-col items-start gap-4">
           <p className="inline-flex items-center gap-2 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+            
             The maintenance loop
           </p>
           <H2 className="text-balance">

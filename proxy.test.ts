@@ -32,6 +32,14 @@ describe("proxy", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  test("passes through /admin with the E2E test-session cookie in non-production", () => {
+    const req = new NextRequest("http://localhost/admin/queue", {
+      headers: { cookie: "test-session=admin%40test.lasu.edu.ng" },
+    });
+    const res = proxy(req);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   test("redirects unauthenticated /admin to /sign-in", () => {
     const res = proxy(requestFor("/admin/queue"));
     expect(res.status).toBe(307);

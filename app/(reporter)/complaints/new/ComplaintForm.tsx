@@ -200,26 +200,14 @@ export function ComplaintForm({ categories, locations }: ComplaintFormProps) {
         }
 
         const targetUrl = payload.data.redirectTo;
-        const trackerUrl = payload.data.trackerUrl;
-
-        if (data.isAnonymous && trackerUrl) {
-          try {
-            window.sessionStorage.setItem(
-              "cms_lasu:last_tracker_url",
-              trackerUrl,
-            );
-          } catch {
-            // sessionStorage may be unavailable; ignore.
-          }
-        }
 
         toast.success(
           data.isAnonymous
-            ? "Anonymous report submitted. We saved your tracker URL in this browser."
+            ? "Complaint submitted privately. Your identity is hidden from DICT staff."
             : "Complaint submitted. Tracking it from your queue now.",
           {
             description: data.isAnonymous
-              ? "Bookmark or save the URL we'll redirect you to so you can check status without signing in."
+              ? "You can still view status in your dashboard."
               : "You'll see it on your dashboard with a live SLA timer.",
           },
         );

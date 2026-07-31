@@ -27,7 +27,7 @@ function ensureComplaint(
     categoryId: "K1",
     locationId: "L1",
     reporterId: REPORTER_1,
-    anonymousId: null,
+    
     isAnonymous: false,
     priority: "High",
     proofPhotoUrl: null,
