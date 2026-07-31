@@ -13,7 +13,13 @@ describe("SlaCountdown", () => {
     const past = new Date(Date.now() - 1000 * 60 * 60 * 24 * 2);
     render(<SlaCountdown label="Acknowledge by" deadline={past} />);
     expect(screen.getByText(/Acknowledge by:/)).toBeInTheDocument();
-    expect(screen.getByText(/ago/).textContent).toBeTruthy();
+    expect(screen.getByText(/overdue/).textContent).toBeTruthy();
+  });
+
+  test("emphasize prop renders danger tone for overdue deadline", () => {
+    const past = new Date(Date.now() - 1000 * 60 * 60 * 4);
+    render(<SlaCountdown label="Acknowledge" deadline={past} emphasize />);
+    expect(screen.getByText(/overdue/)).toBeInTheDocument();
   });
 
   test("renders unknown fallback for an invalid date string", () => {

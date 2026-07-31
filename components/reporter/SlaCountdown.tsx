@@ -32,14 +32,15 @@ export function SlaCountdown({
   }
   const now = new Date();
   const isFuture = date.getTime() > now.getTime();
+  const isOverdue = !isFuture;
   const tone: BadgeProps["tone"] = emphasize
     ? "danger"
     : isFuture
       ? "info"
       : "neutral";
-  const human = isFuture
-    ? `in ${formatDistanceToNowStrict(date)}`
-    : `${formatDistanceToNowStrict(date)} ago`;
+  const human = isOverdue
+    ? `${formatDistanceToNowStrict(date)} overdue`
+    : `in ${formatDistanceToNowStrict(date)}`;
   return (
     <Badge tone={tone} leadingIcon={<Clock className="h-3 w-3" />} className={className}>
       <span>
