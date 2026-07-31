@@ -8,7 +8,6 @@ import {
   X,
   UserPlus,
   AlertTriangle,
-  EyeOff,
   RefreshCw,
   Camera,
   ChevronRight,
@@ -75,9 +74,6 @@ interface ComplaintDetail {
     assignedToName: string;
   } | null;
   __v: number;
-  isAnonymous?: boolean;
-  reporterName?: string | null;
-  reporterEmail?: string | null;
 }
 
 interface AssignDialogProps {
@@ -225,17 +221,6 @@ export function AssignDialog({
               })}
             </span>
           </div>
-
-          {/* Reporter info */}
-          {!complaint.isAnonymous && complaint.reporterName ? (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-strong">Filed by</span>
-              <span className="font-medium text-foreground-strong">{complaint.reporterName}</span>
-              {complaint.reporterEmail ? (
-                <span className="text-muted">({complaint.reporterEmail})</span>
-              ) : null}
-            </div>
-          ) : null}
 
           {/* Breach banner */}
           {complaint.breachKind !== "none" ? (

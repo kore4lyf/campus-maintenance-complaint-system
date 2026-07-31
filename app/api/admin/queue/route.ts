@@ -59,7 +59,6 @@ export async function GET(request: Request): Promise<NextResponse> {
   const age = url.searchParams.get("age");
   const locationId = url.searchParams.get("locationId");
   const cursor = url.searchParams.get("cursor");
-  const keyword = url.searchParams.get("keyword")?.trim() ?? "";
 
   const query: Record<string, unknown> = {};
 
@@ -76,53 +75,13 @@ export async function GET(request: Request): Promise<NextResponse> {
     query.createdAt = { $gte: ageFilter };
   }
 
-  // Keyword search: match description, reporter email, category name, or location name
-  if (keyword) {
-    const regex = { $regex: keyword, $options: "i" };
-
-    // Find matching reporter IDs
-    const matchingUsers = await UserModel.find({ email: regex })
-      .select("_id")
-      .lean();
-    const matchingUserIds = matchingUsers.map((u) => u._id);
-
-    // Find matching category IDs
-    const matchingCategories = await CategoryModel.find({ name: regex })
-      .select("_id")
-      .lean();
-    const matchingCategoryIds = matchingCategories.map((c) => c._id);
-
-    // Find matching location IDs
-    const matchingLocations = await LocationModel.find({ name: regex })
-      .select("_id")
-      .lean();
-    const matchingLocationIds = matchingLocations.map((l) => l._id);
-
-    const orConditions = [
-      { description: regex },
-      ...(matchingUserIds.length > 0
-        ? [{ reporterId: { $in: matchingUserIds } }]
-        : []),
-      ...(matchingCategoryIds.length > 0
-        ? [{ categoryId: { $in: matchingCategoryIds } }]
-        : []),
-      ...(matchingLocationIds.length > 0
-        ? [{ locationId: { $in: matchingLocationIds } }]
-        : []),
-    ];
-
-    if (orConditions.length > 0) {
-      query.$or = orConditions;
-    }
-  }
-
   query.status = { $ne: "Closed" };
 
   const { data, meta } = await paginateCursor({
     model: ComplaintModel,
     query,
     sort: { slaAcknowledgeBy: 1, slaResolveBy: 1, createdAt: 1 },
-    pageSize: 10,
+    pageSize: 50,
     cursor,
   });
 
@@ -165,21 +124,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   const techIds = [...new Set(assignments.map((a) => String(a.assignedToTechId)))];
-  const reporterIds = [...new Set(data.filter((d) => !d.isAnonymous).map((d) => String(d.reporterId)).filter(Boolean))];
-
-  const [techUsers, reporterUsers] = await Promise.all([
-    UserModel.find({ _id: { $in: techIds } })
-      .lean()
-      .then((docs) =>
-        Object.fromEntries(docs.map((d) => [String(d._id), d.name])),
-      ),
-    UserModel.find({ _id: { $in: reporterIds } })
-      .select("name email")
-      .lean()
-      .then((docs) =>
-        Object.fromEntries(docs.map((d) => [String(d._id), { name: d.name, email: d.email }])),
-      ),
-  ]);
+  const techUsers = await UserModel
+    .find({ _id: { $in: techIds } })
+    .lean()
+    .then((docs) =>
+      Object.fromEntries(docs.map((d) => [String(d._id), d.name])),
+    );
 
   for (const [, value] of latestAssignments) {
     value.assignedToName = techUsers[value.assignedToTechId] ?? "Unknown";
@@ -197,7 +147,6 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     const publicDoc = toPublicComplaint(doc as unknown as Record<string, unknown>);
     const category = categories[String(doc.categoryId)];
-    const reporter = doc.isAnonymous ? null : reporterUsers[String(doc.reporterId)] ?? null;
 
     return {
       ...publicDoc,
@@ -207,8 +156,6 @@ export async function GET(request: Request): Promise<NextResponse> {
       breachKind: breachState.kind,
       overdueMs: breachState.overdueMs,
       currentAssignee: latestAssignments.get(String(doc._id)) ?? null,
-      reporterName: reporter?.name ?? null,
-      reporterEmail: reporter?.email ?? null,
       __v: doc.__v,
     };
   });
