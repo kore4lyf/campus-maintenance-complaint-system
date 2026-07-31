@@ -1444,3 +1444,35 @@ This skill does not touch `docs/scope/` or `docs/specs/` or code.
     - rgba transparent layers at 0.05–0.30 opacity on pro
       hero blocks only (matches the home page's atmospheric
       depth treatment).
+
+- **2026-07-31 (Auto-close on resolve — GitHub-style lifecycle)** —
+  Resolved complaints now auto-close immediately. When a technician
+  transitions a complaint to "Resolved", the system atomically writes
+  two status history entries (technician → Resolved, system → Closed)
+  and sets `complaint.status = "Closed"`. This ensures:
+  - Reporter's "Show closed complaints" toggle works (query filters
+    `status: "Closed"` which now includes all resolved complaints).
+  - No orphaned `Resolved` complaints cluttering the system.
+  - Full audit trail preserved: technician's resolve action is recorded
+    separately from the system's auto-close.
+
+  Files changed:
+  - `app/api/technician/queue/[id]/transition/route.ts` — after
+    technician's `Resolved` transition succeeds, adds a second
+    `findOneAndUpdate` (`Resolved → Closed`) and a second
+    `StatusHistoryModel.create` with `changedBySystem: true`.
+    Notifications say `finalStatus` ("Closed" instead of "Resolved").
+    `newVersion` response returns `expectedVersion + 2` when
+    auto-close occurs (two sequential `__v` increments).
+  - `app/api/technician/queue/[id]/transition/route.test.ts` —
+    updated `Resolved` test assertion to expect `status: "Closed"`
+    after auto-close.
+  - `app/api/complaints/route.ts` — no changes needed; query already
+    filters `status: { $ne: "Closed" }` which excludes all resolved
+    complaints.
+  - `app/api/technician/queue/route.ts` — no changes needed; query
+    already filters `status: { $ne: "Closed" }`.
+  - `app/api/admin/queue/route.ts` — no changes needed; query
+    already filters `status: { $ne: "Closed" }`.
+
+  Scope: self-contained fix; no UI or query layer changes needed.

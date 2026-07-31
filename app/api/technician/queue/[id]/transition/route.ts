@@ -176,30 +176,31 @@ export async function POST(
 
   const now = new Date();
 
-  const updateData: Record<string, unknown> = {
-    status: toStatus,
-  };
-
-  if (toStatus === "Resolved" && photoUrls.length > 0) {
-    updateData.proofPhotoUrl = photoUrls[0];
-    updateData.resolvedAt = now;
-  }
-
-  const updated = await ComplaintModel.findOneAndUpdate(
-    { _id: complaintId, __v: expectedVersion },
-    { $set: updateData, $inc: { __v: 1 } },
+  // Step 1: Transition to the technician's target status (e.g., In Progress → Resolved)
+  const firstUpdate = await ComplaintModel.findOneAndUpdate(
+    { _id: complaintId, __v: expectedVersion, status: currentStatus },
+    { $set: { status: toStatus, ...(toStatus === "Resolved" && photoUrls.length > 0 ? { proofPhotoUrl: photoUrls[0], resolvedAt: now } : {}) }, $inc: { __v: 1 } },
     { new: true },
   );
 
-  if (!updated) {
-    const current = await ComplaintModel.findOne({ _id: complaintId }).lean();
-    if (!current) {
-      return badRequest("not_found", "Complaint not found", 404);
-    }
+  if (!firstUpdate) {
     return NextResponse.json(
       { error: { code: "stale_write", message: "Version mismatch. Please refresh and try again." } },
       { status: 409, headers: { "content-type": "application/json" } },
     );
+  }
+
+  // Step 2: Auto-close — Resolved → Closed (system action)
+  let finalStatus = toStatus;
+  if (toStatus === "Resolved") {
+    const closedUpdate = await ComplaintModel.findOneAndUpdate(
+      { _id: complaintId, __v: expectedVersion + 1, status: "Resolved" },
+      { $set: { status: "Closed" }, $inc: { __v: 1 } },
+      { new: true },
+    );
+    if (closedUpdate) {
+      finalStatus = "Closed";
+    }
   }
 
   const statusHistory = await StatusHistoryModel.create({
@@ -213,6 +214,22 @@ export async function POST(
     changedAt: now,
   });
 
+  // Auto-close: add system entry when resolving
+  let systemStatusHistoryId: string | null = null;
+  if (toStatus === "Resolved" && finalStatus === "Closed") {
+    const systemEntry = await StatusHistoryModel.create({
+      complaintId,
+      fromStatus: "Resolved",
+      toStatus: "Closed",
+      changedById: session.user.id,
+      changedBySystem: true,
+      note: null,
+      photoUrl: null,
+      changedAt: new Date(now.getTime() + 1),
+    });
+    systemStatusHistoryId = String(systemEntry._id);
+  }
+
   const notificationIds: string[] = [];
 
   const assignmentRecord = await AssignmentModel.findOne({ complaintId })
@@ -224,7 +241,7 @@ export async function POST(
       complaintId,
       recipientId: assignmentRecord.assignedById,
       type: "status",
-      message: `${session.user.name} changed status to ${toStatus}`,
+      message: `${session.user.name} changed status to ${finalStatus}`,
       read: false,
     });
     notificationIds.push(String(adminNotification._id));
@@ -235,7 +252,7 @@ export async function POST(
       complaintId,
       recipientId: complaint.reporterId,
       type: "status",
-      message: `Your complaint status has been updated to ${toStatus}`,
+      message: `Your complaint status has been updated to ${finalStatus}`,
       read: false,
     });
     notificationIds.push(String(reporterNotification._id));
@@ -247,7 +264,7 @@ export async function POST(
       await publishToChannel({
         channelName: `admin-queue`,
         eventName: "status-update",
-        data: { complaintId, newStatus: toStatus },
+        data: { complaintId, newStatus: finalStatus },
       });
     }
 
@@ -255,7 +272,7 @@ export async function POST(
       await publishToChannel({
         channelName: `user:${String(complaint.reporterId)}`,
         eventName: "status-update",
-        data: { complaintId, newStatus: toStatus },
+        data: { complaintId, newStatus: finalStatus },
       });
     }
 
@@ -277,8 +294,9 @@ export async function POST(
     {
       data: {
         complaintId,
-        newVersion: updated.__v as number,
+        newVersion: finalStatus === "Closed" ? expectedVersion + 2 : expectedVersion + 1,
         statusHistoryId: String(statusHistory._id),
+        systemStatusHistoryId,
         notificationIds,
         ablyPushOk,
       },

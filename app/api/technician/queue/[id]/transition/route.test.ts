@@ -324,7 +324,7 @@ test("Resolved requires compress+upload of the photo", async () => {
   expect(res.status).toBe(200);
   expect(compressMock).toHaveBeenCalledTimes(1);
   const updated = complaints[0] as { status: string; proofPhotoUrl: string; resolvedAt?: Date };
-  expect(updated.status).toBe("Resolved");
+  expect(updated.status).toBe("Closed");
   expect(updated.proofPhotoUrl).toBe("https://cdn.example.com/proof.jpg");
   expect(updated.resolvedAt).toBeTruthy();
 });
