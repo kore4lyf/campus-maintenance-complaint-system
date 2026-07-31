@@ -4,40 +4,7 @@ Every action a user can take in the app, grouped by role.
 
 ---
 
-## 1. Anonymous Visitor (no account)
-
-### Landing page
-
-Open `/`. See the hero, stats, how-it-works section, and CTAs.
-
-- [x] **"Report a fault"** goes to `/complaints/new`. You will be asked to sign in first.
-- [ ] **"File anonymously"** goes to `/complaints/new` with the anonymous toggle pre-selected.
-- [x] **"Sign in"** goes to `/sign-in`.
-- [x] **"Create an account"** goes to `/sign-up`.
-
-### Anonymous complaint
-
-- [ ] Go to `/complaints/new`.
-- [ ] Pick a **Category** (e.g. Electrical Faults).
-- [ ] Pick a **Location** (e.g. Library).
-- [ ] Write a **Description** (10 to 2000 characters).
-- [ ] Toggle **"Submit anonymously"** on.
-- [ ] Click **Submit**.
-
-The app processes the complaint (AI triage runs in the background), then redirects you to a private tracker URL like `/track/[token]`. Bookmark this URL — it is the only way to check your complaint status without an account.
-
-### Track an anonymous complaint
-
-- [ ] Open your bookmarked `/track/[token]` URL at any time. You will see:
-  - [ ] Current status (Submitted, Acknowledged, In Progress, Resolved, Closed)
-  - [ ] SLA countdown timers (acknowledge-by, resolve-by)
-  - [ ] Description and attached photos
-  - [ ] Status history timeline
-- [ ] When the complaint reaches Closed, the page shows an empty state with a link to file a new one.
-
----
-
-## 2. Reporter (campus member with an account)
+## 1. Reporter (campus member with an account)
 
 ### Sign up
 
@@ -60,15 +27,18 @@ The app processes the complaint (AI triage runs in the background), then redirec
 - [x] Pick a **Location** from the dropdown.
 - [x] Write a **Description** of the fault (10 to 2000 characters).
 - [ ] Optionally attach a **photo** (file picker).
+- [ ] Toggle **"Submit anonymously"** on if you want to hide your identity from admin/technician.
 - [x] Click **Submit complaint**.
 
 The app runs AI triage in the background (assigns a severity level and rationale), uploads your photo to cloud storage, and creates the complaint. You are redirected to the complaint detail page.
+
+**Anonymous mode**: When the toggle is on, the complaint retains your `reporterId` (so you can still view it in `/complaints/mine`), but admin and technician views show "Anonymous Reporter" instead of your name. No hidden user records or JWT tracker tokens are created.
 
 ### View your complaints
 
 - [x] Go to `/complaints/mine` (the **"My complaints"** link in the nav). You see a live-updating list of every complaint you have filed, sorted newest-first. Each row shows status, category, location, and creation date.
 - [x] Click any row to open the complaint detail.
-- [ ] Toggle **"Closed claims"** to include resolved and closed complaints.
+- [ ] Toggle **"Show closed complaints"** to view only resolved and closed complaints. When unchecked, only open complaints are shown. When no closed complaints exist, a centered empty state with an icon informs you.
 
 ### View complaint detail
 
@@ -86,13 +56,13 @@ The app runs AI triage in the background (assigns a severity level and rationale
 1. Your complaint enters the queue as **Submitted**.
 2. A DICT admin picks it up and assigns it to a technician. You get a notification.
 3. The technician acknowledges it (**Acknowledged**), starts working (**In Progress**), and resolves it (**Resolved**) with a proof-of-fix photo.
-4. An admin closes it (**Closed**).
+4. The system automatically closes it (**Closed**) — no manual close step required.
 
 Each status change appears on your timeline. If the technician or admin misses an SLA deadline, the complaint is escalated automatically.
 
 ---
 
-## 3. DICT Technician (maintenance staff)
+## 2. DICT Technician (maintenance staff)
 
 ### Sign in
 
@@ -107,7 +77,7 @@ Each status change appears on your timeline. If the technician or admin misses a
 
 ### Work on a complaint
 
-- [ ] Open `/technician/assignments/[id]`. You see the full complaint: Status, severity, category, location, Reporter name (unless anonymous), SLA countdown timers, Description and attached photos, Status history timeline.
+- [ ] Open `/technician/assignments/[id]`. You see the full complaint: Status, severity, category, location, Reporter name (or "Anonymous Reporter" if submitted anonymously), SLA countdown timers, Description and attached photos, Status history timeline.
 
 #### Transition: Acknowledge
 
@@ -120,7 +90,7 @@ Each status change appears on your timeline. If the technician or admin misses a
 #### Transition: Resolved
 
 - [ ] If the complaint is **In Progress**, click **Resolve**. You must attach exactly one proof-of-fix photo. Add a note describing what you did.
-- [ ] The photo is compressed and uploaded to cloud storage. The complaint status updates, the reporter gets a notification, and the admin queue updates in real time.
+- [ ] The photo is compressed and uploaded to cloud storage. The complaint status updates to **Resolved**, then the system automatically transitions it to **Closed**. The reporter gets a notification, and the admin queue updates in real time.
 
 ### Important rules
 
@@ -131,7 +101,7 @@ Each status change appears on your timeline. If the technician or admin misses a
 
 ---
 
-## 4. DICT Admin (department administrator)
+## 3. DICT Admin (department administrator)
 
 ### Sign in
 
@@ -176,13 +146,15 @@ Each status change appears on your timeline. If the technician or admin misses a
 
 ---
 
-## 5. Status lifecycle
+## 4. Status lifecycle
 
 Every complaint follows this path:
 
 ```
 Submitted -> Acknowledged -> In Progress -> Resolved -> Closed
 ```
+
+The **Resolved → Closed** transition happens automatically — when a technician resolves a complaint, the system closes it in a two-step lifecycle, preserving audit trail entries for both actions.
 
 ### SLA enforcement
 
@@ -195,21 +167,21 @@ Submitted -> Acknowledged -> In Progress -> Resolved -> Closed
 
 ### Anonymous complaints
 
-- [ ] No reporter ID is stored on the complaint.
-- [ ] A hidden user record is created with a synthetic email.
-- [ ] A JWT-based tracker token is returned to the submitter.
-- [ ] The reporter name shows as "Anonymous Reporter" to technicians and admins.
+- [ ] The reporter must be signed in to file.
+- [ ] `reporterId` is always set on the complaint (links to the real user account).
+- [ ] `isAnonymous` boolean is set to `true` when the toggle is checked.
+- [ ] Admin and technician views show "Anonymous Reporter" instead of the reporter's name.
+- [ ] The reporter can still view their own complaint in `/complaints/mine`.
 
 ---
 
-## 6. Quick reference: URLs
+## 5. Quick reference: URLs
 
 | URL | Who can see it | Tested |
 |---|---|---|
 | `/` | Anyone | [x] |
 | `/sign-in` | Anyone | [x] |
 | `/sign-up` | Anyone | [x] |
-| `/track/[token]` | Anyone with the token | [ ] |
 | `/complaints/mine` | Reporter (own complaints) | [x] |
 | `/complaints/new` | Reporter (signed in) | [x] |
 | `/complaints/[id]` | Reporter (own), Technician (assigned), Admin (all) | [x] |
