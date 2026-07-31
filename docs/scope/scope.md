@@ -80,18 +80,19 @@ Spec 0003 · code in `../specs/0003-design-system-ui-foundation.md`
 
 ### 4. Authentication (BetterAuth) · in-progress
 
-Email/password registration and sign-in for three roles (reporter, dicht_admin, dicht_technician) with HTTP-only cookie sessions and route-level RBAC checks.
-**Done when:** a user can register, sign in, and sign out; protected routes reject unauthenticated requests; role-based routes enforce the RBAC matrix.
+Email/password registration and sign-in for three roles (reporter, dicht_admin, dicht_technician) with HTTP-only cookie sessions and route-level RBAC checks. First user to sign up becomes admin; subsequent users get reporter role by default. Admins assign roles to other users.
+**Done when:** a user can register (first user becomes admin, rest become reporters), sign in, and sign out; protected routes reject unauthenticated requests; role-based routes enforce the RBAC matrix; admins can assign roles to other users.
 - [x] Design it (spec): `/architect authentication`
 - [ ] Build it: `/develop authentication`
   - [x] Install BetterAuth plus Mongoose adapter; add session, account, verification models (AC-5, AC-6)
   - [x] Wire lib/auth/config.ts, app/api/auth/[...all]/route.ts, lib/auth/actions.ts, plus (public) sign-in and sign-up pages (AC-1, AC-2, AC-3, AC-5)
   - [x] Add middleware.ts at project root for RBAC and refactor lib/auth/role-context.tsx to useCurrentUser (AC-4, AC-7). Note: `middleware.ts` was renamed to `proxy.ts` in Unit-06, and the role gate now lives in `lib/auth/dal.ts` rather than in the request boundary.
   - [x] Retire MockRoleSwitcher and remove NEXT_PUBLIC_ALLOW_MOCK_ROLE from .env.example (AC-8)
-  - [x] Extend scripts/seed.ts with the SEED_ADMIN plus SEED_TECH trios, .env.example entries, architecture text reconciliation (AC-9)
+  - [ ] Implement first-user-is-admin logic in signUpAction (AC-1)
+  - [ ] Build POST /api/admin/users/[id]/role endpoint for role assignment (AC-9)
   - [ ] Run all build gates plus Playwright sign-up, sign-in, sign-out, and 403 on role mismatch smoke (AC-10)
     - Deferred to end-of-cycle per Test Execution Policy in `AGENTS.md`; agents during development must not block on `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, or `npm run test:e2e`. End-of-cycle verify will re-run all gates against the final tree.
-  - code in `lib/auth/{config,actions,role-context,dal}.ts`, `lib/db/models/{session,account,verification}.ts`, `app/api/auth/[...all]/route.ts`, `app/(public)/{sign-in,sign-up}/*.tsx`, `components/shared/SignOut.tsx`, `components/shared/TopNav.tsx`, `proxy.ts` (renamed from `middleware.ts` per Unit-06), `scripts/seed.ts`
+  - code in `lib/auth/{config,actions,role-context,dal}.ts`, `lib/db/models/{session,account,verification}.ts`, `app/api/auth/[...all]/route.ts`, `app/(public)/{sign-in,sign-up}/*.tsx`, `components/shared/SignOut.tsx`, `components/shared/TopNav.tsx`, `proxy.ts` (renamed from `middleware.ts` per Unit-06), `app/api/admin/users/[id]/role/route.ts`
 - [ ] Verify it: `/check verify authentication`
 - [ ] Test it: `/test authentication`
 - [ ] Review it (fresh model): `/check review authentication`

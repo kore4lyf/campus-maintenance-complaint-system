@@ -11,14 +11,15 @@ Every action a user can take in the app, grouped by role.
 - [x] Go to `/sign-up`.
 - [x] Enter your **name**, **email**, and **password**.
 - [x] Click **Create account**.
-- [x] You are redirected to `/complaints/mine`.
+- [x] If you are the first user to sign up, you are automatically assigned the `dicht_admin` role and redirected to `/admin/queue`.
+- [x] Otherwise, you are assigned the `reporter` role and redirected to `/complaints/mine`.
 
 ### Sign in
 
 - [x] Go to `/sign-in`.
 - [x] Enter your **email** and **password**.
 - [x] Click **Sign in**.
-- [ ] If you were redirected here from a protected page, you land back there after signing in.
+- [x] If you were redirected here from a protected page, you land back there after signing in.
 
 ### File a complaint
 
@@ -26,8 +27,8 @@ Every action a user can take in the app, grouped by role.
 - [x] Pick a **Category** from the dropdown.
 - [x] Pick a **Location** from the dropdown.
 - [x] Write a **Description** of the fault (10 to 2000 characters).
-- [ ] Optionally attach a **photo** (file picker).
-- [ ] Toggle **"Submit anonymously"** on if you want to hide your identity from admin/technician.
+- [x] Optionally attach a **photo** (file picker).
+- [X] Toggle **"Submit anonymously"** on if you want to hide your identity from admin/technician.
 - [x] Click **Submit complaint**.
 
 The app runs AI triage in the background (assigns a severity level and rationale), uploads your photo to cloud storage, and creates the complaint. You are redirected to the complaint detail page.
@@ -38,7 +39,7 @@ The app runs AI triage in the background (assigns a severity level and rationale
 
 - [x] Go to `/complaints/mine` (the **"My complaints"** link in the nav). You see a live-updating list of every complaint you have filed, sorted newest-first. Each row shows status, category, location, and creation date.
 - [x] Click any row to open the complaint detail.
-- [ ] Toggle **"Show closed complaints"** to view only resolved and closed complaints. When unchecked, only open complaints are shown. When no closed complaints exist, a centered empty state with an icon informs you.
+- [x] Toggle **"Show closed complaints"** to view only resolved and closed complaints. When unchecked, only open complaints are shown. When no closed complaints exist, a centered empty state with an icon informs you.
 
 ### View complaint detail
 
@@ -66,7 +67,7 @@ Each status change appears on your timeline. If the technician or admin misses a
 
 ### Sign in
 
-- [ ] Technician accounts are created by admins (seeded in the database). You sign in at `/sign-in` with the email and password your admin gave you.
+- [ ] Technician accounts are created by admins. You sign in at `/sign-in` with the email and password your admin gave you.
 
 ### View your assignments
 
@@ -103,9 +104,21 @@ Each status change appears on your timeline. If the technician or admin misses a
 
 ## 3. DICT Admin (department administrator)
 
+### Bootstrap (first user)
+
+- [ ] The first user to sign up at `/sign-up` is automatically assigned the `dicht_admin` role.
+- [ ] After signing up, you are redirected to `/admin/queue`.
+- [ ] Subsequent users who sign up get the `reporter` role by default. Admins assign roles to technicians and other admins through the admin dashboard.
+
+### Assign a role to a user
+
+- [ ] Go to `/admin/queue`.
+- [ ] Open the browser console or use a tool like Postman to call `POST /api/admin/users/[id]/role` with `{ "role": "dicht_technician" }`.
+- [ ] The user's role is updated. They can now sign in and access technician pages.
+
 ### Sign in
 
-- [ ] Admin accounts are seeded by the system. Sign in at `/sign-in`.
+- [ ] Sign in at `/sign-in` with your email and password.
 
 ### Manage the queue
 
