@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@fontsource-variable/google-sans";
 import "./globals.css";
 import { Providers } from "./providers";
+import { SiteFooter } from "@/components/shared/site-footer";
 
 export const metadata: Metadata = {
   title: "Campus Maintenance Complaint Management System (LASU)",
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <SiteFooter />
       </body>
     </html>
   );

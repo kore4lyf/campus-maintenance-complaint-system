@@ -1,5 +1,4 @@
 import { TopNav } from "@/components/shared/TopNav";
-import { SiteFooter } from "@/components/shared/site-footer";
 import { Hero } from "@/components/landing/hero";
 import { StatsBand } from "@/components/landing/stats-band";
 import { MaintenanceLoopSection } from "@/components/landing/maintenance-loop";
@@ -18,7 +17,6 @@ export default async function LandingPage() {
       <MaintenanceLoopSection />
       <DualAudienceSection />
       <CtaBand />
-      <SiteFooter />
     </div>
   );
 }
