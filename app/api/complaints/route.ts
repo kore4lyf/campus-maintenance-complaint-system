@@ -406,6 +406,8 @@ export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
   const cursor = url.searchParams.get("cursor");
   const includeClosed = url.searchParams.get("includeClosed") === "true";
+  const anonymousOnly = url.searchParams.get("anonymousOnly") === "true";
+  const statusFilter = url.searchParams.get("status");
 
   const query: Record<string, unknown> = {
     $or: [{ reporterId: userId }],
@@ -415,6 +417,14 @@ export async function GET(request: Request): Promise<NextResponse> {
     query.status = "Closed";
   } else {
     query.status = { $ne: "Closed" };
+  }
+
+  if (anonymousOnly) {
+    query.isAnonymous = true;
+  }
+
+  if (statusFilter) {
+    query.status = statusFilter;
   }
 
   const { data, meta } = await paginateCursor({

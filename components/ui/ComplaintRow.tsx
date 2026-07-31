@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { formatDistanceToNowStrict } from "date-fns";
-import { Camera, ChevronRight } from "lucide-react";
+import { Camera, ChevronRight, EyeOff } from "lucide-react";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { CategoryBadge } from "@/components/reporter/CategoryBadge";
@@ -56,6 +56,7 @@ export interface ComplaintRowProps {
   complaint: {
     _id: string;
     status: string;
+    isAnonymous?: boolean | undefined;
     categoryId?: string | undefined;
     locationId?: string | undefined;
     description: string;
@@ -199,6 +200,12 @@ export function ComplaintRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusPill status={complaint.status} />
+          {complaint.isAnonymous ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted/15 px-2 py-0.5 text-[10px] font-medium text-muted-strong">
+              <EyeOff className="h-2.5 w-2.5" aria-hidden="true" />
+              Anonymous
+            </span>
+          ) : null}
           {complaint.priority ? (
             <SeverityBadge severity={complaint.priority} />
           ) : null}

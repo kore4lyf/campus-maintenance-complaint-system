@@ -3,17 +3,21 @@
 import { useState, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ComplaintRow } from "@/components/ui/ComplaintRow";
-import { ClosedClaimsToggle } from "./ClosedClaimsToggle";
+import {
+  ComplaintFilters,
+  type ComplaintFiltersState,
+} from "./ComplaintFilters";
 import { ReporterDashboardEmpty } from "./ReporterDashboardEmpty";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ChevronDown, Inbox, RefreshCw, Archive } from "lucide-react";
+import { ChevronDown, Inbox, RefreshCw, Archive, EyeOff } from "lucide-react";
 import { Kicker, Supporting } from "@/components/ui/type";
 
 interface ComplaintListItem {
   _id: string;
   status: string;
+  isAnonymous?: boolean;
   categoryId: string;
   locationId: string;
   description: string;
@@ -32,13 +36,21 @@ interface ComplaintListResponse {
   meta: { nextCursor: string | null; hasMore: boolean };
 }
 
+const DEFAULT_FILTERS: ComplaintFiltersState = {
+  includeClosed: false,
+  anonymousOnly: false,
+  status: "",
+};
+
 async function fetchComplaints(
   cursor: string | null,
-  includeClosed: boolean,
+  filters: ComplaintFiltersState,
 ): Promise<ComplaintListResponse> {
   const params = new URLSearchParams();
   if (cursor) params.set("cursor", cursor);
-  if (includeClosed) params.set("includeClosed", "true");
+  if (filters.includeClosed) params.set("includeClosed", "true");
+  if (filters.anonymousOnly) params.set("anonymousOnly", "true");
+  if (filters.status) params.set("status", filters.status);
 
   const res = await fetch(`/api/complaints?${params.toString()}`);
   if (!res.ok) {
@@ -48,7 +60,7 @@ async function fetchComplaints(
 }
 
 /*
- * SummaryHeader — memoized so the toggle state changing doesn't cause
+ * SummaryHeader — memoized so the filter state changing doesn't cause
  * this entire block to re-render. Only the `totalCount` prop changes
  * when the API responds, keeping the header stable.
  */
@@ -87,29 +99,29 @@ const SummaryHeader = memo(function SummaryHeader({
 });
 
 export function ComplaintList() {
-  const [includeClosed, setIncludeClosed] = useState(false);
+  const [filters, setFilters] = useState<ComplaintFiltersState>(DEFAULT_FILTERS);
   const [pages, setPages] = useState<ComplaintListItem[][]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
   const { data, isLoading, isError, refetch, isFetching } =
     useQuery<ComplaintListResponse>({
-      queryKey: ["complaints", includeClosed],
-      queryFn: () => fetchComplaints(null, includeClosed),
+      queryKey: ["complaints", filters],
+      queryFn: () => fetchComplaints(null, filters),
       refetchInterval: 30_000,
       refetchOnWindowFocus: true,
     });
 
   const handleLoadMore = useCallback(async () => {
     if (!nextCursor) return;
-    const result = await fetchComplaints(nextCursor, includeClosed);
+    const result = await fetchComplaints(nextCursor, filters);
     setPages((prev) => [...prev, result.data]);
     setNextCursor(result.meta.nextCursor);
     setHasMore(result.meta.hasMore);
-  }, [nextCursor, includeClosed]);
+  }, [nextCursor, filters]);
 
-  const handleToggle = useCallback((checked: boolean) => {
-    setIncludeClosed(checked);
+  const handleFilterChange = useCallback((newFilters: ComplaintFiltersState) => {
+    setFilters(newFilters);
     setPages([]);
     setNextCursor(null);
     setHasMore(false);
@@ -166,9 +178,12 @@ export function ComplaintList() {
     pages.length === 0 ? data.meta.nextCursor : nextCursor;
   const currentHasMore = pages.length === 0 ? data.meta.hasMore : hasMore;
 
+  const hasActiveFilters =
+    filters.includeClosed || filters.anonymousOnly || filters.status !== "";
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Summary + filter — toggle lives outside the memoized header */}
+      {/* Summary + filters */}
       <Card padding="sm" variant="raised" className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
           <div className="flex items-center gap-3">
@@ -191,24 +206,45 @@ export function ComplaintList() {
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ClosedClaimsToggle
-              includeClosed={includeClosed}
-              onToggle={handleToggle}
+            <ComplaintFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
             />
           </div>
         </div>
       </Card>
 
       {/* Empty states */}
-      {allItems.length === 0 && !includeClosed && <ReporterDashboardEmpty />}
+      {allItems.length === 0 && !hasActiveFilters && (
+        <ReporterDashboardEmpty />
+      )}
 
-      {allItems.length === 0 && includeClosed && (
+      {allItems.length === 0 && hasActiveFilters && filters.anonymousOnly && (
+        <EmptyState
+          icon={<EyeOff className="h-9 w-9" aria-hidden="true" />}
+          title="No anonymous complaints"
+          description="You haven't submitted any anonymous complaints yet. Toggle the anonymous option when filing to hide your identity."
+        />
+      )}
+
+      {allItems.length === 0 && hasActiveFilters && filters.includeClosed && (
         <EmptyState
           icon={<Archive className="h-9 w-9" aria-hidden="true" />}
           title="No closed complaints yet"
           description="All your complaints are still open. Closed complaints will appear here once they are resolved."
         />
       )}
+
+      {allItems.length === 0 &&
+        hasActiveFilters &&
+        !filters.anonymousOnly &&
+        !filters.includeClosed && (
+          <EmptyState
+            icon={<Inbox className="h-9 w-9" aria-hidden="true" />}
+            title="No complaints match"
+            description="Try adjusting your filters to see more results."
+          />
+        )}
 
       {/* List */}
       {allItems.length > 0 && (
