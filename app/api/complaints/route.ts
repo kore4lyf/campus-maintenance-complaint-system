@@ -11,7 +11,6 @@ import { ApiError } from "@/lib/utils/errors";
 import { getServerSession } from "@/lib/auth/dal";
 import { triageComplaint } from "@/lib/ai/triage";
 import { compressAndUpload } from "@/lib/storage/cloudinary";
-import { signAnonymousToken, verifyAnonymousToken } from "@/lib/auth/anonymous-token";
 import { paginateCursor } from "@/lib/utils/pagination";
 import { toPublicComplaint } from "@/lib/utils/pii";
 import type { TriageResult } from "@/lib/ai/triage";
@@ -126,15 +125,7 @@ async function readFormFromRequest(request: Request): Promise<ParsedRequest> {
   };
 }
 
-async function readSessionUser(isAnonymousRequested: boolean): Promise<UserContext> {
-  if (isAnonymousRequested) {
-    return {
-      reporterId: null,
-      isAnonymous: true,
-      reporterIdsForPii: [],
-      reporterEmailsForPii: [],
-    };
-  }
+async function readSessionUser(): Promise<UserContext> {
   const session = await getServerSession();
   if (!session) {
     throw new ApiError("unauthenticated", "Authentication required", 401);
@@ -201,20 +192,6 @@ function computeSlaDeadlines(args: {
     slaAcknowledgeBy: new Date(args.now.getTime() + ackMs),
     slaResolveBy: new Date(args.now.getTime() + resMs),
   };
-}
-
-async function createAnonymousHiddenUser(token: string): Promise<string> {
-  const claims = await verifyAnonymousToken({ token });
-  const sid = claims.sid;
-  const syntheticEmail = `anon-${sid}@anonymous.lasu`;
-  const create = await UserModel.create({
-    email: syntheticEmail,
-    name: "Anonymous Reporter",
-    role: "reporter",
-    passwordHash: null,
-    anonymousId: token,
-  });
-  return String(create._id);
 }
 
 function aiSuggestionRecordFrom(triage: TriageResult): Record<string, unknown> {
@@ -289,7 +266,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    userCtx = await readSessionUser(Boolean(validated.data.isAnonymous));
+    userCtx = await readSessionUser();
   } catch (err) {
     if (err instanceof ApiError) {
       return badRequest(err.code, err.message, err.status);
@@ -309,13 +286,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       formInput.categoryId,
       formInput.locationId,
     );
-
-    let trackerToken: string | null = null;
-    if (userCtx.isAnonymous) {
-      const tempToken = await signAnonymousToken({ userId: "pending-anonymous" });
-      trackerToken = tempToken;
-      userCtx.reporterId = await createAnonymousHiddenUser(tempToken);
-    }
 
     const dup = await findOrCreateDuplicateParent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mongoose ObjectId cast
@@ -364,7 +334,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const created = await ComplaintModel.create({
       reporterId: userCtx.reporterId,
-      isAnonymous: userCtx.isAnonymous,
+      isAnonymous: formInput.isAnonymous,
       categoryId: lookup.category._id,
       locationId: lookup.location._id,
       description: formInput.description,
@@ -378,24 +348,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       ...(dup.parentComplaintId ? { parentComplaintId: dup.parentComplaintId } : {}),
     });
 
-    let trackerUrl: string | null = null;
-    if (userCtx.isAnonymous && trackerToken) {
-      trackerUrl = `/track/${trackerToken}`;
-    }
-
-    try {
-      revalidatePath("/complaints/mine");
-      revalidatePath("/admin/queue");
-    } catch {
-      // Cache revalidation may be unavailable in some runtimes; ignore errors.
-    }
-
     return NextResponse.json(
       {
         data: {
           id: String(created._id),
-          redirectTo: trackerUrl ?? `/complaints/${String(created._id)}`,
-          ...(trackerUrl ? { trackerUrl } : {}),
+          redirectTo: `/complaints/${String(created._id)}`,
         },
       },
       { status: 201, headers: { "content-type": "application/json" } },
@@ -454,7 +411,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     $or: [{ reporterId: userId }],
   };
 
-  if (!includeClosed) {
+  if (includeClosed) {
+    query.status = "Closed";
+  } else {
     query.status = { $ne: "Closed" };
   }
 

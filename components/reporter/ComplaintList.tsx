@@ -1,33 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ComplaintRow } from "@/components/ui/ComplaintRow";
 import { ClosedClaimsToggle } from "./ClosedClaimsToggle";
 import { ReporterDashboardEmpty } from "./ReporterDashboardEmpty";
 import { Card } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
-import { ChevronDown, Inbox, RefreshCw } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ChevronDown, Inbox, RefreshCw, Archive } from "lucide-react";
 import { Kicker, Supporting } from "@/components/ui/type";
-
-/*
- * ComplaintList — reporter's "My complaints" surface.
- *
- * Aesthetic pass (2026-07-29):
- *   - Lifts the "n complaints" summary into a hairline-divided Card
- *     surface with the ClosedClaimsToggle aligned right and a
- *     refresh-action affordance (pull-to-refresh hint) inside.
- *   - Adds an inline error Card with brand icon block + retry CTA.
- *   - Adds an empty-summary line for the "no items match" case
- *     (when filters are tight but includeClosed is false) so the
- *     user knows to enable Closed.
- *
- * Tokens used (no new tokens):
- *   - bg-surface / bg-surface-raised for the summary Card.
- *   - text-muted on subdued copy.
- *   - text-brand on pull-to-refresh affordance hover.
- */
 
 interface ComplaintListItem {
   _id: string;
@@ -64,6 +46,45 @@ async function fetchComplaints(
   }
   return res.json();
 }
+
+/*
+ * SummaryHeader — memoized so the toggle state changing doesn't cause
+ * this entire block to re-render. Only the `totalCount` prop changes
+ * when the API responds, keeping the header stable.
+ */
+const SummaryHeader = memo(function SummaryHeader({
+  totalCount,
+  isFetching,
+}: {
+  totalCount: number;
+  isFetching: boolean;
+}) {
+  return (
+    <Card padding="sm" variant="raised" className="overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
+        <div className="flex items-center gap-3">
+          <span
+            className="h-1.5 w-1.5 rounded-full bg-accent"
+            aria-hidden="true"
+          />
+          <p className="text-sm font-medium text-foreground-strong">
+            <span className="numeric text-base font-semibold">
+              {totalCount}
+            </span>{" "}
+            complaint{totalCount !== 1 ? "s" : ""}{" "}
+            <span className="text-muted-strong">in your queue</span>
+          </p>
+          {isFetching ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
+              <RefreshCw className="h-3 w-3 animate-spin" aria-hidden="true" />
+              refreshing…
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
+});
 
 export function ComplaintList() {
   const [includeClosed, setIncludeClosed] = useState(false);
@@ -140,15 +161,6 @@ export function ComplaintList() {
 
   const firstPage = data.data ?? [];
   const allItems = [...firstPage, ...pages.flat()];
-  const closedCount = allItems.filter((c) => c.status === "Closed").length;
-
-  if (allItems.length === 0) {
-    return (
-      <div className="space-y-6">
-        <ReporterDashboardEmpty />
-      </div>
-    );
-  }
 
   const currentNextCursor =
     pages.length === 0 ? data.meta.nextCursor : nextCursor;
@@ -156,7 +168,7 @@ export function ComplaintList() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Summary + filter */}
+      {/* Summary + filter — toggle lives outside the memoized header */}
       <Card padding="sm" variant="raised" className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
           <div className="flex items-center gap-3">
@@ -187,23 +199,29 @@ export function ComplaintList() {
         </div>
       </Card>
 
-      {/* Info banner when toggle is on but no closed complaints exist */}
-      {includeClosed && closedCount === 0 && (
-        <p className="px-1 text-xs text-muted-strong">
-          No closed complaints yet — all your complaints are still open.
-        </p>
+      {/* Empty states */}
+      {allItems.length === 0 && !includeClosed && <ReporterDashboardEmpty />}
+
+      {allItems.length === 0 && includeClosed && (
+        <EmptyState
+          icon={<Archive className="h-9 w-9" aria-hidden="true" />}
+          title="No closed complaints yet"
+          description="All your complaints are still open. Closed complaints will appear here once they are resolved."
+        />
       )}
 
-      {/* Edge-to-edge list */}
-      <ul className="overflow-hidden rounded-xl border border-border bg-surface">
-        {allItems.map((complaint) => (
-          <ComplaintRow
-            key={complaint._id}
-            complaint={complaint}
-            kind="navigate"
-          />
-        ))}
-      </ul>
+      {/* List */}
+      {allItems.length > 0 && (
+        <ul className="overflow-hidden rounded-xl border border-border bg-surface">
+          {allItems.map((complaint) => (
+            <ComplaintRow
+              key={complaint._id}
+              complaint={complaint}
+              kind="navigate"
+            />
+          ))}
+        </ul>
+      )}
 
       {currentHasMore ? (
         <div className="flex justify-center">
