@@ -24,9 +24,6 @@ import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
  * Aesthetic pass (2026-07-29):
  *   - Adds a numbered caption strip (`01 · Queue`) on the hero band,
  *     consistent with the Home / reporter detail cadence.
- *   - Adds a live-status chip in the hero actions (RealtimeStatusBadge
- *     with the `technician:queue` channel) so a technician can confirm
- *     push delivery in one glance.
  *   - Adds a hairline-divided "queue summary" strip (3 KPI cells) on
  *     the right side of the hero band: total assignments, breach
  *     count, average deadline-to-now distance. Mirrors the
