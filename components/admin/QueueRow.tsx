@@ -35,6 +35,8 @@ interface QueueRowProps {
     __v: number;
     systemType?: string | undefined;
     isAnonymous?: boolean;
+    reporterName?: string | null;
+    reporterEmail?: string | null;
   };
   onSelect: (complaint: QueueRowProps["complaint"]) => void;
 }
@@ -68,6 +70,12 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
               <SeverityBadge
                 severity={complaint.priority as "Critical" | "High" | "Medium" | "Low"}
               />
+              {complaint.isAnonymous && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-strong">
+                  <EyeOff className="h-3 w-3" aria-hidden="true" />
+                  Anonymous
+                </span>
+              )}
               {complaint.systemType ? (
                 <CategoryBadge
                   name={complaint.categoryName ?? "Complaint"}
@@ -84,6 +92,15 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
                 </span>
               ) : null}
             </p>
+
+            {!complaint.isAnonymous && complaint.reporterName ? (
+              <p className="mt-1 text-xs text-muted-strong">
+                {complaint.reporterName}
+                {complaint.reporterEmail ? (
+                  <span className="ml-1 text-muted">· {complaint.reporterEmail}</span>
+                ) : null}
+              </p>
+            ) : null}
 
             <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-strong">
               {shortDescription}
@@ -116,12 +133,6 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
           </div>
 
           <div className="flex flex-shrink-0 flex-col items-end justify-between gap-3 text-right">
-            {complaint.isAnonymous && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/15 px-2.5 py-1 text-xs font-medium text-muted-strong">
-                <EyeOff className="h-3 w-3" aria-hidden="true" />
-                Anonymous
-              </span>
-            )}
             {complaint.currentAssignee ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/15 px-2.5 py-1 text-xs font-medium text-muted-strong">
                 <span
