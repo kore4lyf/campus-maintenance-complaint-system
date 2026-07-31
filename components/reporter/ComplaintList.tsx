@@ -11,7 +11,7 @@ import { ReporterDashboardEmpty } from "./ReporterDashboardEmpty";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ChevronDown, Inbox, RefreshCw, Archive, EyeOff } from "lucide-react";
+import { ChevronDown, Inbox, RefreshCw } from "lucide-react";
 import { Kicker, Supporting } from "@/components/ui/type";
 
 interface ComplaintListItem {
@@ -219,32 +219,13 @@ export function ComplaintList() {
         <ReporterDashboardEmpty />
       )}
 
-      {allItems.length === 0 && hasActiveFilters && filters.anonymousOnly && (
+      {allItems.length === 0 && hasActiveFilters && (
         <EmptyState
-          icon={<EyeOff className="h-9 w-9" aria-hidden="true" />}
-          title="No anonymous complaints"
-          description="You haven't submitted any anonymous complaints yet. Toggle the anonymous option when filing to hide your identity."
+          icon={<Inbox className="h-9 w-9" aria-hidden="true" />}
+          title="No complaints match"
+          description="Try adjusting your filters to see more results."
         />
       )}
-
-      {allItems.length === 0 && hasActiveFilters && filters.includeClosed && (
-        <EmptyState
-          icon={<Archive className="h-9 w-9" aria-hidden="true" />}
-          title="No closed complaints yet"
-          description="All your complaints are still open. Closed complaints will appear here once they are resolved."
-        />
-      )}
-
-      {allItems.length === 0 &&
-        hasActiveFilters &&
-        !filters.anonymousOnly &&
-        !filters.includeClosed && (
-          <EmptyState
-            icon={<Inbox className="h-9 w-9" aria-hidden="true" />}
-            title="No complaints match"
-            description="Try adjusting your filters to see more results."
-          />
-        )}
 
       {/* List */}
       {allItems.length > 0 && (
