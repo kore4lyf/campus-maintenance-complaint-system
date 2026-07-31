@@ -46,6 +46,9 @@ interface RenderedComplaint {
   priority?: Severity;
   categoryName?: string;
   locationName?: string;
+  isAnonymous?: boolean;
+  reporterName?: string;
+  reporterEmail?: string;
 }
 
 interface TimelineEntry {
@@ -150,6 +153,18 @@ async function loadComplaint(
 
   if (ctx.role === "dicht_admin" || ctx.role === "dicht_technician") {
     complaint.priority = doc.priority as Severity;
+    complaint.isAnonymous = Boolean(doc.isAnonymous);
+
+    // Fetch reporter info for non-anonymous complaints
+    if (doc.reporterId && !doc.isAnonymous) {
+      const reporter = await UserModel.findOne({ _id: doc.reporterId })
+        .select("name email")
+        .lean();
+      if (reporter) {
+        complaint.reporterName = reporter.name;
+        complaint.reporterEmail = reporter.email;
+      }
+    }
   }
   if (category) complaint.categoryName = category.name;
   if (location) complaint.locationName = location.name;

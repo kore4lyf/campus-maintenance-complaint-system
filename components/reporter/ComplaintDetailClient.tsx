@@ -67,6 +67,9 @@ interface ComplaintDetail {
   categoryName?: string;
   locationName?: string;
   systemType?: string;
+  isAnonymous?: boolean;
+  reporterName?: string;
+  reporterEmail?: string;
 }
 
 interface TimelineEntry {
@@ -242,6 +245,15 @@ function MetaFacts({ complaint }: { complaint: ComplaintDetail }) {
       : null,
     complaint.priority
       ? { Icon: Timer, label: "Severity", value: complaint.priority }
+      : null,
+    complaint.reporterName
+      ? { Icon: Info, label: "Reporter", value: complaint.reporterName }
+      : null,
+    complaint.reporterEmail
+      ? { Icon: Info, label: "Reporter email", value: complaint.reporterEmail }
+      : null,
+    complaint.isAnonymous
+      ? { Icon: Info, label: "Submission", value: "Anonymous" }
       : null,
   ].filter((item): item is { Icon: typeof MapPin; label: string; value: string } =>
     item !== null,

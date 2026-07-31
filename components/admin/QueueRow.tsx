@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { Camera, ChevronRight } from "lucide-react";
+import { Camera, ChevronRight, EyeOff } from "lucide-react";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { CategoryBadge } from "@/components/reporter/CategoryBadge";
@@ -34,6 +34,7 @@ interface QueueRowProps {
     currentAssignee: { assignedToTechId: string; assignedToName: string } | null;
     __v: number;
     systemType?: string | undefined;
+    isAnonymous?: boolean;
   };
   onSelect: (complaint: QueueRowProps["complaint"]) => void;
 }
@@ -115,6 +116,12 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
           </div>
 
           <div className="flex flex-shrink-0 flex-col items-end justify-between gap-3 text-right">
+            {complaint.isAnonymous && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/15 px-2.5 py-1 text-xs font-medium text-muted-strong">
+                <EyeOff className="h-3 w-3" aria-hidden="true" />
+                Anonymous
+              </span>
+            )}
             {complaint.currentAssignee ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/15 px-2.5 py-1 text-xs font-medium text-muted-strong">
                 <span
