@@ -331,7 +331,7 @@ export function ComplaintDetailClient({
     complaint.status === "Resolved" || complaint.status === "Closed";
 
   return (
-    <article className="mx-auto w-full max-w-[820px] space-y-6">
+    <article className="w-full space-y-6">
       {/* ---------- 1. Hero strip ---------- */}
       <Card
         padding="lg"

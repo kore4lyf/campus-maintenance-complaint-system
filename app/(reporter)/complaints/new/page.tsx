@@ -81,7 +81,7 @@ export default async function NewComplaintPage(): Promise<React.ReactElement> {
       />
 
       <HeroBody>
-        <div className="mx-auto max-w-3xl space-y-6">
+        <div className="space-y-6">
           <ComplaintForm categories={categories} locations={locations} />
         </div>
       </HeroBody>
