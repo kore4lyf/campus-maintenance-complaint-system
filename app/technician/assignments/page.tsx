@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
 import {
-  Wrench,
   ChevronRight,
   Inbox,
   Clock,
@@ -15,7 +14,6 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { Kicker, Supporting } from "@/components/ui/type";
-import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
@@ -123,18 +121,7 @@ export default function TechnicianQueuePage() {
             ? "Loading…"
             : `${complaints.length} assigned to you · sorted by SLA urgency`
         }
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <RealtimeStatusBadge
-              channelName="technician:queue"
-              queryKey={queueQueryKey}
-            />
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
-              <Wrench className="h-3 w-3" aria-hidden="true" />
-              Refreshes every 30 s
-            </span>
-          </div>
-        }
+        actions={null}
       />
 
       <HeroBody>

@@ -236,10 +236,6 @@ export function TransitionForm({
       {/* Hero strip */}
       <header className="mb-5 flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-accent"
-            aria-hidden="true"
-          />
           <Kicker>Update status</Kicker>
           <span className="ml-auto numeric text-[11px] uppercase tracking-[0.16em] text-muted-strong">
             Move complaint forward

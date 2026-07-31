@@ -157,7 +157,7 @@ export function AssignDialog({
       role="dialog"
       aria-modal="true"
       aria-label={`Assign ${complaint.categoryName ?? "complaint"}`}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand/85 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
       }}
@@ -178,10 +178,6 @@ export function AssignDialog({
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-accent"
-                  aria-hidden="true"
-                />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
                   Assign complaint
                 </p>

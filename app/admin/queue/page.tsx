@@ -1,16 +1,16 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FilterPanel } from "@/components/admin/FilterPanel";
 import { QueueRow } from "@/components/admin/QueueRow";
 import { Label } from "@/components/ui/type";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { AssignDialog } from "@/components/admin/AssignDialog";
 import { RecentActionsFeed } from "@/components/admin/RecentActionsFeed";
 import { QueueRibbon } from "@/components/admin/QueueRibbon";
 import { AdminQueueEmpty } from "@/components/admin/AdminQueueEmpty";
-import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import { useSearchParams } from "next/navigation";
 import {
@@ -93,26 +93,17 @@ function QueueSkeleton() {
   );
 }
 
-function AdminHeroActions({
-  queueKey,
-}: {
-  queueKey: readonly unknown[];
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <RealtimeStatusBadge channelName="admin:queue" queryKey={queueKey} />
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
-        
-        Refreshes every 30 s
-      </span>
-    </div>
-  );
+function AdminHeroActions() {
+  return null;
 }
 
 function QueueContent() {
   const searchParams = useSearchParams();
   const [selectedComplaint, setSelectedComplaint] =
     useState<Complaint | null>(null);
+  const [pages, setPages] = useState<Complaint[][]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
 
   const severity = searchParams.get("severity") ?? "";
   const age = searchParams.get("age") ?? "";
@@ -133,6 +124,25 @@ function QueueContent() {
     refetchInterval: 30000,
   });
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPages([]);
+    setNextCursor(null);
+    setHasMore(false);
+  }, [severity, age, locationId]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!nextCursor) return;
+    const loadParams = new URLSearchParams(params);
+    loadParams.set("cursor", nextCursor);
+    const response = await fetch(`/api/admin/queue?${loadParams.toString()}`);
+    if (!response.ok) return;
+    const result: QueueResponse = await response.json();
+    setPages((prev) => [...prev, result.data]);
+    setNextCursor(result.meta.nextCursor);
+    setHasMore(result.meta.hasMore);
+  }, [nextCursor, params]);
+
   const { data: techData } = useQuery<{ data: Technician[] }>({
     queryKey: ["technicians"],
     queryFn: async () => {
@@ -151,10 +161,16 @@ function QueueContent() {
     },
   });
 
-  const complaints = queueData?.data ?? [];
+  const firstPage = queueData?.data ?? [];
+  const complaints = [...firstPage, ...pages.flat()];
   const technicians = techData?.data ?? [];
   const locations = locationData?.data ?? [];
   const escalatedRecentCount = queueData?.escalatedRecentCount ?? 0;
+
+  const currentNextCursor =
+    pages.length === 0 ? queueData?.meta.nextCursor : nextCursor;
+  const currentHasMore =
+    pages.length === 0 ? queueData?.meta.hasMore : hasMore;
 
   const total = complaints.length;
   const breached = complaints.filter((c) => c.breachKind !== "none").length;
@@ -214,10 +230,6 @@ function QueueContent() {
 
         <div className="mb-3 flex items-center justify-between">
           <Label>Queue</Label>
-          <RealtimeStatusBadge
-            channelName="admin:queue"
-            queryKey={queueQueryKey}
-          />
         </div>
         <QueueRibbon escalatedCount={escalatedRecentCount} />
         {queueLoading ? (
@@ -225,15 +237,28 @@ function QueueContent() {
         ) : complaints.length === 0 ? (
           <AdminQueueEmpty />
         ) : (
-          <ul className="overflow-hidden rounded-xl border border-border bg-surface">
-            {complaints.map((complaint) => (
-              <QueueRow
-                key={complaint._id}
-                complaint={complaint}
-                onSelect={setSelectedComplaint}
-              />
-            ))}
-          </ul>
+          <>
+            <ul className="overflow-hidden rounded-xl border border-border bg-surface">
+              {complaints.map((complaint) => (
+                <QueueRow
+                  key={complaint._id}
+                  complaint={complaint}
+                  onSelect={setSelectedComplaint}
+                />
+              ))}
+            </ul>
+            {currentHasMore && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  variant="secondary"
+                  onClick={handleLoadMore}
+                  loading={false}
+                >
+                  Load more
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -269,7 +294,7 @@ export default function AdminQueuePage() {
         kicker="DICT Console"
         title="Queue"
         subtitle="Manage and assign incoming complaints. Click a row to view details and assign to a technician."
-        actions={<AdminHeroActions queueKey={queueKey} />}
+        actions={<AdminHeroActions />}
       />
       <HeroBody>
         <Suspense fallback={<QueueSkeleton />}>
