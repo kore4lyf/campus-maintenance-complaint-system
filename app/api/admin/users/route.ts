@@ -9,10 +9,6 @@ export const runtime = "nodejs";
 const VALID_ROLES = ["reporter", "dicht_admin", "dicht_technician"] as const;
 const PAGE_SIZE = 10;
 
-function isValidObjectId(value: string): boolean {
-  return /^[a-fA-F0-9]{24}$/.test(value);
-}
-
 function badRequest(code: string, message: string, status: number) {
   return NextResponse.json(
     { error: { code, message } },
@@ -35,16 +31,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const url = request.nextUrl;
   const search = url.searchParams.get("search")?.trim() ?? "";
   const role = url.searchParams.get("role");
-  const cursor = url.searchParams.get("cursor");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
 
   const query: Record<string, unknown> = {};
 
-  // Role filter
   if (role && VALID_ROLES.includes(role as (typeof VALID_ROLES)[number])) {
     query.role = role;
   }
 
-  // Search: match name or email (case-insensitive)
   if (search) {
     query.$or = [
       { name: { $regex: search, $options: "i" } },
@@ -52,35 +46,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ];
   }
 
-  // Cursor pagination
-  if (cursor && isValidObjectId(cursor)) {
-    query._id = { $lt: cursor };
-  }
+  const [totalCount, docs] = await Promise.all([
+    UserModel.countDocuments(query),
+    UserModel.find(query)
+      .select("name email role createdAt")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .lean(),
+  ]);
 
-  const docs = await UserModel.find(query)
-    .select("name email role createdAt")
-    .sort({ _id: -1 })
-    .limit(PAGE_SIZE + 1)
-    .lean();
-
-  const hasMore = docs.length > PAGE_SIZE;
-  const data = hasMore ? docs.slice(0, PAGE_SIZE) : docs;
-  const lastItem = data[data.length - 1];
-  const nextCursor = hasMore && lastItem ? String(lastItem._id) : null;
-
-  // Total count for current filter (without pagination)
-  const totalCount = await UserModel.countDocuments(query);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return NextResponse.json(
     {
-      data: data.map((u) => ({
+      data: docs.map((u) => ({
         _id: String(u._id),
         name: u.name,
         email: u.email,
         role: u.role,
         createdAt: u.createdAt?.toISOString(),
       })),
-      meta: { nextCursor, hasMore, totalCount },
+      meta: { page, pageSize: PAGE_SIZE, totalCount, totalPages },
     },
     { status: 200, headers: { "content-type": "application/json" } },
   );

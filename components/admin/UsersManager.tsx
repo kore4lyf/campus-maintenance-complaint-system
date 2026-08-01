@@ -20,7 +20,8 @@ import {
   Search,
   SlidersHorizontal,
   RefreshCw,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,7 +35,7 @@ interface User {
 
 interface UsersResponse {
   data: User[];
-  meta: { nextCursor: string | null; hasMore: boolean; totalCount: number };
+  meta: { page: number; pageSize: number; totalCount: number; totalPages: number };
 }
 
 const ROLE_LABELS: Record<User["role"], string> = {
@@ -96,16 +97,33 @@ function FilterChip({
 async function fetchUsers(
   search: string,
   role: string,
-  cursor: string | null,
+  page: number,
 ): Promise<UsersResponse> {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (role && role !== "all") params.set("role", role);
-  if (cursor) params.set("cursor", cursor);
+  params.set("page", String(page));
 
   const res = await fetch(`/api/admin/users?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to load users");
   return res.json();
+}
+
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+  const pages: (number | "...")[] = [1];
+
+  if (current > 3) pages.push("...");
+
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+
+  if (current < total - 2) pages.push("...");
+
+  pages.push(total);
+  return pages;
 }
 
 export function UsersManager() {
@@ -116,56 +134,37 @@ export function UsersManager() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<User["role"] | "all">("all");
   const [searchDebounced, setSearchDebounced] = useState("");
-  const [pages, setPages] = useState<User[][]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
 
   const { data, isLoading, isFetching } = useQuery<UsersResponse>({
-    queryKey: ["admin", "users", searchDebounced, roleFilter],
-    queryFn: () => fetchUsers(searchDebounced, roleFilter, null),
+    queryKey: ["admin", "users", searchDebounced, roleFilter, page],
+    queryFn: () => fetchUsers(searchDebounced, roleFilter, page),
     refetchOnWindowFocus: false,
   });
 
-  // Flatten all pages
-  const allUsers = [...(data?.data ?? []), ...pages.flat()];
-  const totalCount = data?.meta.totalCount ?? allUsers.length;
-
+  const users = data?.data ?? [];
+  const meta = data?.meta;
   const activeFilterCount = (roleFilter !== "all" ? 1 : 0) + (search ? 1 : 0);
 
   function handleSearch(value: string) {
     setSearch(value);
-    // Debounce: reset pages and apply after short delay
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
-      setPages([]);
-      setNextCursor(null);
-      setHasMore(false);
       setSearchDebounced(value);
+      setPage(1);
     }, 300);
   }
 
   function handleRoleFilter(newRole: User["role"] | "all") {
     setRoleFilter(newRole);
-    setPages([]);
-    setNextCursor(null);
-    setHasMore(false);
-  }
-
-  async function handleLoadMore() {
-    if (!nextCursor) return;
-    const result = await fetchUsers(searchDebounced, roleFilter, nextCursor);
-    setPages((prev) => [...prev, result.data]);
-    setNextCursor(result.meta.nextCursor);
-    setHasMore(result.meta.hasMore);
+    setPage(1);
   }
 
   function clearAll() {
     setSearch("");
     setSearchDebounced("");
     setRoleFilter("all");
-    setPages([]);
-    setNextCursor(null);
-    setHasMore(false);
+    setPage(1);
   }
 
   async function assignRole(userId: string, newRole: User["role"]) {
@@ -190,6 +189,8 @@ export function UsersManager() {
       setSaving(false);
     }
   }
+
+  const pageNumbers = meta ? getPageNumbers(meta.page, meta.totalPages) : [];
 
   return (
     <PageShell>
@@ -287,7 +288,9 @@ export function UsersManager() {
               <p className="text-xs font-medium text-muted-strong">
                 {isLoading
                   ? "Loading..."
-                  : `${totalCount} user${totalCount !== 1 ? "s" : ""}`}
+                  : meta
+                    ? `${meta.totalCount} user${meta.totalCount !== 1 ? "s" : ""} — page ${meta.page} of ${meta.totalPages}`
+                    : "0 users"}
               </p>
               {isFetching && !isLoading ? (
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
@@ -315,15 +318,15 @@ export function UsersManager() {
                     </div>
                   ))}
                 </div>
-              ) : allUsers.length === 0 ? (
+              ) : users.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="mb-3 h-10 w-10 text-muted-strong" />
                   <p className="text-sm text-muted-strong">
-                    {data?.meta.totalCount
+                    {meta?.totalCount
                       ? "No users match your filters."
                       : "No users found."}
                   </p>
-                  {data?.meta.totalCount ? (
+                  {meta?.totalCount ? (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -337,7 +340,7 @@ export function UsersManager() {
               ) : (
                 <>
                   <div className="divide-y divide-border">
-                    {allUsers.map((user) => (
+                    {users.map((user) => (
                       <div
                         key={user._id}
                         className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-raised/50"
@@ -422,19 +425,60 @@ export function UsersManager() {
                       </div>
                     ))}
                   </div>
-                  {hasMore && (
-                    <div className="flex justify-center border-t border-border px-5 py-4">
+
+                  {/* Numbered pagination */}
+                  {meta && meta.totalPages > 1 && (
+                    <nav
+                      className="flex items-center justify-between border-t border-border px-5 py-3"
+                      aria-label="Pagination"
+                    >
                       <Button
-                        variant="secondary"
-                        size="md"
-                        onClick={handleLoadMore}
-                        trailingIcon={
-                          <ChevronDown className="h-4 w-4" aria-hidden="true" />
-                        }
+                        variant="ghost"
+                        size="sm"
+                        disabled={meta.page <= 1}
+                        onClick={() => setPage((p) => p - 1)}
+                        leadingIcon={<ChevronLeft className="h-4 w-4" />}
                       >
-                        Load more
+                        Previous
                       </Button>
-                    </div>
+
+                      <div className="flex items-center gap-1">
+                        {pageNumbers.map((num, i) =>
+                          num === "..." ? (
+                            <span
+                              key={`ellipsis-${i}`}
+                              className="px-2 text-xs text-muted-strong"
+                            >
+                              …
+                            </span>
+                          ) : (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => setPage(num)}
+                              aria-current={num === meta.page ? "page" : undefined}
+                              className={`min-w-[2rem] rounded px-2 py-1 text-sm font-medium transition-colors ${
+                                num === meta.page
+                                  ? "bg-brand text-white"
+                                  : "text-muted-strong hover:bg-surface-raised hover:text-foreground-strong"
+                              }`}
+                            >
+                              {num}
+                            </button>
+                          ),
+                        )}
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={meta.page >= meta.totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                        trailingIcon={<ChevronRight className="h-4 w-4" />}
+                      >
+                        Next
+                      </Button>
+                    </nav>
                   )}
                 </>
               )}
