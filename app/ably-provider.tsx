@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AblyProvider } from "ably/react";
 import * as Ably from "ably";
+import { useSessionStatus } from "@/lib/auth/role-context";
 
 export function AblyClientProvider({
   children,
@@ -11,8 +12,11 @@ export function AblyClientProvider({
 }) {
   const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const sessionStatus = useSessionStatus();
 
   useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
+
     let cancelled = false;
 
     async function init() {
@@ -50,7 +54,7 @@ export function AblyClientProvider({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionStatus]);
 
   if (error) {
     return <>{children}</>;

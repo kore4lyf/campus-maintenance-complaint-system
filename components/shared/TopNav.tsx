@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useCurrentUser, useCurrentRole, useSessionStatus } from "@/lib/auth/role-context";
 import { SignOut } from "./SignOut";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 /*
  * TopNav — sticky brand + role-aware menu + user identity.
@@ -43,6 +44,7 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
       return [
         { href: "/admin/queue", label: "Queue" },
         { href: "/admin/reports", label: "Reports" },
+        { href: "/admin/users", label: "Users" },
       ];
     }
     if (role === "dicht_technician") {
@@ -87,6 +89,7 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
             <div className="h-8 w-20 animate-pulse rounded-md bg-surface-raised" />
           ) : user ? (
             <>
+              <NotificationBell />
               <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-surface-raised/60 py-1 px-2">
                 <span
                   className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white"

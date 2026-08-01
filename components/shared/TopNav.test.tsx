@@ -118,10 +118,11 @@ describe("TopNav", () => {
     expect(screen.getByRole("link", { name: /my complaints/i })).toHaveAttribute("href", "/complaints/mine");
   });
 
-  test("shows Queue and Reports links for dicht_admin", () => {
+  test("shows Queue, Reports, and Users links for dicht_admin", () => {
     renderWithSession(user("dicht_admin"));
     expect(screen.getByRole("link", { name: /^queue$/i })).toHaveAttribute("href", "/admin/queue");
     expect(screen.getByRole("link", { name: /^reports$/i })).toHaveAttribute("href", "/admin/reports");
+    expect(screen.getByRole("link", { name: /^users$/i })).toHaveAttribute("href", "/admin/users");
     expect(screen.queryByRole("link", { name: /^submit$/i })).not.toBeInTheDocument();
   });
 

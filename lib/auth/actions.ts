@@ -192,9 +192,29 @@ export async function signUpAction(formData: {
       };
     }
 
+    // First-user-is-admin: if this is the first user in the system,
+    // promote them to dicht_admin (spec 0004 AC-1).
+    const { connect: dbConnect } = await import("@/lib/db/connection");
+    const { UserModel } = await import("@/lib/db/models/user");
+    await dbConnect();
+    const userCount = await UserModel.countDocuments();
+    const isFirstUser = userCount <= 1; // <= 1 because BetterAuth just created this user
+
+    let role: "reporter" | "dicht_admin" = "reporter";
+    let redirectTo = "/complaints/mine";
+
+    if (isFirstUser) {
+      role = "dicht_admin";
+      redirectTo = "/admin/queue";
+      await UserModel.updateOne(
+        { email: formData.email },
+        { $set: { role: "dicht_admin" } },
+      );
+    }
+
     return {
       ok: true,
-      redirectTo: "/complaints/mine",
+      redirectTo,
       message: "Account created",
     };
   } catch (err) {
