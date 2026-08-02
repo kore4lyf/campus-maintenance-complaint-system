@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -66,8 +66,6 @@ const ROLE_FILTER_OPTIONS: {
   { value: "dicht_technician", label: "DICT Technician" },
 ];
 
-const QUERY_KEY_PREFIX = ["admin", "users"] as const;
-
 function FilterChip({
   label,
   active,
@@ -111,30 +109,32 @@ async function fetchUsers(
   return res.json();
 }
 
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+  const pages: (number | "...")[] = [1];
+  if (current > 3) pages.push("...");
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push("...");
+  pages.push(total);
+  return pages;
+}
+
 /* ------------------------------------------------------------------ */
-/*  Header — reads meta from cache, never causes list re-render        */
+/*  Header                                                             */
 /* ------------------------------------------------------------------ */
 
 function UserListHeader({
-  searchDebounced,
-  roleFilter,
+  meta,
+  isFetching,
+  isLoading,
 }: {
-  searchDebounced: string;
-  roleFilter: User["role"] | "all";
+  meta: UsersResponse["meta"] | undefined;
+  isFetching: boolean;
+  isLoading: boolean;
 }) {
-  const queryClient = useQueryClient();
-  const cache = queryClient.getQueryData<UsersResponse>(
-    [...QUERY_KEY_PREFIX, searchDebounced, roleFilter],
-  );
-  const meta = cache?.meta;
-
-  const { isLoading, isFetching } = useQuery<UsersResponse>({
-    queryKey: [...QUERY_KEY_PREFIX, searchDebounced, roleFilter],
-    queryFn: () => fetchUsers(searchDebounced, roleFilter, 1),
-    refetchOnWindowFocus: false,
-    enabled: false,
-  });
-
   return (
     <div className="mb-3 flex items-center justify-between">
       <p className="text-xs font-medium text-muted-strong">
@@ -155,26 +155,16 @@ function UserListHeader({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Pagination — page buttons, only re-renders on meta change          */
+/*  Pagination                                                         */
 /* ------------------------------------------------------------------ */
 
 function UserPagination({
-  searchDebounced,
-  roleFilter,
-  page,
+  meta,
   setPage,
 }: {
-  searchDebounced: string;
-  roleFilter: User["role"] | "all";
-  page: number;
-  setPage: (fn: (p: number) => number) => void;
+  meta: UsersResponse["meta"] | undefined;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
 }) {
-  const queryClient = useQueryClient();
-  const cache = queryClient.getQueryData<UsersResponse>(
-    [...QUERY_KEY_PREFIX, searchDebounced, roleFilter, page],
-  );
-  const meta = cache?.meta;
-
   if (!meta || meta.totalPages <= 1) return null;
 
   const pageNumbers = getPageNumbers(meta.page, meta.totalPages);
@@ -207,7 +197,7 @@ function UserPagination({
             <button
               key={num}
               type="button"
-              onClick={() => setPage(() => num)}
+              onClick={() => setPage(num)}
               aria-current={num === meta.page ? "page" : undefined}
               className={`min-w-[2rem] rounded px-2 py-1 text-sm font-medium transition-colors ${
                 num === meta.page
@@ -235,36 +225,26 @@ function UserPagination({
 }
 
 /* ------------------------------------------------------------------ */
-/*  UserList — the only part that re-renders with new page data        */
+/*  User list                                                          */
 /* ------------------------------------------------------------------ */
 
 function UserList({
-  searchDebounced,
-  roleFilter,
-  page,
+  users,
+  meta,
+  isLoading,
   editingId,
   setEditingId,
   saving,
   assignRole,
 }: {
-  searchDebounced: string;
-  roleFilter: User["role"] | "all";
-  page: number;
+  users: User[];
+  meta: UsersResponse["meta"] | undefined;
+  isLoading: boolean;
   editingId: string | null;
   setEditingId: (id: string | null) => void;
   saving: boolean;
   assignRole: (userId: string, role: User["role"]) => void;
 }) {
-  const { data, isLoading } = useQuery<UsersResponse>({
-    queryKey: [...QUERY_KEY_PREFIX, searchDebounced, roleFilter, page],
-    queryFn: () => fetchUsers(searchDebounced, roleFilter, page),
-    refetchOnWindowFocus: false,
-    placeholderData: keepPreviousData,
-  });
-
-  const users = data?.data ?? [];
-  const meta = data?.meta;
-
   if (isLoading) {
     return (
       <div className="divide-y divide-border">
@@ -386,27 +366,11 @@ function UserList({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-
-function getPageNumbers(current: number, total: number): (number | "...")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-
-  const pages: (number | "...")[] = [1];
-  if (current > 3) pages.push("...");
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (current < total - 2) pages.push("...");
-  pages.push(total);
-  return pages;
-}
-
-/* ------------------------------------------------------------------ */
 /*  Main export                                                        */
 /* ------------------------------------------------------------------ */
 
 export function UsersManager() {
+  const queryClient = useQueryClient();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -415,6 +379,15 @@ export function UsersManager() {
   const [searchDebounced, setSearchDebounced] = useState("");
   const [page, setPage] = useState(1);
 
+  const { data, isLoading, isFetching } = useQuery<UsersResponse>({
+    queryKey: ["admin", "users", searchDebounced, roleFilter, page],
+    queryFn: () => fetchUsers(searchDebounced, roleFilter, page),
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+  });
+
+  const users = data?.data ?? [];
+  const meta = data?.meta;
   const activeFilterCount = (roleFilter !== "all" ? 1 : 0) + (search ? 1 : 0);
 
   function handleSearch(value: string) {
@@ -453,6 +426,7 @@ export function UsersManager() {
       }
       toast.success(`Role updated to ${ROLE_LABELS[newRole]}`);
       setEditingId(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     } catch {
       toast.error("Network error — try again");
     } finally {
@@ -552,26 +526,22 @@ export function UsersManager() {
             </div>
 
             <UserListHeader
-              searchDebounced={searchDebounced}
-              roleFilter={roleFilter}
+              meta={meta}
+              isFetching={isFetching}
+              isLoading={isLoading}
             />
 
             <Card variant="surface" padding="none">
               <UserList
-                searchDebounced={searchDebounced}
-                roleFilter={roleFilter}
-                page={page}
+                users={users}
+                meta={meta}
+                isLoading={isLoading}
                 editingId={editingId}
                 setEditingId={setEditingId}
                 saving={saving}
                 assignRole={assignRole}
               />
-              <UserPagination
-                searchDebounced={searchDebounced}
-                roleFilter={roleFilter}
-                page={page}
-                setPage={setPage}
-              />
+              <UserPagination meta={meta} setPage={setPage} />
             </Card>
           </div>
         </div>
