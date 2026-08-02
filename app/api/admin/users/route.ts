@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const VALID_ROLES = ["reporter", "dicht_admin", "dicht_technician"] as const;
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 function badRequest(code: string, message: string, status: number) {
   return NextResponse.json(

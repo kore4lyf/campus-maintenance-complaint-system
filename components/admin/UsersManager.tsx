@@ -160,9 +160,11 @@ function UserListHeader({
 
 function UserPagination({
   meta,
+  isFetching,
   setPage,
 }: {
   meta: UsersResponse["meta"] | undefined;
+  isFetching: boolean;
   setPage: React.Dispatch<React.SetStateAction<number>>;
 }) {
   if (!meta || meta.totalPages <= 1) return null;
@@ -177,7 +179,7 @@ function UserPagination({
       <Button
         variant="ghost"
         size="sm"
-        disabled={meta.page <= 1}
+        disabled={meta.page <= 1 || isFetching}
         onClick={() => setPage((p) => p - 1)}
         leadingIcon={<ChevronLeft className="h-4 w-4" />}
       >
@@ -197,13 +199,14 @@ function UserPagination({
             <button
               key={num}
               type="button"
+              disabled={isFetching}
               onClick={() => setPage(num)}
               aria-current={num === meta.page ? "page" : undefined}
               className={`min-w-[2rem] rounded px-2 py-1 text-sm font-medium transition-colors ${
                 num === meta.page
                   ? "bg-brand text-white"
                   : "text-muted-strong hover:bg-surface-raised hover:text-foreground-strong"
-              }`}
+              } disabled:opacity-50`}
             >
               {num}
             </button>
@@ -214,7 +217,7 @@ function UserPagination({
       <Button
         variant="ghost"
         size="sm"
-        disabled={meta.page >= meta.totalPages}
+        disabled={meta.page >= meta.totalPages || isFetching}
         onClick={() => setPage((p) => p + 1)}
         trailingIcon={<ChevronRight className="h-4 w-4" />}
       >
@@ -232,6 +235,7 @@ function UserList({
   users,
   meta,
   isLoading,
+  isFetching,
   editingId,
   setEditingId,
   saving,
@@ -240,15 +244,16 @@ function UserList({
   users: User[];
   meta: UsersResponse["meta"] | undefined;
   isLoading: boolean;
+  isFetching: boolean;
   editingId: string | null;
   setEditingId: (id: string | null) => void;
   saving: boolean;
   assignRole: (userId: string, role: User["role"]) => void;
 }) {
-  if (isLoading) {
+  if (isLoading || isFetching) {
     return (
       <div className="divide-y divide-border">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 px-5 py-4">
             <div className="h-9 w-9 animate-pulse rounded-full bg-surface-raised" />
             <div className="flex-1 space-y-2">
@@ -536,12 +541,13 @@ export function UsersManager() {
                 users={users}
                 meta={meta}
                 isLoading={isLoading}
+                isFetching={isFetching}
                 editingId={editingId}
                 setEditingId={setEditingId}
                 saving={saving}
                 assignRole={assignRole}
               />
-              <UserPagination meta={meta} setPage={setPage} />
+              <UserPagination meta={meta} isFetching={isFetching} setPage={setPage} />
             </Card>
           </div>
         </div>
