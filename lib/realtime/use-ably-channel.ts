@@ -7,6 +7,14 @@ import { useAbly } from "ably/react";
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "suspended";
 
+function useAblySafe(): import("ably").RealtimeClient | null {
+  try {
+    return useAbly();
+  } catch {
+    return null;
+  }
+}
+
 export function useAblyChannel({
   name,
   queryKey,
@@ -15,7 +23,7 @@ export function useAblyChannel({
   queryKey: QueryKey;
 }) {
   const queryClient = useQueryClient();
-  const ably = useAbly();
+  const ably = useAblySafe();
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("connecting");
 
