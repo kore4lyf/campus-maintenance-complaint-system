@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueryKey } from "@tanstack/react-query";
-import { getAblyClient } from "./ably-client";
+import { useAbly } from "ably/react";
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "suspended";
 
@@ -15,54 +15,65 @@ export function useAblyChannel({
   queryKey: QueryKey;
 }) {
   const queryClient = useQueryClient();
+  const ably = useAbly();
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("connecting");
 
   useEffect(() => {
+    if (!name || !ably) return;
+
     let cancelled = false;
     let channel: ReturnType<
       typeof import("ably").Realtime.prototype.channels.get
     > | null = null;
-    let realtime: import("ably").Realtime | null = null;
 
-    async function subscribe() {
+    function attachAndSubscribe() {
+      if (cancelled) return;
+      
+      channel = ably.channels.get(name);
+      
       try {
-        realtime = await getAblyClient();
-        if (cancelled) return;
-
-        realtime.connection.on(
-          (
-            stateChange: import("ably").ConnectionStateChange,
-          ) => {
-            if (cancelled) return;
-            const state = stateChange.current as ConnectionState;
-            setConnectionState(state);
-          },
-        );
-
-        const currentState = realtime.connection
-          .state as ConnectionState;
-        setConnectionState(currentState);
-
-        channel = realtime.channels.get(name);
         channel.subscribe(() => {
           if (cancelled) return;
           queryClient.invalidateQueries({ queryKey });
         });
       } catch {
-        if (!cancelled) setConnectionState("disconnected");
+        // Subscribe failed, likely due to connection state
       }
     }
 
-    subscribe();
+    const currentState = ably.connection.state as ConnectionState;
+    setConnectionState(currentState);
+
+    ably.connection.on(
+      (
+        stateChange: import("ably").ConnectionStateChange,
+      ) => {
+        if (cancelled) return;
+        const state = stateChange.current as ConnectionState;
+        setConnectionState(state);
+        
+        if (state === "connected") {
+          attachAndSubscribe();
+        }
+      },
+    );
+
+    if (currentState === "connected") {
+      attachAndSubscribe();
+    }
 
     return () => {
       cancelled = true;
       if (channel) {
-        channel.unsubscribe();
+        try {
+          channel.unsubscribe();
+        } catch {
+          // Ignore cleanup errors
+        }
       }
     };
-  }, [name, queryKey, queryClient]);
+  }, [name, queryKey, queryClient, ably]);
 
   return { connectionState };
 }
