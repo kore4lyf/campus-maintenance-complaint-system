@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef, useMemo } from "react";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -66,6 +66,8 @@ const ROLE_FILTER_OPTIONS: {
   { value: "dicht_technician", label: "DICT Technician" },
 ];
 
+const QUERY_KEY_PREFIX = ["admin", "users"] as const;
+
 function FilterChip({
   label,
   active,
@@ -109,25 +111,302 @@ async function fetchUsers(
   return res.json();
 }
 
+/* ------------------------------------------------------------------ */
+/*  Header — reads meta from cache, never causes list re-render        */
+/* ------------------------------------------------------------------ */
+
+function UserListHeader({
+  searchDebounced,
+  roleFilter,
+}: {
+  searchDebounced: string;
+  roleFilter: User["role"] | "all";
+}) {
+  const queryClient = useQueryClient();
+  const cache = queryClient.getQueryData<UsersResponse>(
+    [...QUERY_KEY_PREFIX, searchDebounced, roleFilter],
+  );
+  const meta = cache?.meta;
+
+  const { isLoading, isFetching } = useQuery<UsersResponse>({
+    queryKey: [...QUERY_KEY_PREFIX, searchDebounced, roleFilter],
+    queryFn: () => fetchUsers(searchDebounced, roleFilter, 1),
+    refetchOnWindowFocus: false,
+    enabled: false,
+  });
+
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <p className="text-xs font-medium text-muted-strong">
+        {isLoading
+          ? "Loading..."
+          : meta
+            ? `${meta.totalCount} user${meta.totalCount !== 1 ? "s" : ""} — page ${meta.page} of ${meta.totalPages}`
+            : "0 users"}
+      </p>
+      {isFetching && !isLoading ? (
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
+          <RefreshCw className="h-3 w-3 animate-spin" aria-hidden="true" />
+          refreshing
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pagination — page buttons, only re-renders on meta change          */
+/* ------------------------------------------------------------------ */
+
+function UserPagination({
+  searchDebounced,
+  roleFilter,
+  page,
+  setPage,
+}: {
+  searchDebounced: string;
+  roleFilter: User["role"] | "all";
+  page: number;
+  setPage: (fn: (p: number) => number) => void;
+}) {
+  const queryClient = useQueryClient();
+  const cache = queryClient.getQueryData<UsersResponse>(
+    [...QUERY_KEY_PREFIX, searchDebounced, roleFilter, page],
+  );
+  const meta = cache?.meta;
+
+  if (!meta || meta.totalPages <= 1) return null;
+
+  const pageNumbers = getPageNumbers(meta.page, meta.totalPages);
+
+  return (
+    <nav
+      className="flex items-center justify-between border-t border-border px-5 py-3"
+      aria-label="Pagination"
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={meta.page <= 1}
+        onClick={() => setPage((p) => p - 1)}
+        leadingIcon={<ChevronLeft className="h-4 w-4" />}
+      >
+        Previous
+      </Button>
+
+      <div className="flex items-center gap-1">
+        {pageNumbers.map((num, i) =>
+          num === "..." ? (
+            <span
+              key={`ellipsis-${i}`}
+              className="px-2 text-xs text-muted-strong"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={num}
+              type="button"
+              onClick={() => setPage(() => num)}
+              aria-current={num === meta.page ? "page" : undefined}
+              className={`min-w-[2rem] rounded px-2 py-1 text-sm font-medium transition-colors ${
+                num === meta.page
+                  ? "bg-brand text-white"
+                  : "text-muted-strong hover:bg-surface-raised hover:text-foreground-strong"
+              }`}
+            >
+              {num}
+            </button>
+          ),
+        )}
+      </div>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={meta.page >= meta.totalPages}
+        onClick={() => setPage((p) => p + 1)}
+        trailingIcon={<ChevronRight className="h-4 w-4" />}
+      >
+        Next
+      </Button>
+    </nav>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  UserList — the only part that re-renders with new page data        */
+/* ------------------------------------------------------------------ */
+
+function UserList({
+  searchDebounced,
+  roleFilter,
+  page,
+  editingId,
+  setEditingId,
+  saving,
+  assignRole,
+}: {
+  searchDebounced: string;
+  roleFilter: User["role"] | "all";
+  page: number;
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  saving: boolean;
+  assignRole: (userId: string, role: User["role"]) => void;
+}) {
+  const { data, isLoading } = useQuery<UsersResponse>({
+    queryKey: [...QUERY_KEY_PREFIX, searchDebounced, roleFilter, page],
+    queryFn: () => fetchUsers(searchDebounced, roleFilter, page),
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+  });
+
+  const users = data?.data ?? [];
+  const meta = data?.meta;
+
+  if (isLoading) {
+    return (
+      <div className="divide-y divide-border">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-5 py-4">
+            <div className="h-9 w-9 animate-pulse rounded-full bg-surface-raised" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-32 animate-pulse rounded bg-surface-raised" />
+              <div className="h-3 w-48 animate-pulse rounded bg-surface-raised" />
+            </div>
+            <div className="h-6 w-20 animate-pulse rounded-full bg-surface-raised" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Users className="mb-3 h-10 w-10 text-muted-strong" />
+        <p className="text-sm text-muted-strong">
+          {meta?.totalCount
+            ? "No users match your filters."
+            : "No users found."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-border">
+      {users.map((user) => (
+        <div
+          key={user._id}
+          className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-raised/50"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
+            {user.name?.[0]?.toUpperCase() ??
+              user.email?.[0]?.toUpperCase() ??
+              "U"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground-strong">
+              {user.name}
+            </p>
+            <p className="truncate text-xs text-muted-strong">
+              {user.email}
+            </p>
+          </div>
+
+          {editingId === user._id ? (
+            <div className="flex items-center gap-2">
+              <select
+                defaultValue={user.role}
+                id={`role-${user._id}`}
+                className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-foreground-strong focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                {ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  const sel = document.getElementById(
+                    `role-${user._id}`,
+                  ) as HTMLSelectElement | null;
+                  if (sel)
+                    assignRole(
+                      user._id,
+                      sel.value as User["role"],
+                    );
+                }}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-success/15 text-success-strong transition-colors hover:bg-success/25 disabled:opacity-50"
+                aria-label="Confirm role change"
+              >
+                <Check className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingId(null)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-danger/15 text-danger-strong transition-colors hover:bg-danger/25"
+                aria-label="Cancel role change"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Badge tone={ROLE_BADGE_TONE[user.role]}>
+                {user.role === "dicht_admin" && (
+                  <Shield className="mr-0.5 inline h-3 w-3" />
+                )}
+                {user.role === "dicht_technician" && (
+                  <Wrench className="mr-0.5 inline h-3 w-3" />
+                )}
+                {user.role === "reporter" && (
+                  <FileText className="mr-0.5 inline h-3 w-3" />
+                )}
+                {ROLE_LABELS[user.role]}
+              </Badge>
+              <button
+                type="button"
+                onClick={() => setEditingId(user._id)}
+                className="rounded-md border border-border px-2 py-1 text-xs text-muted-strong transition-colors hover:border-border-strong hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                Edit
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
 function getPageNumbers(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
 
   const pages: (number | "...")[] = [1];
-
   if (current > 3) pages.push("...");
-
   const start = Math.max(2, current - 1);
   const end = Math.min(total - 1, current + 1);
   for (let i = start; i <= end; i++) pages.push(i);
-
   if (current < total - 2) pages.push("...");
-
   pages.push(total);
   return pages;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Main export                                                        */
+/* ------------------------------------------------------------------ */
+
 export function UsersManager() {
-  const queryClient = useQueryClient();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -136,14 +415,6 @@ export function UsersManager() {
   const [searchDebounced, setSearchDebounced] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isFetching } = useQuery<UsersResponse>({
-    queryKey: ["admin", "users", searchDebounced, roleFilter, page],
-    queryFn: () => fetchUsers(searchDebounced, roleFilter, page),
-    refetchOnWindowFocus: false,
-  });
-
-  const users = data?.data ?? [];
-  const meta = data?.meta;
   const activeFilterCount = (roleFilter !== "all" ? 1 : 0) + (search ? 1 : 0);
 
   function handleSearch(value: string) {
@@ -182,15 +453,12 @@ export function UsersManager() {
       }
       toast.success(`Role updated to ${ROLE_LABELS[newRole]}`);
       setEditingId(null);
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     } catch {
       toast.error("Network error — try again");
     } finally {
       setSaving(false);
     }
   }
-
-  const pageNumbers = meta ? getPageNumbers(meta.page, meta.totalPages) : [];
 
   return (
     <PageShell>
@@ -283,205 +551,27 @@ export function UsersManager() {
               </div>
             </div>
 
-            {/* Results header */}
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-strong">
-                {isLoading
-                  ? "Loading..."
-                  : meta
-                    ? `${meta.totalCount} user${meta.totalCount !== 1 ? "s" : ""} — page ${meta.page} of ${meta.totalPages}`
-                    : "0 users"}
-              </p>
-              {isFetching && !isLoading ? (
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
-                  <RefreshCw className="h-3 w-3 animate-spin" aria-hidden="true" />
-                  refreshing
-                </span>
-              ) : null}
-            </div>
+            <UserListHeader
+              searchDebounced={searchDebounced}
+              roleFilter={roleFilter}
+            />
 
-            {/* User list */}
             <Card variant="surface" padding="none">
-              {isLoading ? (
-                <div className="divide-y divide-border">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-4 px-5 py-4"
-                    >
-                      <div className="h-9 w-9 animate-pulse rounded-full bg-surface-raised" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 w-32 animate-pulse rounded bg-surface-raised" />
-                        <div className="h-3 w-48 animate-pulse rounded bg-surface-raised" />
-                      </div>
-                      <div className="h-6 w-20 animate-pulse rounded-full bg-surface-raised" />
-                    </div>
-                  ))}
-                </div>
-              ) : users.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Users className="mb-3 h-10 w-10 text-muted-strong" />
-                  <p className="text-sm text-muted-strong">
-                    {meta?.totalCount
-                      ? "No users match your filters."
-                      : "No users found."}
-                  </p>
-                  {meta?.totalCount ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearAll}
-                      className="mt-2"
-                    >
-                      Clear filters
-                    </Button>
-                  ) : null}
-                </div>
-              ) : (
-                <>
-                  <div className="divide-y divide-border">
-                    {users.map((user) => (
-                      <div
-                        key={user._id}
-                        className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-raised/50"
-                      >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
-                          {user.name?.[0]?.toUpperCase() ??
-                            user.email?.[0]?.toUpperCase() ??
-                            "U"}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground-strong">
-                            {user.name}
-                          </p>
-                          <p className="truncate text-xs text-muted-strong">
-                            {user.email}
-                          </p>
-                        </div>
-
-                        {editingId === user._id ? (
-                          <div className="flex items-center gap-2">
-                            <select
-                              defaultValue={user.role}
-                              id={`role-${user._id}`}
-                              className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-foreground-strong focus:outline-none focus:ring-2 focus:ring-accent"
-                            >
-                              {ROLE_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              disabled={saving}
-                              onClick={() => {
-                                const sel = document.getElementById(
-                                  `role-${user._id}`,
-                                ) as HTMLSelectElement | null;
-                                if (sel)
-                                  assignRole(
-                                    user._id,
-                                    sel.value as User["role"],
-                                  );
-                              }}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-success/15 text-success-strong transition-colors hover:bg-success/25 disabled:opacity-50"
-                              aria-label="Confirm role change"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(null)}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-danger/15 text-danger-strong transition-colors hover:bg-danger/25"
-                              aria-label="Cancel role change"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-3">
-                            <Badge tone={ROLE_BADGE_TONE[user.role]}>
-                              {user.role === "dicht_admin" && (
-                                <Shield className="mr-0.5 inline h-3 w-3" />
-                              )}
-                              {user.role === "dicht_technician" && (
-                                <Wrench className="mr-0.5 inline h-3 w-3" />
-                              )}
-                              {user.role === "reporter" && (
-                                <FileText className="mr-0.5 inline h-3 w-3" />
-                              )}
-                              {ROLE_LABELS[user.role]}
-                            </Badge>
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(user._id)}
-                              className="rounded-md border border-border px-2 py-1 text-xs text-muted-strong transition-colors hover:border-border-strong hover:bg-surface-raised hover:text-foreground-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Numbered pagination */}
-                  {meta && meta.totalPages > 1 && (
-                    <nav
-                      className="flex items-center justify-between border-t border-border px-5 py-3"
-                      aria-label="Pagination"
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={meta.page <= 1}
-                        onClick={() => setPage((p) => p - 1)}
-                        leadingIcon={<ChevronLeft className="h-4 w-4" />}
-                      >
-                        Previous
-                      </Button>
-
-                      <div className="flex items-center gap-1">
-                        {pageNumbers.map((num, i) =>
-                          num === "..." ? (
-                            <span
-                              key={`ellipsis-${i}`}
-                              className="px-2 text-xs text-muted-strong"
-                            >
-                              …
-                            </span>
-                          ) : (
-                            <button
-                              key={num}
-                              type="button"
-                              onClick={() => setPage(num)}
-                              aria-current={num === meta.page ? "page" : undefined}
-                              className={`min-w-[2rem] rounded px-2 py-1 text-sm font-medium transition-colors ${
-                                num === meta.page
-                                  ? "bg-brand text-white"
-                                  : "text-muted-strong hover:bg-surface-raised hover:text-foreground-strong"
-                              }`}
-                            >
-                              {num}
-                            </button>
-                          ),
-                        )}
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={meta.page >= meta.totalPages}
-                        onClick={() => setPage((p) => p + 1)}
-                        trailingIcon={<ChevronRight className="h-4 w-4" />}
-                      >
-                        Next
-                      </Button>
-                    </nav>
-                  )}
-                </>
-              )}
+              <UserList
+                searchDebounced={searchDebounced}
+                roleFilter={roleFilter}
+                page={page}
+                editingId={editingId}
+                setEditingId={setEditingId}
+                saving={saving}
+                assignRole={assignRole}
+              />
+              <UserPagination
+                searchDebounced={searchDebounced}
+                roleFilter={roleFilter}
+                page={page}
+                setPage={setPage}
+              />
             </Card>
           </div>
         </div>
