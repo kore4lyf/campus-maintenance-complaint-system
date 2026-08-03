@@ -2,10 +2,11 @@
 
 **Date**: 2026-07-25
 **Status**: Accepted
+**Note**: Dark mode and `next-themes` were removed on 2026-07-28. The system is light-mode only. References to `ThemeToggle`, `next-themes`, and dark mode below are historical — the current implementation uses Astryx theme tokens only.
 
 ## Summary
 
-This spec lays the foundation every UI surface the system needs: design tokens, providers (Astryx theme, next-themes, TanStack React Query, Sonner Toaster), role aware layout shells for reporter, admin, and technician, role aware empty states, error boundaries, and a design tokens reference at `docs/design.md`. It commits the project to the Astryx design system on top of Tailwind 4, with theme persistence in a `next-themes` cookie and a single placeholder role context the auth feature will swap. The build makes the foundation visible end to end across all three route groups before Slice 1 builds into it.
+This spec lays the foundation every UI surface the system needs: design tokens, providers (Astryx theme, TanStack React Query, Sonner Toaster), role aware layout shells for reporter, admin, and technician, role aware empty states, error boundaries, and a design tokens reference at `docs/design.md`. It commits the project to the Astryx design system on top of Tailwind 4 with a single placeholder role context the auth feature will swap. The build makes the foundation visible end to end across all three route groups before Slice 1 builds into it.
 
 ## Context
 

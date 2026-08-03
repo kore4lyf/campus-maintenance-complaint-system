@@ -13,6 +13,7 @@ import { triageComplaint } from "@/lib/ai/triage";
 import { compressAndUpload } from "@/lib/storage/cloudinary";
 import { paginateCursor } from "@/lib/utils/pagination";
 import { toPublicComplaint } from "@/lib/utils/pii";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import type { TriageResult } from "@/lib/ai/triage";
 import type { Severity } from "@/lib/ai/schemas";
 
@@ -281,6 +282,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     return badRequest("server_error", "Failed to read submission", 500);
   }
 
+  const rateLimitResult = await checkRateLimit(
+    "complaintSubmit",
+    userCtx.reporterId ?? "anonymous",
+  );
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: { code: "rate_limited", message: "Too many requests" } },
+      {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          ...rateLimitHeaders(rateLimitResult),
+        },
+      },
+    );
+  }
+
   try {
     const lookup = await validateCategoryAndLocation(
       formInput.categoryId,
@@ -304,7 +322,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       photoUrls = [uploaded.url];
     }
 
-    const triage = dup.isDuplicate
+    const isDuplicate = dup.isDuplicate;
+    const triage = isDuplicate
       ? duplicateTriageRecordFrom(lookup.category)
       : await triageComplaint({
           description: formInput.description,
@@ -323,14 +342,19 @@ export async function POST(request: Request): Promise<NextResponse> {
           },
         });
 
-    const priority = pickPriority(triage);
+    const triageStatus = isDuplicate ? "completed" : "pending";
+    const priority = isDuplicate
+      ? lookup.category.defaultSeverity
+      : lookup.category.defaultSeverity;
     const now = new Date();
     const sla = computeSlaDeadlines({
       now,
       acknowledgeHrs: lookup.category.slaAcknowledgeHrs,
       resolveHrs: lookup.category.slaResolveHrs,
     });
-    const aiSuggestionRecord = aiSuggestionRecordFrom(triage);
+    const aiSuggestionRecord = isDuplicate
+      ? aiSuggestionRecordFrom(triage)
+      : undefined;
 
     const created = await ComplaintModel.create({
       reporterId: userCtx.reporterId,
@@ -344,7 +368,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       slaResolveBy: sla.slaResolveBy,
       status: "Submitted",
       escalated: false,
-      aiSuggestion: aiSuggestionRecord,
+      triageStatus,
+      ...(aiSuggestionRecord ? { aiSuggestion: aiSuggestionRecord } : {}),
       ...(dup.parentComplaintId ? { parentComplaintId: dup.parentComplaintId } : {}),
     });
 

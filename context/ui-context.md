@@ -15,14 +15,12 @@ This file is part of the Idea-to-Product six-file context convention. Read with
   resolving campus grievances, not a consumer app. **Avoid playful colors and
   decorative gradients.**
 - **Theme override layer**: Astryx (Meta) is the design system. It ships 160+
-  accessible, themeable React components with built in spacing, dark mode and
+  accessible, themeable React components with built in spacing and
   flexible styling. Pre built CSS works alongside Tailwind, so both coexist
   without conflict. Brand level customisation via CSS custom property overrides.
   Astryx provides the component primitives while Tailwind handles custom utility
   styling. Specific values can change when LASU IT confirms the brand kit.
-- **Dark mode**: supported via `next-themes`. Toggle in the user menu switches
-  `class="dark"` on `<html>`; Tailwind `dark:` variants apply. Default theme
-  follows OS preference.
+- **Theme**: light mode only. System is single-theme; no dark mode toggle.
 - **Density**: standard. Aim for 4–8 px (Tailwind `gap-1` to `gap-2`) between
   primary UI elements; `gap-4` or larger for sections.
 
@@ -150,7 +148,6 @@ Tailwind 4's `@theme inline`. Astryx theme overrides are layered on top.
   - `<QueueTable />` — admin/technician queue with filters.
   - `<CategoryBadge />`, `<SeverityBadge />` — coloured chip with icon.
   - `<AiRationaleTooltip />` — admin-only tooltip showing AI's reasoning.
-  - `<ThemeToggle />` — light/dark switcher (shared).
   - `<ReporterDashboardEmpty />`, `<AdminQueueEmpty />`,
     `<TechnicianQueueEmpty />` — explicit empty states.
 

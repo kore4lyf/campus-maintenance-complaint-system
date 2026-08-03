@@ -19,7 +19,7 @@ Two additional hexes extend the navy scale without ambiguity:
 | Token | Hex | Use |
 |---|---|---|
 | `brand-strong` | `#001c3c` | hover/pressed brand (darker navy) |
-| `brand-soft` | `#1a3858` | dark-mode-friendly brand scale step |
+| `brand-soft` | `#1a3858` | brand scale step |
 
 Three additional hexes extend the gold scale:
 
@@ -70,16 +70,16 @@ The `next/font/google` runtime download is unavailable in the build environment 
 
 Defined in `app/globals.css` `@theme inline` block. Values change between light and dark via the `.dark` class on `<html>`.
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `brand` | `#0c2848` | `#3b82f6` | primary brand identity, primary buttons, brand mark, active links |
-| `brand-strong` | `#001c3c` | `#60a5fa` | hover/pressed brand |
-| `brand-soft` | `#1a3858` | `#93c5fd` | lighter step in dark mode |
-| `accent` | `#d4a014` | `#d4a014` | brand gold (reserved, see Discipline above) |
-| `accent-strong` | `#a87f0a` | `#facc15` | hover/pressed accent |
-| `accent-soft` | `#f4d76a` | `#f4d76a` | subtle accent backgrounds |
-| `surface` | `#ffffff` | `#0c1424` | page background |
-| `surface-raised` | `#f8fafc` | `#1a2438` | card / panel background |
+| Token | Value | Use |
+|---|---|---|
+| `brand` | `#0c2848` | primary brand identity, primary buttons, brand mark, active links |
+| `brand-strong` | `#001c3c` | hover/pressed brand |
+| `brand-soft` | `#1a3858` | lighter step |
+| `accent` | `#d4a014` | brand gold (reserved, see Discipline above) |
+| `accent-strong` | `#a87f0a` | hover/pressed accent |
+| `accent-soft` | `#f4d76a` | subtle accent backgrounds |
+| `surface` | `#ffffff` | page background |
+| `surface-raised` | `#f8fafc` | card / panel background |
 | `surface-overlay` | `#ffffff` | `#1a2438` | modal backdrops |
 | `foreground` | `#1e293b` | `#f1f5f9` | body text foreground |
 | `foreground-strong` | `#0c2848` | `#ffffff` | emphasized text (titles) |
@@ -236,9 +236,3 @@ Centred, `max-w-md` forms, `max-w-2xl` detail views.
 - H1 (`text-3xl font-semibold tracking-tight foreground-strong`).
 - Optional "New" CTA on the right (flex justify-between).
 - Restrained subtitle (`text-base muted-strong`, max-w-2xl).
-
-## Dark mode
-
-Managed by `next-themes` with `attribute="class"`. Toggle cycles light → dark. The `.dark` class on `<html>` activates the dark token overrides in `app/globals.css`. `suppressHydrationWarning` on `<html>` prevents first-paint flash. `disableTransitionOnChange` on `ThemeProvider` prevents colour flash on toggle.
-
-The dark surface (`#0c1424`) is **deliberately not pure black**; it is a navy-tinted shade that pairs with the brand identity rather than creating an unrelated dark scheme.

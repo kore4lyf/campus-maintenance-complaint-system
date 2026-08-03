@@ -88,8 +88,8 @@ with the other five context files in this directory.
   (keeps "what" inline with "which element"; readers don't chase).
 - **Design tokens** come from `tailwind.config.ts` (`colors`, `fontFamily`,
   `borderRadius`, `boxShadow`, `animation`).
-- **Theming**: `next-themes` toggling `class="dark"` on `<html>`;
-  Tailwind `dark:` variant applies. Default theme per OS preference.
+- **Theming**: light mode only. Astryx provides design tokens via CSS custom
+  property overrides. No dark mode toggle.
 - **Astryx components** from `@astryxdesign/core` provide the base UI primitives.
   Install with `npm install @astryxdesign/core @astryxdesign/theme-neutral`.
   Pre built CSS works alongside Tailwind. Theme via CSS custom property overrides.

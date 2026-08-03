@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth/config";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export type AuthOk = { ok: true };
 export type AuthRedirect = {
@@ -108,6 +109,11 @@ export async function signInAction(formData: {
   password: string;
   redirect?: string;
 }): Promise<AuthRedirect | AuthFail> {
+  const rateLimitResult = await checkRateLimit("auth", formData.email);
+  if (!rateLimitResult.allowed) {
+    return { ok: false, error: ERROR_COPY.TOO_MANY_REQUESTS! };
+  }
+
   try {
     const auth = await getAuth();
     // No `asResponse: true`. better-auth's `nextCookies` plugin intercepts
@@ -156,6 +162,11 @@ export async function signUpAction(formData: {
   password: string;
   name: string;
 }): Promise<AuthRedirect | AuthFail> {
+  const rateLimitResult = await checkRateLimit("auth", formData.email);
+  if (!rateLimitResult.allowed) {
+    return { ok: false, error: ERROR_COPY.TOO_MANY_REQUESTS! };
+  }
+
   try {
     const auth = await getAuth();
 

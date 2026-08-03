@@ -64,6 +64,11 @@ const complaintSchema = new Schema(
     },
     escalated: { type: Boolean, default: false },
     resolvedAt: { type: Date },
+    triageStatus: {
+      type: String,
+      enum: ["pending", "completed", "failed"],
+      default: "completed",
+    },
     aiSuggestion: aiSuggestionSchema,
     parentComplaintId: { type: mongoose.Schema.Types.ObjectId, ref: "Complaint" },
   },

@@ -22,7 +22,7 @@ This file is part of the Idea-to-Product six-file context convention. Read with
 - `react-hook-form` + `@hookform/resolvers` + Zod resolver for form state.
 - `date-fns` for date formatting and SLA countdown timers.
 - `lucide-react` for icons.
-- `next-themes` for light/dark toggle.
+
 - `isomorphic-dompurify` for description-rendering HTML sanitisation.
 
 ### Backend
