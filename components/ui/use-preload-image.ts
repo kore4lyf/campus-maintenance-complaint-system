@@ -15,7 +15,7 @@ export function usePreloadImage(src: string | null) {
   useEffect(() => {
     if (!src) return;
 
-    // Already cached by browser — skip preload
+    // Already cached by a previous preload — skip
     if (imgRef.current?.complete && imgRef.current?.src === src) {
       setLoaded(true);
       return;
@@ -30,6 +30,13 @@ export function usePreloadImage(src: string | null) {
     img.onload = () => setLoaded(true);
     img.onerror = () => setError(true);
     img.src = src;
+
+    // Handle browser-cached images: onload may fire synchronously before
+    // React can batch the state update, or may have already fired by the
+    // time we reach this line. Check complete after setting src.
+    if (img.complete) {
+      setLoaded(true);
+    }
 
     return () => {
       img.onload = null;

@@ -54,7 +54,7 @@ export interface SlaPanelProps {
   /**
    * When the current status of the complaint is "done" (Resolved/Closed),
    * the timer tiles switch to a calm green-tinted summary mode. Both
-   * deadlines are rendered as "Met in N h" rather than ticking.
+   * deadlines are rendered as "Done" rather than ticking.
    */
   isTerminal?: boolean | undefined;
 }
@@ -89,7 +89,7 @@ function classifyState(
 }
 
 function headline(state: SlaState, deadline: Date): string {
-  if (state === "done") return "Met";
+  if (state === "done") return "Done";
   const diff = formatDistanceToNowStrict(deadline, { addSuffix: false });
   if (state === "overdue") return `${diff} overdue`;
   return `in ${diff}`;

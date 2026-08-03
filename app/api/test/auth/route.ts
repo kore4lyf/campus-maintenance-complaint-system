@@ -43,7 +43,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   await connect();
   const db = mongoose.connection.db;
   if (db) {
-    await db.collection("user").updateOne(
+    await db.collection("User").updateOne(
       { email },
       { $set: { role } },
     );

@@ -115,18 +115,15 @@ Total: 41 of 41 sections locked across 6 files.
 
 ## Next Up
 
-- **Feature 05 `/develop complaint submission`** — spec 0005 written
-  and committed (status `In Progress` at the carry-over from the
-  previous checkpoint commit). Build per spec build plan: install deps;
-  build `lib/ai/{schemas,prompts,cost,fallback,triage}.ts`; image
-  pipeline; POST/GET complaint routes; submission form; tracker page.
-- **End-of-cycle `/check verify`** — Feature 03 and Feature 04 together
-  once the active build cycle closes. Feature 03 covers AC-1 through
-  AC-9 (theme tokens, role layouts, focus order); Feature 04 covers
-AC-1 through AC-10 (sign-up, sign-in, sign-out, proxy RBAC plus DAL,
-   contractors, schema, hook contract, dev-affordance cleanup, seeder,
-   build gates). Followed by `/test`, `/check review`, `/document`
-   per the project's `Full` workflow tier.
+- **End-of-cycle verification sweep** — all Features 03–12 build
+  milestones are checked. Remaining work is deferred verification:
+  `/check verify`, `/test`, `/check review`, `/document` per the
+  project's `Full` workflow tier. Blocked on end-of-cycle gate sweep
+  (lint, typecheck, build, Playwright e2e).
+- **Commit unstaged changes** — scope update (Feature 04 AC-1/AC-9
+  checked), plus prior session's modified files (TopNav, UsersManager,
+  Ably provider, auth actions, role assignment endpoint, users API,
+  tests). Working tree has ~30 modified/untracked files.
 - **Update `context/architecture.md`** — add e2e test layer (Playwright)
   to the Testing subsection; add an Open Question about CI Playwright
   build strategy (system Chrome vs bundled chromium download).

@@ -113,7 +113,7 @@ export function AuthShell({
             alt="LASU CMS"
             width={2081}
             height={942}
-            className="h-10 w-auto pb-4"
+            className="h-10 w-auto mb-4"
             priority
           />
         </header>

@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { Suspense, useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FilterPanel } from "@/components/admin/FilterPanel";
 import { QueueRow } from "@/components/admin/QueueRow";
 import { Label } from "@/components/ui/type";
@@ -13,6 +13,7 @@ import { QueueRibbon } from "@/components/admin/QueueRibbon";
 import { AdminQueueEmpty } from "@/components/admin/AdminQueueEmpty";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import { useSearchParams } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   PageShell,
   HeroBand,
@@ -59,6 +60,10 @@ interface Complaint {
   overdueMs: number;
   currentAssignee: { assignedToTechId: string; assignedToName: string } | null;
   __v: number;
+  systemType?: string | undefined;
+  isAnonymous?: boolean;
+  reporterName?: string | null;
+  reporterEmail?: string | null;
 }
 
 interface Technician {
@@ -74,8 +79,11 @@ interface Location {
 
 interface QueueResponse {
   data: Complaint[];
-  meta: { nextCursor: string | null; hasMore: boolean };
+  meta: { page: number; pageSize: number; totalCount: number; totalPages: number };
   escalatedRecentCount: number;
+  totalCount: number;
+  breachedCount: number;
+  unassignedCount: number;
 }
 
 function QueueSkeleton() {
@@ -93,55 +101,55 @@ function QueueSkeleton() {
   );
 }
 
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "...")[] = [1];
+  if (current > 3) pages.push("...");
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push("...");
+  pages.push(total);
+  return pages;
+}
+
 function AdminHeroActions() {
   return null;
 }
 
 function QueueContent() {
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const [selectedComplaint, setSelectedComplaint] =
     useState<Complaint | null>(null);
-  const [pages, setPages] = useState<Complaint[][]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
 
   const severity = searchParams.get("severity") ?? "";
   const age = searchParams.get("age") ?? "";
   const locationId = searchParams.get("locationId") ?? "";
 
-  const params = new URLSearchParams();
-  if (severity) params.set("severity", severity);
-  if (age && age !== "all") params.set("age", age);
-  if (locationId) params.set("locationId", locationId);
+  const params = useMemo(() => {
+    const p = new URLSearchParams();
+    if (severity) p.set("severity", severity);
+    if (age && age !== "all") p.set("age", age);
+    if (locationId) p.set("locationId", locationId);
+    if (keyword) p.set("keyword", keyword);
+    return p;
+  }, [severity, age, locationId, keyword]);
 
-  const { data: queueData, isLoading: queueLoading } = useQuery<QueueResponse>({
-    queryKey: ["admin-queue", severity, age, locationId],
+  const { data: queueData, isLoading: queueLoading, isFetching: queueFetching } = useQuery<QueueResponse>({
+    queryKey: ["admin-queue", severity, age, locationId, keyword, page],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/queue?${params.toString()}`);
+      const p = new URLSearchParams(params.toString());
+      p.set("page", String(page));
+      const response = await fetch(`/api/admin/queue?${p.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch queue");
       return response.json();
     },
-    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
   });
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    setPages([]);
-    setNextCursor(null);
-    setHasMore(false);
-  }, [severity, age, locationId]);
-
-  const handleLoadMore = useCallback(async () => {
-    if (!nextCursor) return;
-    const loadParams = new URLSearchParams(params);
-    loadParams.set("cursor", nextCursor);
-    const response = await fetch(`/api/admin/queue?${loadParams.toString()}`);
-    if (!response.ok) return;
-    const result: QueueResponse = await response.json();
-    setPages((prev) => [...prev, result.data]);
-    setNextCursor(result.meta.nextCursor);
-    setHasMore(result.meta.hasMore);
-  }, [nextCursor, params]);
 
   const { data: techData } = useQuery<{ data: Technician[] }>({
     queryKey: ["technicians"],
@@ -161,24 +169,25 @@ function QueueContent() {
     },
   });
 
-  const firstPage = queueData?.data ?? [];
-  const complaints = [...firstPage, ...pages.flat()];
+  const complaints = queueData?.data ?? [];
   const technicians = techData?.data ?? [];
   const locations = locationData?.data ?? [];
   const escalatedRecentCount = queueData?.escalatedRecentCount ?? 0;
-
-  const currentNextCursor =
-    pages.length === 0 ? queueData?.meta.nextCursor : nextCursor;
-  const currentHasMore =
-    pages.length === 0 ? queueData?.meta.hasMore : hasMore;
-
-  const total = complaints.length;
+  const totalCount = queueData?.totalCount ?? 0;
+  const breachedCount = queueData?.breachedCount ?? 0;
+  const unassignedCount = queueData?.unassignedCount ?? 0;
+  const meta = queueData?.meta;
   const breached = complaints.filter((c) => c.breachKind !== "none").length;
   const unassigned = complaints.filter(
     (c) => c.currentAssignee === null,
   ).length;
 
-  const queueQueryKey = ["admin-queue", severity, age, locationId] as const;
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [severity, age, locationId, keyword]);
+
+  const queueQueryKey = ["admin-queue", severity, age, locationId, keyword, page] as const;
   useAblyChannel({ name: "admin:queue", queryKey: queueQueryKey });
   useAblyChannel({ name: "admin:escalations", queryKey: queueQueryKey });
 
@@ -192,44 +201,66 @@ function QueueContent() {
 
       <div className="flex-1 min-w-0">
         {/* KPI strip */}
-        {queueLoading ? null : (
-          <ul
-            role="list"
-            className="mb-4 grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-surface sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-          >
-            <li className="flex flex-col gap-1 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
-                In view
-              </p>
+        <ul
+          role="list"
+          className="mb-4 grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-surface sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+        >
+          <li className="flex flex-col gap-1 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
+              In view
+            </p>
+            {queueLoading ? (
+              <div className="h-7 w-10 animate-pulse rounded bg-surface-raised" />
+            ) : (
               <p className="numeric text-2xl font-semibold tracking-[-0.025em] text-foreground-strong">
-                {total}
+                {complaints.length}<span className="text-base text-muted">/{totalCount}</span>
               </p>
-            </li>
-            <li className="flex flex-col gap-1 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
-                Breached
-              </p>
+            )}
+          </li>
+          <li className="flex flex-col gap-1 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
+              Breached
+            </p>
+            {queueLoading ? (
+              <div className="h-7 w-10 animate-pulse rounded bg-surface-raised" />
+            ) : (
               <p
                 className={`numeric text-2xl font-semibold tracking-[-0.025em] ${breached > 0 ? "text-danger-strong" : "text-foreground-strong"}`}
               >
-                {breached}
+                {breached}<span className="text-base text-muted">/{breachedCount}</span>
               </p>
-            </li>
-            <li className="flex flex-col gap-1 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
-                Unassigned
-              </p>
+            )}
+          </li>
+          <li className="flex flex-col gap-1 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-strong">
+              Unassigned
+            </p>
+            {queueLoading ? (
+              <div className="h-7 w-10 animate-pulse rounded bg-surface-raised" />
+            ) : (
               <p
                 className={`numeric text-2xl font-semibold tracking-[-0.025em] ${unassigned > 0 ? "text-warning-strong" : "text-foreground-strong"}`}
               >
-                {unassigned}
+                {unassigned}<span className="text-base text-muted">/{unassignedCount}</span>
               </p>
-            </li>
-          </ul>
-        )}
+            )}
+          </li>
+        </ul>
 
         <div className="mb-3 flex items-center justify-between">
           <Label>Queue</Label>
+          <span className="text-xs text-muted-strong">
+            {complaints.length} result{complaints.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <div className="mb-3">
+          <input
+            type="text"
+            placeholder="Search by description, email, category, or location..."
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-strong focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          />
         </div>
         <QueueRibbon escalatedCount={escalatedRecentCount} />
         {queueLoading ? (
@@ -238,25 +269,75 @@ function QueueContent() {
           <AdminQueueEmpty />
         ) : (
           <>
-            <ul className="overflow-hidden rounded-xl border border-border bg-surface">
-              {complaints.map((complaint) => (
-                <QueueRow
-                  key={complaint._id}
-                  complaint={complaint}
-                  onSelect={setSelectedComplaint}
-                />
-              ))}
-            </ul>
-            {currentHasMore && (
-              <div className="mt-4 flex justify-center">
-                <Button
-                  variant="secondary"
-                  onClick={handleLoadMore}
-                  loading={false}
-                >
-                  Load more
-                </Button>
+            <div className="relative">
+              {queueFetching && !queueLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-surface/60">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+                </div>
+              )}
+              <div className={`max-h-[60vh] overflow-y-auto rounded-xl border border-border transition-opacity ${queueFetching && !queueLoading ? "pointer-events-none opacity-60" : ""}`}>
+                <ul className="divide-y divide-border bg-surface">
+                  {complaints.map((complaint) => (
+                    <QueueRow
+                      key={complaint._id}
+                      complaint={complaint}
+                      onSelect={setSelectedComplaint}
+                    />
+                  ))}
+                </ul>
               </div>
+            </div>
+            {meta && meta.totalPages > 1 && (
+              <nav
+                className="mt-3 flex items-center justify-between"
+                aria-label="Queue pagination"
+              >
+                <p className="text-xs text-muted-strong">
+                  {meta.totalCount} result{meta.totalCount !== 1 ? "s" : ""} — page {meta.page} of {meta.totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={meta.page <= 1 || queueFetching}
+                    onClick={() => setPage((p) => p - 1)}
+                    leadingIcon={<ChevronLeft className="h-4 w-4" />}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers(meta.page, meta.totalPages).map((num, i) =>
+                      num === "..." ? (
+                        <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-strong">…</span>
+                      ) : (
+                        <button
+                          key={num}
+                          type="button"
+                          disabled={queueFetching}
+                          onClick={() => setPage(num)}
+                          aria-current={num === meta.page ? "page" : undefined}
+                          className={`min-w-[2rem] rounded px-2 py-1 text-sm font-medium transition-colors ${
+                            num === meta.page
+                              ? "bg-brand text-white"
+                              : "text-muted-strong hover:bg-surface-raised hover:text-foreground-strong"
+                          } disabled:opacity-50`}
+                        >
+                          {num}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={meta.page >= meta.totalPages || queueFetching}
+                    onClick={() => setPage((p) => p + 1)}
+                    trailingIcon={<ChevronRight className="h-4 w-4" />}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </nav>
             )}
           </>
         )}
@@ -275,6 +356,7 @@ function QueueContent() {
           onClose={() => setSelectedComplaint(null)}
           onAssigned={() => {
             setSelectedComplaint(null);
+            queryClient.invalidateQueries({ queryKey: ["admin-queue"] });
           }}
         />
       ) : null}

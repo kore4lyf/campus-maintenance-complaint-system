@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -134,8 +134,19 @@ export function TransitionForm({
   const [note, setNote] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [staleError, setStaleError] = useState(false);
-  const [currentVersion] = useState(expectedVersion);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clear stale error when the version updates (after a refetch)
+  useEffect(() => {
+    setStaleError(false);
+  }, [expectedVersion]);
+
+  // Reset form state when allowed transitions change (after a successful transition)
+  useEffect(() => {
+    setSelectedTransition(null);
+    setNote("");
+    setPhotos([]);
+  }, [allowedTransitions]);
 
   const transitionMutation = useMutation({
     mutationFn: async (payload: {
@@ -173,22 +184,28 @@ export function TransitionForm({
       }
       return json.data;
     },
-    onSuccess: () => {
-      toast.success("Updated");
-      queryClient.invalidateQueries({ queryKey: ["technician-queue"] });
-      queryClient.invalidateQueries({
+    onSuccess: async (data) => {
+      toast.success(
+        data.newVersion > expectedVersion + 1
+          ? "Resolved and closed"
+          : "Updated",
+      );
+      await queryClient.refetchQueries({
         queryKey: ["technician-complaint", complaintId],
       });
+      queryClient.invalidateQueries({ queryKey: ["technician-queue"] });
       onSuccess();
     },
     onError: (error: { error?: { code?: string; message?: string } }) => {
       if (error?.error?.code === "stale_write") {
         setStaleError(true);
-        toast.error("Version mismatch");
+        toast.error("Version mismatch — another user updated this complaint");
       } else if (error?.error?.code === "invalid_photo") {
         toast.error(error.error.message ?? "Invalid photo");
+      } else if (error?.error?.code === "invalid_transition") {
+        toast.error(error.error.message ?? "Invalid transition");
       } else {
-        toast.error("Update failed");
+        toast.error(error?.error?.message ?? "Update failed");
       }
     },
   });
@@ -200,7 +217,7 @@ export function TransitionForm({
     }
     transitionMutation.mutate({
       toStatus,
-      expectedVersion: currentVersion,
+      expectedVersion,
       ...(note.trim() ? { note: note.trim() } : {}),
       ...(photos.length > 0 ? { photos } : {}),
     });
@@ -208,13 +225,14 @@ export function TransitionForm({
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const maxPhotos = selectedTransition === "Resolved" ? 1 : 3;
-    setPhotos(files.slice(0, maxPhotos));
+    setPhotos(files.slice(0, 1));
   }
 
   function handleRefresh() {
     setStaleError(false);
-    onSuccess();
+    queryClient.refetchQueries({
+      queryKey: ["technician-complaint", complaintId],
+    });
   }
 
   if (allowedTransitions.length === 0) {
@@ -237,9 +255,6 @@ export function TransitionForm({
       <header className="mb-5 flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Kicker>Update status</Kicker>
-          <span className="ml-auto numeric text-[11px] uppercase tracking-[0.16em] text-muted-strong">
-            Move complaint forward
-          </span>
         </div>
         <p className="text-sm leading-[1.55] text-muted-strong">
           Pick the next status, add context, and ship the change in one
@@ -338,7 +353,7 @@ export function TransitionForm({
               <Label htmlFor="transition-photos">
                 {selectedTransition === "Resolved"
                   ? "Proof-of-fix photo (required)"
-                  : "Progress photos (optional, up to 3)"}
+                  : "Progress photo (optional)"}
               </Label>
               <div className="mt-1.5 flex flex-col gap-2">
                 <label
@@ -351,7 +366,7 @@ export function TransitionForm({
                       ? "Replace photo"
                       : selectedTransition === "Resolved"
                         ? "Choose proof photo"
-                        : "Choose photos"}
+                        : "Choose photo"}
                   </span>
                 </label>
                 <input
@@ -359,7 +374,6 @@ export function TransitionForm({
                   id="transition-photos"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
-                  multiple={selectedTransition !== "Resolved"}
                   onChange={handlePhotoChange}
                   className="sr-only"
                 />

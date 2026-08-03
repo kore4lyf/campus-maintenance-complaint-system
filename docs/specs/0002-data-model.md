@@ -1,7 +1,7 @@
 # 0002. Data model for SLA driven complaint lifecycle
 
 **Date**: 2026-07-25
-**Status**: Accepted
+**Status**: In Progress
 
 ## Summary
 

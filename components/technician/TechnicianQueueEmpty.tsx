@@ -65,7 +65,7 @@ export function TechnicianQueueEmpty({
       title="No assigned complaints"
       description="You don't have any assigned complaints yet. New assignments appear here in real time with a priority badge and an SLA timer."
       primaryAction={
-        <Link href="/technician/queue">
+        <Link href="/technician/assignments">
           <Button
             variant="secondary"
             size="md"

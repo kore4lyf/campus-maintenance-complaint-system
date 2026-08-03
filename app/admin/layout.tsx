@@ -1,13 +1,16 @@
 import { TopNav } from "@/components/shared/TopNav";
 import { MobileBottomNav } from "@/components/shared/MobileBottomNav";
+import { requireRole } from "@/lib/auth/dal";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireRole("dicht_admin");
+
   return (
     <>
       <TopNav />

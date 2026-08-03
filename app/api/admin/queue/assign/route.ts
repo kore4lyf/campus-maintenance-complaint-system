@@ -3,12 +3,11 @@ import { z } from "zod";
 import { connect } from "@/lib/db/connection";
 import { ComplaintModel } from "@/lib/db/models/complaint";
 import { AssignmentModel } from "@/lib/db/models/assignment";
-import { StatusHistoryModel } from "@/lib/db/models/status-history";
 import { NotificationModel } from "@/lib/db/models/notification";
 import { UserModel } from "@/lib/db/models/user";
 import { getServerSession, authorizeRole } from "@/lib/auth/dal";
 import { ApiError } from "@/lib/utils/errors";
-import { publishAssignmentNotification } from "@/lib/realtime/ably";
+import { publishAssignmentNotification, publishToChannel } from "@/lib/realtime/ably";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -99,16 +98,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     assignedAt: now,
   });
 
-  const statusHistory = await StatusHistoryModel.create({
-    complaintId,
-    fromStatus: updated.status,
-    toStatus: updated.status,
-    changedById: session.user.id,
-    changedBySystem: false,
-    note: note ?? null,
-    changedAt: now,
-  });
-
   const notification = await NotificationModel.create({
     complaintId,
     recipientId: assignedToTechId,
@@ -128,6 +117,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Ably push is best effort; do not block the assignment write
   }
 
+  // Also notify admin queue to refresh
+  try {
+    await publishToChannel({
+      channelName: "admin:queue",
+      eventName: "assignment",
+      data: { complaintId, assignedToTechId },
+    });
+  } catch {
+    // Best effort
+  }
+
   try {
     const { revalidatePath } = await import("next/cache");
     revalidatePath("/admin/queue");
@@ -139,7 +139,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     {
       data: {
         assignmentId: String(assignment._id),
-        statusHistoryId: String(statusHistory._id),
         notificationId: String(notification._id),
         ablyPushOk,
       },

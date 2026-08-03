@@ -27,9 +27,10 @@ const navByRole: Record<string, NavItem[]> = {
   dicht_admin: [
     { href: "/admin/queue", label: "Queue", icon: LayoutDashboard },
     { href: "/admin/reports", label: "Reports", icon: BarChart3 },
+    { href: "/admin/users", label: "Users", icon: UserCircle },
   ],
   dicht_technician: [
-    { href: "/technician/queue", label: "Queue", icon: Wrench },
+    { href: "/technician/assignments", label: "Assignments", icon: Wrench },
   ],
 };
 

@@ -145,10 +145,10 @@ export async function POST(
     );
   }
 
-  if (toStatus === "Resolved" && photos.length > 1) {
+  if (photos.length > 1) {
     return badRequest(
       "invalid_photo",
-      "Resolved status requires exactly one proof-of-fix photo",
+      "Only one photo per transition is allowed",
       422,
     );
   }
@@ -283,8 +283,8 @@ export async function POST(
 
   try {
     const { revalidatePath } = await import("next/cache");
-    revalidatePath("/technician/queue");
-    revalidatePath(`/technician/queue/${complaintId}`);
+    revalidatePath("/technician/assignments");
+    revalidatePath(`/technician/assignments/${complaintId}`);
     revalidatePath("/admin/queue");
   } catch {
     // Cache revalidation may be unavailable

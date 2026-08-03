@@ -74,10 +74,10 @@ export async function GET(
     }
   }
 
-  const history = await StatusHistoryModel
+  const history = (await StatusHistoryModel
     .find({ complaintId: id })
     .sort({ changedAt: -1 })
-    .lean();
+    .lean()).filter((h) => h.fromStatus !== h.toStatus);
 
   const actorIds = [
     ...new Set(

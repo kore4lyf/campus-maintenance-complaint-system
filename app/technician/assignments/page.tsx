@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
 import {
   ChevronRight,
+  EyeOff,
   Inbox,
   Clock,
 } from "lucide-react";
@@ -48,6 +49,9 @@ interface Complaint {
   createdAt: string;
   breachKind: "none" | "acknowledge_overdue" | "resolve_overdue";
   overdueMs: number;
+  isAnonymous?: boolean;
+  reporterName?: string | null;
+  reporterEmail?: string | null;
 }
 
 interface QueueResponse {
@@ -112,7 +116,7 @@ export default function TechnicianQueuePage() {
     <PageShell>
       <HeroBand
         kicker="Technician Console"
-        title="My assignments"
+        title="My Assignments"
         subtitle={
           isLoading
             ? "Loading…"
@@ -214,6 +218,12 @@ export default function TechnicianQueuePage() {
                                 | "Low"
                             }
                           />
+                          {complaint.isAnonymous && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-strong">
+                              <EyeOff className="h-3 w-3" aria-hidden="true" />
+                              Anonymous
+                            </span>
+                          )}
                         </div>
 
                         <p className="mt-3 text-sm font-semibold text-foreground-strong">
@@ -224,6 +234,15 @@ export default function TechnicianQueuePage() {
                             </span>
                           ) : null}
                         </p>
+
+                        {!complaint.isAnonymous && complaint.reporterName ? (
+                          <p className="mt-1 text-xs text-muted-strong">
+                            {complaint.reporterName}
+                            {complaint.reporterEmail ? (
+                              <span className="ml-1 text-muted">· {complaint.reporterEmail}</span>
+                            ) : null}
+                          </p>
+                        ) : null}
 
                         <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-strong">
                           {shortDescription}

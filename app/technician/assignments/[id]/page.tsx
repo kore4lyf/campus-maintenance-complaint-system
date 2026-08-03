@@ -7,6 +7,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import {
   ArrowLeft,
   AlertTriangle,
+  EyeOff,
   UserCircle,
   Camera,
   History,
@@ -23,6 +24,7 @@ import { ComplaintTimeline } from "@/components/reporter/ComplaintTimeline";
 import { TransitionForm } from "@/components/technician/TransitionForm";
 import { H1, Kicker, Supporting } from "@/components/ui/type";
 import { PageShell } from "@/components/shared/PageShell";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 
 /*
@@ -72,6 +74,8 @@ interface ComplaintDetail {
   categoryName: string | null;
   locationName: string | null;
   reporterName: string;
+  reporterEmail?: string | null;
+  isAnonymous?: boolean;
   slaAcknowledgeBy: string;
   slaResolveBy: string;
   createdAt: string;
@@ -111,6 +115,8 @@ export default function TechnicianComplaintDetailPage({
       if (!response.ok) throw new Error("Failed to fetch complaint");
       return response.json();
     },
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {
@@ -179,13 +185,6 @@ export default function TechnicianComplaintDetailPage({
             <header className="flex flex-col gap-5">
               {/* Numbered caption strip — matches Home/Detail cadence */}
               <div className="flex items-center gap-3">
-                <span className="numeric text-2xl font-semibold leading-none tracking-[-0.02em] text-foreground-strong">
-                  02
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="h-px w-8 bg-border-strong"
-                />
                 <Kicker>Assignment</Kicker>
               </div>
 
@@ -196,6 +195,12 @@ export default function TechnicianComplaintDetailPage({
                     complaint.priority as "Critical" | "High" | "Medium" | "Low"
                   }
                 />
+                {complaint.isAnonymous && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-strong">
+                    <EyeOff className="h-3 w-3" aria-hidden="true" />
+                    Anonymous
+                  </span>
+                )}
                 <span className="ml-auto numeric text-xs text-muted-strong">
                   Filed{" "}
                   {formatDistanceToNowStrict(new Date(complaint.createdAt), {
@@ -304,7 +309,12 @@ export default function TechnicianComplaintDetailPage({
                 <dt className="font-medium text-foreground-strong">
                   Reporter
                 </dt>
-                <dd className="text-muted-strong">{complaint.reporterName}</dd>
+                <dd className="text-muted-strong">
+                  {complaint.reporterName}
+                  {!complaint.isAnonymous && complaint.reporterEmail ? (
+                    <span className="ml-1 text-muted">({complaint.reporterEmail})</span>
+                  ) : null}
+                </dd>
               </div>
               <div className="flex items-center gap-2">
                 <Camera
@@ -347,7 +357,7 @@ export default function TechnicianComplaintDetailPage({
 
           {/* Photos grid */}
           {complaint.photoUrls.length > 0 ? (
-            <Card padding="lg" variant="raised">
+<Card padding="lg" variant="raised">
               <SectionHeader
                 eyebrow="Photos"
                 title={`${complaint.photoUrls.length} attached`}
@@ -358,11 +368,9 @@ export default function TechnicianComplaintDetailPage({
                     key={url}
                     className="group/photo relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-raised transition-[border-color,transform] duration-fast hover:-translate-y-0.5 hover:border-border-strong hover:shadow-sm"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary URL */}
-                    <img
+                    <ImageLightbox
                       src={url}
                       alt={`Photo ${i + 1}`}
-                      className="h-full w-full object-cover transition-transform duration-medium group-hover/photo:scale-[1.03]"
                     />
                   </li>
                 ))}

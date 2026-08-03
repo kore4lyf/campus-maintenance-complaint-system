@@ -214,7 +214,7 @@ export function ComplaintTimeline({ entries }: ComplaintTimelineProps) {
                 <div className="mt-1 h-14 w-14">
                   <ImageLightbox
                     src={entry.photoUrl}
-                    alt={`Proof of fix ${i + 1}`}
+                    alt={entry.toStatus === "Resolved" ? "Proof of fix" : "Progress photo"}
                     caption={`${entry.fromStatus} → ${entry.toStatus} · ${format(new Date(entry.changedAt), "PP p")}`}
                   />
                 </div>

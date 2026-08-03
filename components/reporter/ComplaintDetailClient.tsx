@@ -9,6 +9,7 @@ import {
   Camera,
   ClipboardList,
   Clock4,
+  EyeOff,
   Info,
   Link as LinkIcon,
   MapPin,
@@ -130,6 +131,12 @@ function HeroStrip({
             {complaint.priority ? (
               <SeverityBadge severity={complaint.priority} />
             ) : null}
+            {complaint.isAnonymous && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-strong">
+                <EyeOff className="h-3 w-3" aria-hidden="true" />
+                Anonymous
+              </span>
+            )}
             {complaint.categoryName ? (
               <CategoryBadge
                 name={complaint.categoryName}
@@ -251,9 +258,6 @@ function MetaFacts({ complaint }: { complaint: ComplaintDetail }) {
       : null,
     complaint.reporterEmail
       ? { Icon: Info, label: "Reporter email", value: complaint.reporterEmail }
-      : null,
-    complaint.isAnonymous
-      ? { Icon: Info, label: "Submission", value: "Anonymous" }
       : null,
   ].filter((item): item is { Icon: typeof MapPin; label: string; value: string } =>
     item !== null,

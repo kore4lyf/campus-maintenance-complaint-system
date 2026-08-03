@@ -4,6 +4,7 @@ import { ComplaintModel } from "@/lib/db/models/complaint";
 import { AssignmentModel } from "@/lib/db/models/assignment";
 import { CategoryModel } from "@/lib/db/models/category";
 import { LocationModel } from "@/lib/db/models/location";
+import { UserModel } from "@/lib/db/models/user";
 import { getServerSession, authorizeRole } from "@/lib/auth/dal";
 import { evaluateBreachState } from "@/lib/sla/breach-detection";
 import { paginateCursor } from "@/lib/utils/pagination";
@@ -91,6 +92,15 @@ export async function GET(request: Request): Promise<NextResponse> {
       ),
   ]);
 
+  // Fetch reporter info for non-anonymous complaints
+  const reporterIds = [...new Set(data.filter((d) => !d.isAnonymous).map((d) => String(d.reporterId)).filter(Boolean))];
+  const reporterUsers = await UserModel.find({ _id: { $in: reporterIds } })
+    .select("name email")
+    .lean()
+    .then((docs) =>
+      Object.fromEntries(docs.map((d) => [String(d._id), { name: d.name, email: d.email }])),
+    );
+
   const publicData = data.map((doc) => {
     const breachState = evaluateBreachState({
       complaint: {
@@ -103,6 +113,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     const publicDoc = toPublicComplaint(doc as unknown as Record<string, unknown>);
     const category = categories[String(doc.categoryId)];
+    const reporter = doc.isAnonymous ? null : reporterUsers[String(doc.reporterId)] ?? null;
 
     return {
       ...publicDoc,
@@ -110,6 +121,8 @@ export async function GET(request: Request): Promise<NextResponse> {
       locationName: locations[String(doc.locationId)] ?? null,
       breachKind: breachState.kind,
       overdueMs: breachState.overdueMs,
+      reporterName: reporter?.name ?? null,
+      reporterEmail: reporter?.email ?? null,
       __v: doc.__v,
     };
   });

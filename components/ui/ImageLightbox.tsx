@@ -55,13 +55,15 @@ export function ImageLightbox({
         aria-label={`Expand ${alt}`}
         className={`group/lightbox relative flex h-full w-full items-center justify-center overflow-hidden text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${className ?? ""}`}
       >
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover transition-transform duration-medium group-hover/lightbox:scale-[1.03]"
-        />
+        <div className="absolute inset-0">
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-medium group-hover/lightbox:scale-[1.03]"
+          />
+        </div>
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-fast group-hover/lightbox:bg-black/10">
           <ZoomIn className="h-8 w-8 text-white opacity-0 drop-shadow transition-opacity duration-fast group-hover/lightbox:opacity-100" aria-hidden="true" />
         </span>

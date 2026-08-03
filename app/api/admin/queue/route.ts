@@ -8,7 +8,7 @@ import { NotificationModel } from "@/lib/db/models/notification";
 import { UserModel } from "@/lib/db/models/user";
 import { getServerSession, authorizeRole } from "@/lib/auth/dal";
 import { evaluateBreachState } from "@/lib/sla/breach-detection";
-import { paginateCursor } from "@/lib/utils/pagination";
+import { paginateOffset } from "@/lib/utils/pagination";
 import { toPublicComplaint } from "@/lib/utils/pii";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +58,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const severity = url.searchParams.get("severity");
   const age = url.searchParams.get("age");
   const locationId = url.searchParams.get("locationId");
-  const cursor = url.searchParams.get("cursor");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
   const keyword = url.searchParams.get("keyword")?.trim() ?? "";
 
   const query: Record<string, unknown> = {};
@@ -118,15 +118,40 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   query.status = { $ne: "Closed" };
 
-  const { data, meta } = await paginateCursor({
+  // Get all non-closed complaints for KPI counts
+  const allNonClosed = await ComplaintModel.find(query)
+    .select("_id slaAcknowledgeBy slaResolveBy status")
+    .lean();
+
+  const now = new Date();
+  const totalCount = allNonClosed.length;
+  const breachedCount = allNonClosed.filter((c) => {
+    const breach = evaluateBreachState({
+      complaint: {
+        slaAcknowledgeBy: c.slaAcknowledgeBy as Date,
+        slaResolveBy: c.slaResolveBy as Date,
+        status: c.status as string,
+      },
+      now,
+    });
+    return breach.kind !== "none";
+  }).length;
+
+  // Get unassigned count
+  const allNonClosedIds = allNonClosed.map((c) => String(c._id));
+  const assignedComplaintIds = await AssignmentModel.distinct("complaintId", {
+    complaintId: { $in: allNonClosedIds },
+  });
+  const unassignedCount = totalCount - assignedComplaintIds.length;
+
+  const { data, meta } = await paginateOffset({
     model: ComplaintModel,
     query,
     sort: { slaAcknowledgeBy: 1, slaResolveBy: 1, createdAt: 1 },
     pageSize: 10,
-    cursor,
+    page,
   });
 
-  const now = new Date();
   const categoryIds = [...new Set(data.map((d) => String(d.categoryId)))];
   const locationIds = [...new Set(data.map((d) => String(d.locationId)))];
   const complaintIds = data.map((d) => d._id);
@@ -235,7 +260,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   });
 
   return NextResponse.json(
-    { data: publicData, meta, escalatedRecentCount: escalatedComplaintIds.length },
+    { data: publicData, meta, escalatedRecentCount: escalatedComplaintIds.length, totalCount, breachedCount, unassignedCount },
     { status: 200, headers: { "content-type": "application/json" } },
   );
 }

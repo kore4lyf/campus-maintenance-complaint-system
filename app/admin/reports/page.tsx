@@ -149,16 +149,6 @@ function ReportsContent() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted-strong"
-            aria-label="Refresh cadence"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60" />
-              <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-success" />
-            </span>
-            Refreshes every 60 s
-          </span>
           <ExportButtons />
         </div>
       </Card>
@@ -276,7 +266,6 @@ export default function ReportsPage() {
         subtitle="Campus maintenance analytics. Filter by time, severity, location, or status; export the filtered set as CSV or PDF for an external audience."
         actions={
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             Live data
           </span>
         }

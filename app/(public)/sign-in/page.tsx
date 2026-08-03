@@ -5,9 +5,6 @@ import {
   LogIn,
   ArrowRight,
   ShieldCheck,
-  Send,
-  Clock4,
-  Camera,
   Bell,
   Mail,
   Lock,
@@ -46,34 +43,8 @@ export default async function SignInPage({
           <span className="text-brand">continue</span>
         </>
       }
-      subtitle="Pick up where you left off. Your complaints, SLA timers, and proof-of-fix photos are right where you saved them."
       brandPanel={{
-        eyebrow: "Lagos State University",
-        title: "Every repair, finally visible.",
-        body: "From a flickering bulb in your hostel to a server outage in Engineering — the entire maintenance loop is open for students, staff, and DICT.",
-        features: [
-          {
-            icon: () => <Send className="h-5 w-5 text-accent" aria-hidden="true" />,
-            title: "Submit, fast",
-            body: "10 categories, 30+ campus locations, photo attachments — filed in under a minute.",
-          },
-          {
-            icon: () => <Clock4 className="h-5 w-5 text-accent" aria-hidden="true" />,
-            title: "Live SLA timers",
-            body: "Acknowledge-by and resolve-by deadlines, ticking in real time on your dashboard.",
-          },
-          {
-            icon: () => <Camera className="h-5 w-5 text-accent" aria-hidden="true" />,
-            title: "Proof of fix",
-            body: "Technicians upload a photo on close-out. Receipt on every repair, every time.",
-          },
-          {
-            icon: () => <Bell className="h-5 w-5 text-accent" aria-hidden="true" />,
-            title: "AI-assisted triage",
-            body: "Free-text interpreted instantly. Always backed by rules-based fallback for offline hours.",
-          },
-        ],
-        footerNote: "Free for the LASU community.",
+        footerNote: "Lagos State University — every repair, finally visible.",
       }}
       reassurance={
         <>

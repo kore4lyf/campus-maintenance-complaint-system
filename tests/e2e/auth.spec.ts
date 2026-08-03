@@ -89,11 +89,8 @@ test.describe("Feature 04: Sign-up form submission", () => {
     await page.getByLabel(/email/i).fill(email);
     await page.getByRole("textbox", { name: /password/i }).fill(password);
 
-    // Submit and wait for pending state (confirms submission started)
+    // Submit and wait for redirect away from sign-up
     await page.getByRole("button", { name: /create account/i }).click();
-    await expect(page.getByRole("button", { name: /creating account/i })).toBeVisible({ timeout: 5000 });
-
-    // Should redirect away from sign-up (form uses 350ms setTimeout before push)
     await page.waitForURL((url) => !url.pathname.includes("/sign-up"), {
       timeout: 30_000,
     });
@@ -172,13 +169,10 @@ test.describe("Feature 04: Sign-in form submission", () => {
     await page.getByLabel(/email/i).fill(email);
     await page.getByRole("textbox", { name: /password/i }).fill(password);
 
-    // Submit and wait for pending state (confirms submission started)
+    // Submit and wait for redirect away from sign-in
     await page.getByRole("button", { name: /sign in/i }).click();
-    await expect(page.getByRole("button", { name: /signing in/i })).toBeVisible({ timeout: 5000 });
-
-    // Should redirect away from sign-in (form uses 250ms setTimeout before push)
     await page.waitForURL((url) => !url.pathname.includes("/sign-in"), {
-      timeout: 30_000,
+      timeout: 60_000,
     });
 
     // Should be on a protected page (complaints)

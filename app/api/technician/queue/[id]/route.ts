@@ -86,10 +86,35 @@ export async function GET(
     reporterName = reporter?.name ?? "Unknown";
   }
 
-  const statusHistory = await StatusHistoryModel
+  const statusHistory = (await StatusHistoryModel
     .find({ complaintId })
     .sort({ changedAt: -1 })
-    .lean();
+    .lean()).filter((sh) => sh.fromStatus !== sh.toStatus);
+
+  const actorIds = [
+    ...new Set(
+      statusHistory
+        .filter((sh) => sh.changedById && !sh.changedBySystem)
+        .map((sh) => String(sh.changedById)),
+    ),
+  ];
+
+  const actors =
+    actorIds.length > 0
+      ? await UserModel
+          .find({ _id: { $in: actorIds } })
+          .select("name role")
+          .lean()
+          .then(
+            (docs) =>
+              Object.fromEntries(
+                docs.map((d) => [
+                  String(d._id),
+                  { name: d.name, role: d.role },
+                ]),
+              ),
+          )
+      : {};
 
   const currentStatus = complaint.status as string;
   const allowedTransitions = VALID_TECHNICIAN_TRANSITIONS[currentStatus] ?? [];
@@ -104,15 +129,20 @@ export async function GET(
     breachKind: breachState.kind,
     overdueMs: breachState.overdueMs,
     allowedTransitions,
-    statusHistory: statusHistory.map((sh) => ({
-      _id: String(sh._id),
-      fromStatus: sh.fromStatus,
-      toStatus: sh.toStatus,
-      note: sh.note,
-      photoUrl: sh.photoUrl,
-      changedAt: sh.changedAt,
-      changedBySystem: sh.changedBySystem,
-    })),
+    statusHistory: statusHistory.map((sh) => {
+      const actor = sh.changedById ? actors[String(sh.changedById)] : null;
+      return {
+        _id: String(sh._id),
+        fromStatus: sh.fromStatus,
+        toStatus: sh.toStatus,
+        note: sh.note,
+        photoUrl: sh.photoUrl,
+        changedAt: sh.changedAt,
+        changedBySystem: sh.changedBySystem,
+        changedByName: sh.changedBySystem ? undefined : actor?.name ?? undefined,
+        changedByRole: sh.changedBySystem ? undefined : actor?.role ?? undefined,
+      };
+    }),
     __v: complaint.__v,
   };
 

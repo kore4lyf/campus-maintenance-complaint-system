@@ -218,6 +218,12 @@ export function AssignDialog({
                 complaint.priority as "Critical" | "High" | "Medium" | "Low"
               }
             />
+            {complaint.isAnonymous && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-strong">
+                <EyeOff className="h-3 w-3" aria-hidden="true" />
+                Anonymous
+              </span>
+            )}
             <span className="numeric ml-auto text-xs text-muted-strong">
               Filed{" "}
               {formatDistanceToNowStrict(new Date(complaint.createdAt), {

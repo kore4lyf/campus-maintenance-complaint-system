@@ -10,13 +10,15 @@ import { Button } from "@/components/ui/Button";
  */
 
 interface ErrorBoundaryProps {
-  role: "root" | "reporter" | "admin" | "technician";
+  role: "root" | "public" | "reporter" | "admin" | "technician";
   error: Error & { digest?: string | undefined };
   reset: () => void;
 }
 
 const ROLE_INTRO: Record<ErrorBoundaryProps["role"], string> = {
   root: "We hit an unexpected error rendering this page.",
+  public:
+    "We hit an unexpected error. Please try again or contact DICT support.",
   reporter:
     "We hit an error loading your reporter view. Your in-flight complaint drafts are unaffected.",
   admin:

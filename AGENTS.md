@@ -22,6 +22,10 @@ Every AI coding session on this project starts by reading these files in this
 order. They are the system of record. If implementation uncovers a decision no
 file records, stop and update the relevant file before writing code.
 
+## Build approach
+
+Tracer Bullet (prove the whole pipe works before building any part of it fully).
+
 ## Project Conventions
 
 - Build feature by feature.

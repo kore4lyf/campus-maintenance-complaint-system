@@ -1,11 +1,14 @@
 import { TopNav } from "@/components/shared/TopNav";
 import { MobileBottomNav } from "@/components/shared/MobileBottomNav";
+import { requireRole } from "@/lib/auth/dal";
 
-export default function ReporterLayout({
+export default async function ReporterLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireRole("reporter", "dicht_admin", "dicht_technician");
+
   return (
     <>
       <TopNav />

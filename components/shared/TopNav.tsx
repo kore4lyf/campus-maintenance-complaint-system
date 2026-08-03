@@ -48,7 +48,7 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
       ];
     }
     if (role === "dicht_technician") {
-      return [{ href: "/technician/queue", label: "Queue" }];
+      return [{ href: "/technician/assignments", label: "Assignments" }];
     }
     return [];
   })();

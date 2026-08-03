@@ -1,7 +1,7 @@
 # 0005. Complaint submission with AI triage
 
 **Date**: 2026-07-25
-**Status**: Accepted
+**Status**: In Progress
 
 ## Summary
 

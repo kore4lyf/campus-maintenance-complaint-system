@@ -44,7 +44,7 @@ describe("SlaPanel", () => {
     expect(meters).toHaveLength(2);
   });
 
-  test("renders the calm Met headline when the complaint is in a terminal state", () => {
+  test("renders the calm Done headline when the complaint is in a terminal state", () => {
     render(
       <SlaPanel
         acknowledgeLabel="Acknowledge"
@@ -55,8 +55,8 @@ describe("SlaPanel", () => {
       />,
     );
 
-    // Both tiles should now read "Met".
-    expect(screen.getAllByText((_, element) => element?.textContent === "Met")).toHaveLength(2);
+    // Both tiles should now read "Done".
+    expect(screen.getAllByText((_, element) => element?.textContent === "Done")).toHaveLength(2);
   });
 
   test("renders in-N-hours-style headline for a far-future deadline", () => {
