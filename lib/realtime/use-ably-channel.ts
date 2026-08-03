@@ -36,7 +36,7 @@ export function useAblyChannel({
     > | null = null;
 
     function attachAndSubscribe() {
-      if (cancelled) return;
+      if (cancelled || !ably) return;
       
       channel = ably.channels.get(name);
       

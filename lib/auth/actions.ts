@@ -18,7 +18,7 @@ export type AuthFail = {
    * surface an inline "sign in instead" affordance on USER_ALREADY_EXISTS
    * without re-parsing the message.
    */
-  code?: string;
+  code?: string | undefined;
 };
 
 /*

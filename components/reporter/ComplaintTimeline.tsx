@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { StatusPill, type ComplaintStatus } from "@/components/ui/StatusPill";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { capitalize } from "@/lib/utils/format";
 
 /*
  * ComplaintTimeline — Apple-style two-column history list.
@@ -78,7 +79,7 @@ function actorLabel(entry: TimelineEntry): string {
     const role = entry.changedByRole
       ? ` · ${entry.changedByRole.replace(/^dicht_/, "")}`
       : "";
-    return `${entry.changedByName}${role}`;
+    return `${capitalize(entry.changedByName)}${role}`;
   }
   return "Unknown";
 }

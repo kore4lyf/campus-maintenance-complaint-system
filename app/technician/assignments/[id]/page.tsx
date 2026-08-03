@@ -26,6 +26,7 @@ import { H1, Kicker, Supporting } from "@/components/ui/type";
 import { PageShell } from "@/components/shared/PageShell";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
+import { capitalize } from "@/lib/utils/format";
 
 /*
  * TechnicianComplaintDetailPage — technician-side composer surface.
@@ -310,7 +311,7 @@ export default function TechnicianComplaintDetailPage({
                   Reporter
                 </dt>
                 <dd className="text-muted-strong">
-                  {complaint.reporterName}
+                  {capitalize(complaint.reporterName)}
                   {!complaint.isAnonymous && complaint.reporterEmail ? (
                     <span className="ml-1 text-muted">({complaint.reporterEmail})</span>
                   ) : null}

@@ -18,8 +18,8 @@ export function SignOut() {
         // error. That's expected — not a failure.
         const isRedirect =
           err instanceof Error &&
-          typeof err.digest === "string" &&
-          err.digest.startsWith("NEXT_REDIRECT");
+          typeof (err as Error & { digest?: string }).digest === "string" &&
+          (err as Error & { digest: string }).digest.startsWith("NEXT_REDIRECT");
         if (!isRedirect) {
           toast.error("Sign out failed");
           return;

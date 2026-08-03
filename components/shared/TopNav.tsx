@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react";
 import { useCurrentUser, useCurrentRole, useSessionStatus } from "@/lib/auth/role-context";
 import { SignOut } from "./SignOut";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { capitalize } from "@/lib/utils/format";
 
 /*
  * TopNav — sticky brand + role-aware menu + user identity.
@@ -101,7 +102,7 @@ export function TopNav({ showNav = true, showSignIn = true }: TopNavProps) {
                   className="hidden max-w-[10rem] truncate text-sm font-medium text-foreground-strong sm:inline"
                   title={user.name || user.email}
                 >
-                  {user.name || user.email}
+                  {capitalize(user.name) || user.email}
                 </span>
               </div>
               <div className="inline-flex min-h-[44px] items-center">

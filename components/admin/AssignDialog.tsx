@@ -18,6 +18,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { Button } from "@/components/ui/Button";
 import { Card, SectionHeader } from "@/components/ui/Card";
 import { Field, Select, Textarea } from "@/components/ui/Field";
+import { capitalize } from "@/lib/utils/format";
 import { H2, Kicker, Supporting } from "@/components/ui/type";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 import { toast } from "sonner";
@@ -236,7 +237,7 @@ export function AssignDialog({
           {!complaint.isAnonymous && complaint.reporterName ? (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-strong">Filed by</span>
-              <span className="font-medium text-foreground-strong">{complaint.reporterName}</span>
+              <span className="font-medium text-foreground-strong">{capitalize(complaint.reporterName)}</span>
               {complaint.reporterEmail ? (
                 <span className="text-muted">({complaint.reporterEmail})</span>
               ) : null}
@@ -354,7 +355,7 @@ export function AssignDialog({
                   <option value="">Choose a technician…</option>
                   {technicians.map((tech) => (
                     <option key={tech._id} value={tech._id}>
-                      {tech.name} · {tech.email}
+                      {capitalize(tech.name)} · {tech.email}
                     </option>
                   ))}
                 </Select>

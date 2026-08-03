@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { capitalize } from "@/lib/utils/format";
 import { toast } from "sonner";
 
 interface User {
@@ -294,7 +295,7 @@ function UserList({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground-strong">
-              {user.name}
+              {capitalize(user.name)}
             </p>
             <p className="truncate text-xs text-muted-strong">
               {user.email}

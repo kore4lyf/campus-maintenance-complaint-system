@@ -18,6 +18,7 @@ import { Kicker, Supporting } from "@/components/ui/type";
 import { useAblyChannel } from "@/lib/realtime/use-ably-channel";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
 import { PageShell, HeroBand, HeroBody } from "@/components/shared/PageShell";
+import { capitalize } from "@/lib/utils/format";
 
 /*
  * TechnicianQueuePage — technician home with edge-to-edge assignments.
@@ -116,7 +117,7 @@ export default function TechnicianQueuePage() {
     <PageShell>
       <HeroBand
         kicker="Technician Console"
-        title="My Assignments"
+        title="Assignments"
         subtitle={
           isLoading
             ? "Loading…"
@@ -237,7 +238,7 @@ export default function TechnicianQueuePage() {
 
                         {!complaint.isAnonymous && complaint.reporterName ? (
                           <p className="mt-1 text-xs text-muted-strong">
-                            {complaint.reporterName}
+                            {capitalize(complaint.reporterName)}
                             {complaint.reporterEmail ? (
                               <span className="ml-1 text-muted">· {complaint.reporterEmail}</span>
                             ) : null}

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, SectionHeader } from "@/components/ui/Card";
+import { capitalize } from "@/lib/utils/format";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
@@ -254,7 +255,7 @@ function MetaFacts({ complaint }: { complaint: ComplaintDetail }) {
       ? { Icon: Timer, label: "Severity", value: complaint.priority }
       : null,
     complaint.reporterName
-      ? { Icon: Info, label: "Reporter", value: complaint.reporterName }
+      ? { Icon: Info, label: "Reporter", value: capitalize(complaint.reporterName) }
       : null,
     complaint.reporterEmail
       ? { Icon: Info, label: "Reporter email", value: complaint.reporterEmail }

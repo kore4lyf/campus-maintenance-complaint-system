@@ -177,7 +177,7 @@ export async function POST(
   const now = new Date();
 
   // Step 1: Transition to the technician's target status (e.g., In Progress → Resolved)
-  const firstUpdate = await ComplaintModel.findOneAndUpdate(
+  const firstUpdate = await (ComplaintModel as any).findOneAndUpdate(
     { _id: complaintId, __v: expectedVersion, status: currentStatus },
     { $set: { status: toStatus, ...(toStatus === "Resolved" && photoUrls.length > 0 ? { proofPhotoUrl: photoUrls[0], resolvedAt: now } : {}) }, $inc: { __v: 1 } },
     { new: true },
@@ -191,9 +191,9 @@ export async function POST(
   }
 
   // Step 2: Auto-close — Resolved → Closed (system action)
-  let finalStatus = toStatus;
+  let finalStatus: string = toStatus;
   if (toStatus === "Resolved") {
-    const closedUpdate = await ComplaintModel.findOneAndUpdate(
+    const closedUpdate = await (ComplaintModel as any).findOneAndUpdate(
       { _id: complaintId, __v: expectedVersion + 1, status: "Resolved" },
       { $set: { status: "Closed" }, $inc: { __v: 1 } },
       { new: true },

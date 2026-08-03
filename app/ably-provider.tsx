@@ -5,14 +5,12 @@ import { AblyProvider } from "ably/react";
 import * as Ably from "ably";
 import { useSessionStatus } from "@/lib/auth/role-context";
 
-const PLACEHOLDER = new Ably.Realtime({ key: "placeholder:does-not-connect" });
-
 export function AblyClientProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [client, setClient] = useState<Ably.Realtime>(PLACEHOLDER);
+  const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const sessionStatus = useSessionStatus();
   const activeClient = useRef<Ably.Realtime | null>(null);
@@ -65,6 +63,10 @@ export function AblyClientProvider({
   }, [sessionStatus]);
 
   if (error) {
+    return <>{children}</>;
+  }
+
+  if (!client) {
     return <>{children}</>;
   }
 

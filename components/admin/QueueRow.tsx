@@ -6,6 +6,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { SeverityBadge } from "@/components/reporter/SeverityBadge";
 import { CategoryBadge } from "@/components/reporter/CategoryBadge";
 import { formatOverdueDuration } from "@/lib/sla/breach-detection";
+import { capitalize } from "@/lib/utils/format";
 
 /*
  * QueueRow — admin "Queue" surface.
@@ -95,7 +96,7 @@ export function QueueRow({ complaint, onSelect }: QueueRowProps) {
 
             {!complaint.isAnonymous && complaint.reporterName ? (
               <p className="mt-1 text-xs text-muted-strong">
-                {complaint.reporterName}
+                {capitalize(complaint.reporterName)}
                 {complaint.reporterEmail ? (
                   <span className="ml-1 text-muted">· {complaint.reporterEmail}</span>
                 ) : null}
