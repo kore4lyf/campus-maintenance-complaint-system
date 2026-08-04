@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { signUpAction } from "@/lib/auth/actions";
+import { useRefetchSession } from "@/lib/auth/role-context";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, PasswordInput } from "@/components/ui/Field";
 
@@ -30,6 +31,7 @@ type SignUpInput = z.infer<typeof signUpSchema>;
 
 export function SignUpForm() {
   const router = useRouter();
+  const refetchSession = useRefetchSession();
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -55,11 +57,8 @@ export function SignUpForm() {
           toast.success(
             result.message ?? "Account created",
           );
-          // Toast appears before the route swap so the user sees it.
-          setTimeout(() => {
-            router.push(result.redirectTo);
-            router.refresh();
-          }, 350);
+          await refetchSession();
+          router.push(result.redirectTo);
           return;
         }
         setFormError(result.error);

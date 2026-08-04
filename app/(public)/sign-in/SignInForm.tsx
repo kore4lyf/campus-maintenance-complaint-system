@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { signInAction } from "@/lib/auth/actions";
+import { useRefetchSession } from "@/lib/auth/role-context";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, PasswordInput } from "@/components/ui/Field";
 
@@ -24,6 +25,7 @@ type SignInInput = z.infer<typeof signInSchema>;
 
 export function SignInForm({ redirectParam }: { redirectParam: string }) {
   const router = useRouter();
+  const refetchSession = useRefetchSession();
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -47,11 +49,8 @@ export function SignInForm({ redirectParam }: { redirectParam: string }) {
         });
         if (result.ok) {
           if (result.message) toast.success(result.message);
-          // Brief hold so the toast is on-screen before the route swap.
-          setTimeout(() => {
-            router.push(result.redirectTo);
-            router.refresh();
-          }, 250);
+          await refetchSession();
+          router.push(result.redirectTo);
           return;
         }
         setFormError(result.error);

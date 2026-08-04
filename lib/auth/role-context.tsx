@@ -16,7 +16,7 @@ export type CurrentUserOrNull = CurrentUser | null;
 
 export type SessionStatus = "loading" | "authenticated" | "unauthenticated";
 
-const authClient = createAuthClient({
+export const authClient = createAuthClient({
   baseURL:
     typeof process !== "undefined" && process.env.NEXT_PUBLIC_BETTER_AUTH_URL
       ? process.env.NEXT_PUBLIC_BETTER_AUTH_URL
@@ -25,6 +25,7 @@ const authClient = createAuthClient({
 
 const UserContext = createContext<CurrentUserOrNull>(null);
 const SessionStatusContext = createContext<SessionStatus>("loading");
+const RefetchSessionContext = createContext<(() => Promise<void>) | null>(null);
 
 function resolveRole(value: unknown): Role | null {
   if (
@@ -42,7 +43,7 @@ export function RoleProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, refetch } = authClient.useSession();
   const sessionUser = (session?.user ?? null) as {
     id?: string;
     email?: string;
@@ -68,7 +69,9 @@ export function RoleProvider({
 
   return (
     <SessionStatusContext.Provider value={status}>
-      <UserContext.Provider value={user}>{children}</UserContext.Provider>
+      <RefetchSessionContext.Provider value={refetch}>
+        <UserContext.Provider value={user}>{children}</UserContext.Provider>
+      </RefetchSessionContext.Provider>
     </SessionStatusContext.Provider>
   );
 }
@@ -84,4 +87,12 @@ export function useCurrentRole(): Role | null {
 
 export function useSessionStatus(): SessionStatus {
   return useContext(SessionStatusContext);
+}
+
+export function useRefetchSession(): () => Promise<void> {
+  const refetch = useContext(RefetchSessionContext);
+  if (!refetch) {
+    throw new Error("useRefetchSession must be used within a RoleProvider");
+  }
+  return refetch;
 }

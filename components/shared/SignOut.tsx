@@ -1,21 +1,19 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { signOutAction } from "@/lib/auth/actions";
+import { authClient } from "@/lib/auth/role-context";
 
 export function SignOut() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleSignOut() {
     startTransition(async () => {
       try {
+        await authClient.signOut();
         await signOutAction();
       } catch (err) {
-        // signOutAction calls redirect("/") which throws a NEXT_REDIRECT
-        // error. That's expected — not a failure.
         const isRedirect =
           err instanceof Error &&
           typeof (err as Error & { digest?: string }).digest === "string" &&
@@ -24,6 +22,7 @@ export function SignOut() {
           toast.error("Sign out failed");
           return;
         }
+        return;
       }
       toast.success("Signed out");
     });
