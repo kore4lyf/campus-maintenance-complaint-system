@@ -9,7 +9,7 @@ The project will install all foundation dependencies at setup time so every late
 
 ## Context
 
-The project starts from a `create-next-app` scaffold (Next.js 16 + React 19 + TypeScript 5 + Tailwind CSS 4 + ESLint 9). The architecture context has already decided the full target stack: BetterAuth for authentication, Mongoose 8 + MongoDB for the data layer, Vercel AI SDK with OpenAI gpt-4o-mini for triage, Ably for real-time push, BullMQ + Upstash Redis for async work, Cloudinary + sharp for image processing, Recharts and @react-pdf/renderer for dashboards and reports. The decision is how to phase the installation and configuration of these dependencies: all at once or spread across slices. A Tracer Bullet approach means proving the whole pipe works end to end, so the foundation should be as complete as possible from day one.
+The project starts from a `create-next-app` scaffold (Next.js 16 + React 19 + TypeScript 5 + Tailwind CSS 4 + ESLint 9). The architecture context has already decided the full target stack: BetterAuth for authentication, Mongoose 8 + MongoDB for the data layer, Vercel AI SDK with OpenAI gpt-4o-mini for triage, Ably for real-time push, Cloudinary + sharp for image processing, Recharts and @react-pdf/renderer for dashboards and reports. The decision is how to phase the installation and configuration of these dependencies: all at once or spread across slices. A Tracer Bullet approach means proving the whole pipe works end to end, so the foundation should be as complete as possible from day one.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ Install every dependency listed in `architecture.md` at project setup. This give
 - Matches Tracer Bullet philosophy (prove the whole pipe works).
 
 **Cons**:
-- Larger initial install footprint; some packages (Ably, BullMQ, Cloudinary) are not used until later slices.
+- Larger initial install footprint; some packages (Ably, Cloudinary) are not used until later slices.
 - Unused packages in `package.json` can confuse new contributors.
 
 **Recommendation**: The project is a single-team resource-constrained deployment. The overhead of unused packages is negligible compared to the developer experience gain of a complete scaffold.
@@ -85,7 +85,6 @@ The project context files (`architecture.md`, `code-standards.md`, `ui-context.m
 | Auth | BetterAuth with nextCookies plugin | Per architecture.md; HTTP-only cookie sessions |
 | AI | Vercel AI SDK + OpenAI gpt-4o-mini | Per architecture.md; low cost per call |
 | Real-time | Ably | Per architecture.md; push notifications |
-| Queue/async | BullMQ + Upstash Redis | Per architecture.md; SLA sweep cron |
 | File storage | Cloudinary + sharp | Per architecture.md; CDN + compression |
 | Charts/export | Recharts + @react-pdf/renderer | Per architecture.md; dashboards + PDF |
 | Rate limiting | @upstash/ratelimit + @upstash/redis | Per architecture.md; abuse prevention |
@@ -101,7 +100,7 @@ The project context files (`architecture.md`, `code-standards.md`, `ui-context.m
 
 **Negative / tradeoffs**:
 - The initial npm install takes longer than a minimal install.
-- package.json contains packages not used until later slices (Ably, BullMQ, Recharts, etc.), which can look noisy to new contributors.
+- package.json contains packages not used until later slices (Ably, Recharts, etc.), which can look noisy to new contributors.
 - Some environment variables (e.g. ABLY_API_KEY, CLOUDINARY_URL) must be supplied by the developer or their team before the corresponding features work, but they are declared early.
 
 **Neutral**:

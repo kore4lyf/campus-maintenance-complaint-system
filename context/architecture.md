@@ -42,8 +42,8 @@ This file is part of the Idea-to-Product six-file context convention. Read with
 - `Ably` for push (assignment notifications, escalation warnings).
 - Auth via `ABLY_API_KEY`.
 
-### Async / queue
-- `BullMQ` with `Upstash Redis` backing (SLA sweep cron; future background jobs).
+### Rate limiting
+- `@upstash/ratelimit` with `Upstash Redis` backing.
 - Tokens: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
 
 ### Image pipeline

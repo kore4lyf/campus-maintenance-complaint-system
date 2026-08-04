@@ -195,8 +195,6 @@ with the other five context files in this directory.
   sla/
     table.ts                          # Severity -> SLA hour mapping
     sweep.ts                          # Vercel cron implementation
-  queue/
-    connection.ts                     # BullMQ + Upstash Redis setup
   realtime/
     ably.ts                           # Ably client + helpers
   storage/

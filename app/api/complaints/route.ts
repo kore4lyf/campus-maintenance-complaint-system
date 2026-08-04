@@ -322,8 +322,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       photoUrls = [uploaded.url];
     }
 
-    const isDuplicate = dup.isDuplicate;
-    const triage = isDuplicate
+    const triage = dup.isDuplicate
       ? duplicateTriageRecordFrom(lookup.category)
       : await triageComplaint({
           description: formInput.description,
@@ -342,19 +341,14 @@ export async function POST(request: Request): Promise<NextResponse> {
           },
         });
 
-    const triageStatus = isDuplicate ? "completed" : "pending";
-    const priority = isDuplicate
-      ? lookup.category.defaultSeverity
-      : lookup.category.defaultSeverity;
+    const priority = pickPriority(triage);
     const now = new Date();
     const sla = computeSlaDeadlines({
       now,
       acknowledgeHrs: lookup.category.slaAcknowledgeHrs,
       resolveHrs: lookup.category.slaResolveHrs,
     });
-    const aiSuggestionRecord = isDuplicate
-      ? aiSuggestionRecordFrom(triage)
-      : undefined;
+    const aiSuggestionRecord = aiSuggestionRecordFrom(triage);
 
     const created = await ComplaintModel.create({
       reporterId: userCtx.reporterId,
@@ -368,8 +362,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       slaResolveBy: sla.slaResolveBy,
       status: "Submitted",
       escalated: false,
-      triageStatus,
-      ...(aiSuggestionRecord ? { aiSuggestion: aiSuggestionRecord } : {}),
+      aiSuggestion: aiSuggestionRecord,
       ...(dup.parentComplaintId ? { parentComplaintId: dup.parentComplaintId } : {}),
     });
 

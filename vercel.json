@@ -3,10 +3,6 @@
     {
       "path": "/api/cron/sla-sweep",
       "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/triage-queue",
-      "schedule": "*/2 * * * *"
     }
   ]
 }
