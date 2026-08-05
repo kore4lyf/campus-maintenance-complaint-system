@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, memo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ComplaintRow } from "@/components/ui/ComplaintRow";
 import {
   ComplaintFilters,
@@ -59,42 +59,23 @@ async function fetchComplaints(
   return res.json();
 }
 
-/*
- * SummaryHeader — memoized so the filter state changing doesn't cause
- * this entire block to re-render. Only the `totalCount` prop changes
- * when the API responds, keeping the header stable.
- */
-const SummaryHeader = memo(function SummaryHeader({
-  totalCount,
-  isFetching,
+const QueueCount = memo(function QueueCount({
+  count,
 }: {
-  totalCount: number;
-  isFetching: boolean;
+  count: number;
 }) {
   return (
-    <Card padding="sm" variant="raised" className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
-        <div className="flex items-center gap-3">
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-accent"
-            aria-hidden="true"
-          />
-          <p className="text-sm font-medium text-foreground-strong">
-            <span className="numeric text-base font-semibold">
-              {totalCount}
-            </span>{" "}
-            complaint{totalCount !== 1 ? "s" : ""}{" "}
-            <span className="text-muted-strong">in your queue</span>
-          </p>
-          {isFetching ? (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
-              <RefreshCw className="h-3 w-3 animate-spin" aria-hidden="true" />
-              refreshing…
-            </span>
-          ) : null}
-        </div>
-      </div>
-    </Card>
+    <div className="flex items-center gap-3">
+      <span
+        className="h-1.5 w-1.5 rounded-full bg-accent"
+        aria-hidden="true"
+      />
+      <p className="text-sm font-medium text-foreground-strong">
+        <span className="numeric text-base font-semibold">{count}</span>{" "}
+        complaint{count !== 1 ? "s" : ""}{" "}
+        <span className="text-muted-strong">in your queue</span>
+      </p>
+    </div>
   );
 });
 
@@ -110,6 +91,7 @@ export function ComplaintList() {
       queryFn: () => fetchComplaints(null, filters),
       refetchInterval: 30_000,
       refetchOnWindowFocus: true,
+      placeholderData: keepPreviousData,
     });
 
   const handleLoadMore = useCallback(async () => {
@@ -187,17 +169,7 @@ export function ComplaintList() {
       <Card padding="sm" variant="raised" className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
           <div className="flex items-center gap-3">
-            <span
-              className="h-1.5 w-1.5 rounded-full bg-accent"
-              aria-hidden="true"
-            />
-            <p className="text-sm font-medium text-foreground-strong">
-              <span className="numeric text-base font-semibold">
-                {allItems.length}
-              </span>{" "}
-              complaint{allItems.length !== 1 ? "s" : ""}{" "}
-              <span className="text-muted-strong">in your queue</span>
-            </p>
+            <QueueCount count={allItems.length} />
             {isFetching ? (
               <span className="inline-flex items-center gap-1.5 text-xs text-muted-strong">
                 <RefreshCw className="h-3 w-3 animate-spin" aria-hidden="true" />

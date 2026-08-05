@@ -153,19 +153,30 @@ function ReportsContent() {
         </div>
       </Card>
 
-      {/* ---------- Conditional breach banner (Astryx <Banner>) ---------- */}
+      {/* ---------- Conditional breach banner ---------- */}
       {breachTotal > 0 ? (
-        <Banner
-          status="error"
-          container="section"
-          title={`${breachTotal} complaint${breachTotal === 1 ? "" : "s"} with SLA breaches in this view`}
-          description="Resolve overdue escalates to DICT Director per the SLA policy. Acknowledge overdue is the early-warning band."
-          icon={
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-danger/15 text-danger">
-              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-            </span>
-          }
-        />
+        <div
+          className="flex items-start gap-3 p-5"
+          style={{
+            backgroundColor: "#fee2e2",
+            color: "#dc2626",
+          }}
+        >
+          <span
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
+            style={{ backgroundColor: "#fee2e2", color: "#dc2626" }}
+          >
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-inherit">
+              {breachTotal} complaint{breachTotal === 1 ? "" : "s"} with SLA breaches
+            </p>
+            <p className="mt-1 text-xs text-inherit">
+              Resolve overdue escalates to DICT Director per the SLA policy. Acknowledge overdue is the early-warning band.
+            </p>
+          </div>
+        </div>
       ) : null}
 
       {/* ---------- KPI summary strip (3-up numeric grid) ---------- */}
@@ -264,10 +275,7 @@ export default function ReportsPage() {
         kicker="DICT Console"
         title="Reports"
         subtitle="Campus maintenance analytics. Filter by time, severity, location, or status; export the filtered set as CSV or PDF for an external audience."
-        actions={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-strong">
-            Live data
-          </span>
+        actions={<span></span>
         }
       />
       <HeroBody>

@@ -6,8 +6,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "./config";
 import { connect } from "@/lib/db/connection";
 import { UserModel } from "@/lib/db/models/user";
+import { defaultLandingForRole, type Role } from "./roles";
 
-export type Role = "reporter" | "dicht_admin" | "dicht_technician";
+export type { Role } from "./roles";
 
 export interface ServerSessionUser {
   id: string;
@@ -137,7 +138,7 @@ export async function requireRole(
 ): Promise<ServerSession> {
   const session = await requireSession();
   if (!allowed.includes(session.user.role)) {
-    redirect("/");
+    redirect(defaultLandingForRole(session.user.role));
   }
   return session;
 }

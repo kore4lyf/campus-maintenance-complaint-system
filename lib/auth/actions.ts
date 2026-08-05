@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth/config";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { defaultLandingForRole } from "@/lib/auth/roles";
 
 export type AuthOk = { ok: true };
 export type AuthRedirect = {
@@ -94,14 +95,6 @@ function resolveRole(
     return candidate;
   }
   return null;
-}
-
-function defaultLandingForRole(
-  role: "reporter" | "dicht_admin" | "dicht_technician" | null,
-): string {
-  if (role === "dicht_admin") return "/admin/queue";
-  if (role === "dicht_technician") return "/technician/assignments";
-  return "/complaints/mine";
 }
 
 export async function signInAction(formData: {
@@ -212,16 +205,16 @@ export async function signUpAction(formData: {
     const isFirstUser = userCount <= 1; // <= 1 because BetterAuth just created this user
 
     let role: "reporter" | "dicht_admin" = "reporter";
-    let redirectTo = "/complaints/mine";
 
     if (isFirstUser) {
       role = "dicht_admin";
-      redirectTo = "/admin/queue";
       await UserModel.updateOne(
         { email: formData.email },
         { $set: { role: "dicht_admin" } },
       );
     }
+
+    const redirectTo = defaultLandingForRole(role);
 
     return {
       ok: true,

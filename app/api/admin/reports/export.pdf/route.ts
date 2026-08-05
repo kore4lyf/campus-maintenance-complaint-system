@@ -12,7 +12,7 @@ import { PdfReport } from "@/components/admin/PdfReport";
 
 function parseTimeWindow(time: string | null, from: string | null, to: string | null): { start: Date; end: Date } {
   const now = new Date();
-  const end = now;
+  let end = now;
   let start: Date;
 
   switch (time) {
@@ -33,7 +33,7 @@ function parseTimeWindow(time: string | null, from: string | null, to: string | 
       if (to) {
         const toDate = new Date(to);
         if (!isNaN(toDate.getTime())) {
-          Object.assign(end, toDate);
+          end = toDate;
         }
       }
       break;
@@ -183,9 +183,10 @@ export async function POST(request: NextRequest) {
         "content-disposition": `attachment; filename="${filename}"`,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[PDF export] renderToBuffer failed:", err);
     return NextResponse.json(
-      { error: "pdf_render_failed" },
+      { error: "pdf_render_failed", detail: err instanceof Error ? err.message : String(err) },
       { status: 500 },
     );
   }

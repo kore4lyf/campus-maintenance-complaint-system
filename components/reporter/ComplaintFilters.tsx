@@ -20,7 +20,6 @@ const STATUS_OPTIONS = [
   { value: "Acknowledged", label: "Acknowledged" },
   { value: "In Progress", label: "In Progress" },
   { value: "Resolved", label: "Resolved" },
-  { value: "Closed", label: "Closed" },
 ];
 
 export function ComplaintFilters({
@@ -28,7 +27,7 @@ export function ComplaintFilters({
   onFilterChange,
 }: ComplaintFiltersProps) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2">
       <Filter className="h-3.5 w-3.5 text-muted-strong" aria-hidden="true" />
       <Select
         value={filters.status}
@@ -43,6 +42,17 @@ export function ComplaintFilters({
           </option>
         ))}
       </Select>
+      <label className="flex items-center gap-1.5 text-xs text-muted-strong cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={filters.includeClosed}
+          onChange={(e) =>
+            onFilterChange({ ...filters, includeClosed: e.target.checked })
+          }
+          className="h-3.5 w-3.5 rounded border-border text-brand focus:ring-brand"
+        />
+        Closed
+      </label>
     </div>
   );
 }

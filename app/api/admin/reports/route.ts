@@ -8,7 +8,7 @@ import { getServerSession, authorizeRole } from "@/lib/auth/dal";
 
 function parseTimeWindow(time: string | null, from: string | null, to: string | null): { start: Date; end: Date } {
   const now = new Date();
-  const end = now;
+  let end = now;
   let start: Date;
 
   switch (time) {
@@ -29,7 +29,7 @@ function parseTimeWindow(time: string | null, from: string | null, to: string | 
       if (to) {
         const toDate = new Date(to);
         if (!isNaN(toDate.getTime())) {
-          Object.assign(end, toDate);
+          end = toDate;
         }
       }
       break;
